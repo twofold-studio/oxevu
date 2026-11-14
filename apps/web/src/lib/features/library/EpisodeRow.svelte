@@ -5,7 +5,7 @@
   import { Button } from "$lib/components/ui/button";
   import type { Item } from "$lib/api/types";
   import { href } from "$lib/state/router.svelte";
-  import { episodeCode } from "$lib/media/grouping";
+  import { episodeName, episodeNumberLabel } from "$lib/media/grouping";
   import { formatClock, formatRuntime } from "$lib/media/format";
   import { resumePosition, watchedFraction } from "$lib/media/progress";
   import Artwork from "$lib/components/Artwork.svelte";
@@ -22,7 +22,10 @@
     upNext?: boolean;
   } = $props();
 
-  const code = $derived(episodeCode(item));
+  // Inside a season list the season is already on screen; mixed lists
+  // (Continue watching, search) name it.
+  const number = $derived(episodeNumberLabel(item, { withSeason: showContext }));
+  const name = $derived(episodeName(item));
   // Episodes use their own still; movies (in Continue watching) fall back to the backdrop.
   const still = $derived(item.thumbnail_url ?? (item.kind === "movie" ? item.backdrop_url : null));
   const resume = $derived(resumePosition(item));
@@ -58,14 +61,14 @@
     href={href.item(item.id)}
     class="flex min-w-0 flex-1 flex-col gap-0.5 after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
   >
-    {#if (showContext && item.show_title) || code || upNext}
+    {#if (showContext && item.show_title) || number || upNext}
       <span class="flex min-w-0 gap-2 text-xs text-muted-foreground">
-        {#if code}<span class="shrink-0 font-mono tabular-nums">{code}</span>{/if}
+        {#if number}<span class="shrink-0 tabular-nums">{number}</span>{/if}
         {#if upNext}<span class="shrink-0 font-medium text-brand">{resume !== null ? "Continue" : "Up next"}</span>{/if}
         {#if showContext && item.show_title}<span class="truncate">{item.show_title}</span>{/if}
       </span>
     {/if}
-    <span class="line-clamp-2 font-medium break-words sm:line-clamp-1">{item.title}</span>
+    <span class="line-clamp-2 font-medium break-words sm:line-clamp-1">{name}</span>
     <!-- Phones hide the status column; keep watched/remaining visible here. -->
     {#if status}
       <span class="flex items-center gap-1 text-xs text-muted-foreground sm:hidden">
@@ -84,7 +87,7 @@
     variant="ghost"
     size="icon"
     class="relative z-10 shrink-0"
-    aria-label={`${resume !== null ? "Resume" : "Play"} ${item.title}`}
+    aria-label={`${resume !== null ? "Resume" : "Play"} ${name}`}
   >
     <PlayIcon />
   </Button>

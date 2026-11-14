@@ -122,29 +122,41 @@ export function seasonLabel(number: number | null): string {
   return `Season ${number}`;
 }
 
-/** "S01E04", or the parts that are known. */
-export function episodeCode(item: Item): string | null {
-  const pad = (value: number) => String(value).padStart(2, "0");
-  const season = item.season_number === null ? "" : `S${pad(item.season_number)}`;
-  const episode = item.episode_number === null ? "" : `E${pad(item.episode_number)}`;
-  return season || episode ? season + episode : null;
-}
-
-/** Compact "S1:E1", or the parts that are known. */
-export function shortEpisodeCode(item: Item): string | null {
-  const season = item.season_number === null ? "" : `S${item.season_number}`;
-  const episode = item.episode_number === null ? "" : `E${item.episode_number}`;
-  return season && episode ? `${season}:${episode}` : season || episode || null;
+/**
+ * Readable position of an episode: "Season 2, Episode 5", or "Episode 5" when
+ * the season is already on screen (`withSeason: false`). Season 0 reads as
+ * "Special 3". Whichever parts are known; null when neither is.
+ */
+export function episodeNumberLabel(item: Item, { withSeason = true } = {}): string | null {
+  const { season_number: season, episode_number: episode } = item;
+  if (season === 0) return episode === null ? "Special" : `Special ${episode}`;
+  const parts = [];
+  if (withSeason && season !== null) parts.push(`Season ${season}`);
+  if (episode !== null) parts.push(`Episode ${episode}`);
+  return parts.join(", ") || null;
 }
 
 // Older scans may still carry the code in the title ("S01E01 - Pilot");
-// dropping it keeps the caption from saying it twice.
+// dropping it keeps captions from showing release-style codes.
 const LEADING_CODE = /^\s*s\d+\s*[:.]?\s*e\d+\s*[-–—:.]?\s*/i;
 
-/** "S1:E1 - Pilot"; just the title when the numbers are unknown. */
-export function episodeCaption(item: Item): string {
-  const code = shortEpisodeCode(item);
-  if (!code) return item.title;
-  const title = item.title.replace(LEADING_CODE, "").trim();
-  return title ? `${code} - ${title}` : code;
+/** The episode's own title without a leading release code; may be empty. */
+export function episodeTitle(item: Item): string {
+  return item.title.replace(LEADING_CODE, "").trim();
+}
+
+/**
+ * The episode's title for buttons and labels, falling back to its readable
+ * number (then the raw title) when the title was only a code.
+ */
+export function episodeName(item: Item): string {
+  return episodeTitle(item) || episodeNumberLabel(item) || item.title;
+}
+
+/** "Episode 5 - Title" (with "Season 2, " unless `withSeason: false`); just the title when numbers are unknown. */
+export function episodeCaption(item: Item, options: { withSeason?: boolean } = {}): string {
+  const number = episodeNumberLabel(item, options);
+  const title = episodeTitle(item);
+  if (!number) return title || item.title;
+  return title ? `${number} - ${title}` : number;
 }

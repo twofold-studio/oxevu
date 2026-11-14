@@ -43,8 +43,12 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Episodes read as "Season 2, Episode 5" (or "Episode 5" inside a season,
+  "Special 3" for specials) instead of S02E05 codes. Show Play/Resume names
+  the episode title, and Next up shows "Season 2, Episode 5 - Title".
+
 - Seasons use selectable poster cards with episode counts and labels. Next Up
-  captions show compact episode numbers and cleaned titles.
+  captions show cleaned titles.
 
 - Show links use readable title slugs, with redirects from existing ID links.
 - Larger detail posters, backdrops and next-episode thumbnails, with responsive

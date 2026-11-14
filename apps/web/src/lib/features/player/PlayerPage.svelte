@@ -11,7 +11,7 @@
   import { catalog } from "$lib/state/catalog.svelte";
   import { session } from "$lib/state/session.svelte";
   import { href } from "$lib/state/router.svelte";
-  import { episodeCode } from "$lib/media/grouping";
+  import { episodeName, episodeNumberLabel } from "$lib/media/grouping";
   import { resumePosition } from "$lib/media/progress";
   import { cn } from "$lib/utils";
   import PlayerControls from "./PlayerControls.svelte";
@@ -49,7 +49,7 @@
   const bufferedEnd = $derived(buffered.find((r) => r.start <= current + 0.5 && r.end >= current)?.end ?? 0);
   const controlsVisible = $derived(!idle.idle || paused || problem !== null);
   const subtitle = $derived(
-    item?.kind === "episode" ? [item.show_title, episodeCode(item)].filter(Boolean).join("  ") : null,
+    item?.kind === "episode" ? [item.show_title, episodeNumberLabel(item)].filter(Boolean).join(" · ") : null,
   );
 
   // App.svelte keys this component by id, so capturing the initial id is intended.
@@ -260,8 +260,8 @@
           <ArrowLeftIcon />
         </Button>
         <div class="flex min-w-0 flex-1 flex-col pt-1">
-          <span class="truncate font-medium">{item.title}</span>
-          {#if subtitle}<span class="truncate font-mono text-xs text-white/60">{subtitle}</span>{/if}
+          <span class="truncate font-medium">{item.kind === "episode" ? episodeName(item) : item.title}</span>
+          {#if subtitle}<span class="truncate text-xs text-white/60">{subtitle}</span>{/if}
         </div>
         {#if saveFailed}
           <span class="flex shrink-0 items-center gap-1.5 pt-1.5 text-xs text-white/70" role="status">

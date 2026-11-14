@@ -8,7 +8,7 @@
   import DetailLayout from "$lib/components/DetailLayout.svelte";
   import { catalog } from "$lib/state/catalog.svelte";
   import { href, router } from "$lib/state/router.svelte";
-  import { episodeCode, initialSeason, seasonLabel } from "$lib/media/grouping";
+  import { episodeName, initialSeason, seasonLabel } from "$lib/media/grouping";
   import { plural } from "$lib/media/format";
   import { resumePosition } from "$lib/media/progress";
   import { artworkSrc } from "$lib/api/artwork";
@@ -87,7 +87,7 @@
           <Button href={href.watch(target.id)} size="lg" class="self-start">
             <PlayIcon data-icon="inline-start" />
             {resuming ? "Resume" : "Play"}
-            {episodeCode(target) ?? target.title}
+            {episodeName(target)}
           </Button>
         {/if}
       </header>

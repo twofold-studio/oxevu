@@ -1,6 +1,12 @@
 import { describe, expect, test } from "vite-plus/test";
 import type { Item } from "$lib/api/types";
-import { episodeCaption, groupShows, initialSeason } from "./grouping";
+import {
+  episodeCaption,
+  episodeName,
+  episodeNumberLabel,
+  groupShows,
+  initialSeason,
+} from "./grouping";
 
 const LIB = "11111111-1111-4111-8111-111111111111";
 const art = (path: string) => `/api/v1/items/${path}/artwork/poster`;
@@ -55,21 +61,63 @@ describe("groupShows seasons", () => {
   });
 });
 
-describe("episodeCaption", () => {
-  test("joins a compact code and the title", () => {
-    expect(episodeCaption(episode(1, 1, { title: "Welcome to the Playground" }))).toBe(
-      "S1:E1 - Welcome to the Playground",
+describe("episodeNumberLabel", () => {
+  test("names season and episode in words", () => {
+    expect(episodeNumberLabel(episode(2, 5))).toBe("Season 2, Episode 5");
+    expect(episodeNumberLabel(episode(2, 5), { withSeason: false })).toBe("Episode 5");
+  });
+
+  test("keeps whichever numbers are known", () => {
+    expect(episodeNumberLabel(episode(2, null))).toBe("Season 2");
+    expect(episodeNumberLabel(episode(2, null), { withSeason: false })).toBeNull();
+    expect(episodeNumberLabel(episode(null, 4))).toBe("Episode 4");
+    expect(episodeNumberLabel(episode(null, null))).toBeNull();
+  });
+
+  test("labels season 0 as specials", () => {
+    expect(episodeNumberLabel(episode(0, 3))).toBe("Special 3");
+    expect(episodeNumberLabel(episode(0, 3), { withSeason: false })).toBe("Special 3");
+    expect(episodeNumberLabel(episode(0, null))).toBe("Special");
+  });
+});
+
+describe("episodeName", () => {
+  test("uses the episode title", () => {
+    expect(episodeName(episode(2, 5, { title: "Blisters and Bedrock" }))).toBe(
+      "Blisters and Bedrock",
     );
+  });
+
+  test("drops a legacy code and falls back to the readable number", () => {
+    expect(episodeName(episode(2, 5, { title: "S02E05 - Blisters and Bedrock" }))).toBe(
+      "Blisters and Bedrock",
+    );
+    expect(episodeName(episode(2, 5, { title: "S02E05" }))).toBe("Season 2, Episode 5");
+    expect(episodeName(episode(null, null, { title: "S02E05" }))).toBe("S02E05");
+  });
+});
+
+describe("episodeCaption", () => {
+  test("joins the readable number and the title", () => {
+    expect(episodeCaption(episode(2, 5, { title: "Blisters and Bedrock" }))).toBe(
+      "Season 2, Episode 5 - Blisters and Bedrock",
+    );
+    expect(
+      episodeCaption(episode(2, 5, { title: "Blisters and Bedrock" }), { withSeason: false }),
+    ).toBe("Episode 5 - Blisters and Bedrock");
   });
 
   test("does not repeat a code already in the title", () => {
     expect(episodeCaption(episode(1, 3, { title: "S01E03 - The Base Violence" }))).toBe(
-      "S1:E3 - The Base Violence",
+      "Season 1, Episode 3 - The Base Violence",
     );
-    expect(episodeCaption(episode(1, 3, { title: "S01E03" }))).toBe("S1:E3");
+    expect(episodeCaption(episode(1, 3, { title: "S01E03" }))).toBe("Season 1, Episode 3");
   });
 
-  test("falls back to the title when numbers are unknown", () => {
+  test("handles specials and missing numbers", () => {
+    expect(episodeCaption(episode(0, 2, { title: "Behind the Scenes" }))).toBe(
+      "Special 2 - Behind the Scenes",
+    );
     expect(episodeCaption(episode(null, null, { title: "Pilot" }))).toBe("Pilot");
   });
 });

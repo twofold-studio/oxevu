@@ -17,7 +17,7 @@
   import { catalog } from "$lib/state/catalog.svelte";
   import { href } from "$lib/state/router.svelte";
   import { formatClock, formatRuntime } from "$lib/media/format";
-  import { seasonKeyOf } from "$lib/media/grouping";
+  import { episodeNumberLabel, seasonKeyOf } from "$lib/media/grouping";
   import { resumePosition, watchedFraction } from "$lib/media/progress";
   import ProgressLine from "$lib/features/library/ProgressLine.svelte";
   import Artwork from "$lib/components/Artwork.svelte";
@@ -73,13 +73,7 @@
     return { show, previous: ordered[index - 1], next: ordered[index + 1] };
   });
 
-  const episodeLine = $derived.by(() => {
-    if (!item || item.kind !== "episode") return null;
-    const parts = [];
-    if (item.season_number !== null) parts.push(item.season_number === 0 ? "Special" : `Season ${item.season_number}`);
-    if (item.episode_number !== null) parts.push(`Episode ${item.episode_number}`);
-    return parts.join(", ") || null;
-  });
+  const episodeLine = $derived(item?.kind === "episode" ? episodeNumberLabel(item) : null);
 </script>
 
 {#if item}

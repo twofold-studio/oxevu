@@ -51,7 +51,8 @@
       <ProgressLine value={fraction} class="absolute inset-x-0 bottom-0 h-1 bg-background/60" />
     {/if}
   </div>
-  <!-- One understated line, "S1:E1 - Title"; truncation keeps the full text in `title`. -->
+  <!-- One understated line, "Season 2, Episode 5 - Title" (the card can point
+       outside the open season tab, so it names the season); truncation keeps the full text in `title`. -->
   <span class="flex min-w-0 items-baseline justify-between gap-3 text-sm">
     <span class="truncate text-foreground/85 group-hover:underline" title={caption}>{caption}</span>
     {#if remaining}<span class="shrink-0 text-xs text-muted-foreground tabular-nums">{remaining}</span>{/if}
