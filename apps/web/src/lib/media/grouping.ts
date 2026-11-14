@@ -19,6 +19,9 @@ export interface Show {
   inProgress: Item[];
   /** First unwatched episode in order, or the first episode if all are done. */
   next: Item;
+  /** Show-level art inherited by its episodes; the first episode that has it wins. */
+  posterUrl: string | null;
+  backdropUrl: string | null;
 }
 
 const UNTITLED = "Untitled series";
@@ -67,6 +70,8 @@ export function groupShows(items: Item[]): Show[] {
       episodeCount: episodes.length,
       inProgress: episodes.filter((e) => e.position_seconds > 0 && !e.completed),
       next: episodes.find((e) => !e.completed) ?? episodes[0],
+      posterUrl: episodes.find((e) => e.poster_url)?.poster_url ?? null,
+      backdropUrl: episodes.find((e) => e.backdrop_url)?.backdrop_url ?? null,
     });
   }
   return shows.sort((a, b) => collator.compare(a.title, b.title));

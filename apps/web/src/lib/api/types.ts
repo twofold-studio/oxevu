@@ -56,7 +56,18 @@ export interface Item {
   audio_codec: string | null;
   position_seconds: number;
   completed: boolean;
+  /**
+   * Local artwork as relative same-origin URLs
+   * (`/api/v1/items/{id}/artwork/{kind}`). Optional because records from
+   * servers predating the artwork extension omit them; null when no sidecar
+   * image was found. Episodes carry their show's inherited poster.
+   */
+  poster_url?: string | null;
+  thumbnail_url?: string | null;
+  backdrop_url?: string | null;
 }
+
+export type ArtworkKind = "poster" | "thumbnail" | "backdrop";
 
 export interface ProgressUpdate {
   position_seconds: number;

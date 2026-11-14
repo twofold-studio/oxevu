@@ -11,6 +11,8 @@
   import { episodeCode, seasonLabel, type Season } from "$lib/media/grouping";
   import { plural } from "$lib/media/format";
   import { resumePosition } from "$lib/media/progress";
+  import Artwork from "$lib/components/Artwork.svelte";
+  import Backdrop from "$lib/components/Backdrop.svelte";
   import EpisodeList from "./EpisodeList.svelte";
 
   let { showKey }: { showKey: string } = $props();
@@ -44,13 +46,22 @@
   {#if !show}
     <NotFound title="Series not found" description="It may have been removed by a rescan." />
   {:else}
-    <Page>
+    <Page class="relative isolate">
+      <Backdrop src={show.backdropUrl} />
       <div class="mb-8 flex flex-col gap-5 border-b pb-8 sm:flex-row sm:items-end sm:justify-between">
-        <div class="flex min-w-0 flex-col gap-2">
+        <div class="flex min-w-0 items-end gap-5">
+          <Artwork
+            src={show.posterUrl}
+            alt={`Poster for ${show.title}`}
+            eager
+            class="aspect-[2/3] w-24 shrink-0 rounded-lg border shadow-lg shadow-black/40 sm:w-36"
+          />
+          <div class="flex min-w-0 flex-col gap-2">
           <h1 class="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">{show.title}</h1>
           <p class="text-sm text-muted-foreground">
             {plural(show.seasons.length, "season")}, {plural(show.episodeCount, "episode")}
           </p>
+          </div>
         </div>
         {#if target}
           <Button href={href.watch(target.id)} size="lg" class="self-start sm:self-auto">

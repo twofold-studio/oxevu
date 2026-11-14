@@ -23,6 +23,7 @@
 <TitlePlate
   href={href.show(show.key)}
   title={show.title}
+  poster={show.posterUrl}
   {facts}
   {detail}
   progress={watchedCount > 0 ? watchedCount / show.episodeCount : null}

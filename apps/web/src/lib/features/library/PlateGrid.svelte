@@ -9,7 +9,7 @@
 <div class="overflow-hidden rounded-xl border">
   <ul
     aria-label={label}
-    class="-mr-px -mb-px grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5"
+    class="-mr-px -mb-px grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6"
   >
     {@render children()}
   </ul>

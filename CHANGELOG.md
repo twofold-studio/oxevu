@@ -9,6 +9,9 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Authenticated local posters, backdrops and episode stills, plus cached FFmpeg
+  thumbnails. Library cards and details now display available artwork.
+
 - First Rust server and embedded Svelte web client: administrator setup/sign-in,
   read-only movie/TV scanning, catalog browsing, original-file playback with byte
   ranges, and saved progress. Includes dark responsive library and player views.

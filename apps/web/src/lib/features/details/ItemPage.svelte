@@ -19,6 +19,8 @@
   import { formatClock, formatRuntime } from "$lib/media/format";
   import { resumePosition, watchedFraction } from "$lib/media/progress";
   import ProgressLine from "$lib/features/library/ProgressLine.svelte";
+  import Artwork from "$lib/components/Artwork.svelte";
+  import Backdrop from "$lib/components/Backdrop.svelte";
   import FileFacts from "./FileFacts.svelte";
   import PlaybackNotice from "./PlaybackNotice.svelte";
 
@@ -41,6 +43,19 @@
       .catch((e: unknown) => {
         error = { missing: e instanceof ApiError && e.status === 404, message: errorMessage(e) };
       });
+  });
+
+  // Movies lead with their poster; episodes with their own still, else the
+  // show poster they inherit. Old records without artwork fields show none.
+  const art = $derived.by(() => {
+    if (!item) return null;
+    if (item.kind === "episode" && item.thumbnail_url)
+      return { src: item.thumbnail_url, alt: `Still from ${item.title}`, frame: "aspect-video w-full max-w-md" };
+    if (item.poster_url) {
+      const subject = item.kind === "episode" ? (item.show_title ?? item.title) : item.title;
+      return { src: item.poster_url, alt: `Poster for ${subject}`, frame: "aspect-[2/3] w-32 sm:w-44" };
+    }
+    return null;
   });
 
   const resume = $derived(item ? resumePosition(item) : null);
@@ -66,9 +81,18 @@
 </script>
 
 {#if item}
-  <Page>
+  <Page class="relative isolate">
+    <Backdrop src={item.backdrop_url} />
     <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_18rem]">
       <div class="flex min-w-0 flex-col gap-6">
+        {#if art}
+          <Artwork
+            src={art.src}
+            alt={art.alt}
+            eager
+            class={`${art.frame} shrink-0 rounded-lg border shadow-lg shadow-black/40`}
+          />
+        {/if}
         <div class="flex flex-col gap-2">
           {#if item.kind === "episode"}
             <p class="text-sm text-muted-foreground">

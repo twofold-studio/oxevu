@@ -7,6 +7,8 @@ async fn app() -> App {
         token: "test-token".into(),
         origin: "http://localhost:3000".into(),
         scan: Arc::new(Semaphore::new(1)),
+        artwork_jobs: Arc::new(Semaphore::new(1)),
+        artwork_cache: std::env::temp_dir().join(uuid::Uuid::new_v4().to_string()),
     }
 }
 #[tokio::test]
@@ -115,4 +117,16 @@ async fn original_ranges_and_progress_are_authenticated_and_persistent() {
     .unwrap();
     assert_eq!(catalog(&a, &h).await.unwrap()[0]["position_seconds"], 3.5);
     tokio::fs::remove_dir_all(dir).await.unwrap();
+}
+
+#[tokio::test]
+async fn artwork_requires_authentication() {
+    let error = artwork::serve(
+        State(app().await),
+        HeaderMap::new(),
+        Path(("unknown".to_owned(), "poster".to_owned())),
+    )
+    .await
+    .unwrap_err();
+    assert_eq!(error.0, StatusCode::UNAUTHORIZED);
 }

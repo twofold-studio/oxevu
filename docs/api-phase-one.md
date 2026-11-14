@@ -23,3 +23,16 @@ No transcode this phase; clearly report browser playback failures and original d
 Frontend owns apps/web only; backend owns Cargo workspace/crates/server only. Parent owns shared docs/tooling and integration. Do not edit another owner's files. Report contract changes to parent. No Git init, commits, deployment or subdelegation.
 
 Development: set backend `OXEVU_ORIGIN=http://localhost:5173` when using the Vite proxy. Production defaults to `http://localhost:3000`; the browser URL must match the configured origin.
+
+## Artwork extension
+
+Item adds nullable `poster_url`, `thumbnail_url`, `backdrop_url` (relative same-origin URLs).
+GET `/items/{id}/artwork/{kind}` where kind is `poster`, `thumbnail`, or `backdrop`
+requires the same session authorization as catalog/stream. Return proper image MIME
+or 404. Discover local image sidecars during scan: movie stem-poster/backdrop/thumb,
+movie folder poster/folder/backdrop, show ancestor poster/folder/backdrop and episode
+stem-thumb. Show cards use episode's inherited show poster. Never attach a different
+movie's artwork from a shared root. Canonicalize images and enforce library containment;
+never serve arbitrary caller paths. Prefer existing art; generated thumbnails are cached
+outside media roots, bounded by subprocess timeout/concurrency. No third-party catalog
+provider or credentials required. Old catalog records without these fields remain valid.

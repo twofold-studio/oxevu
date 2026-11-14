@@ -74,7 +74,11 @@ For frontend development run the backend with
 forwards `/api` to port 3000. See crates/server/README.md for server configuration.
 
 Current limits: original-file delivery only, no conversion, track selection or
-external metadata/artwork. Browser support depends on container/codecs; copied
+online metadata recognition. Local artwork sidecars and generated thumbnails are supported. Browser support depends on container/codecs; copied
 MKV samples may require the later remux/transcode phase. Rescans retain missing
 files, probe output is not yet size-capped, and runtime/media directory separation
 is an operator requirement. NVIDIA and physical mobile testing remain outstanding.
+
+Artwork caches currently have no eviction or source-change invalidation. Rescan
+after adding local sidecars. Recognition against an external metadata catalog is
+not implemented yet; copied sample artwork is optional local input.

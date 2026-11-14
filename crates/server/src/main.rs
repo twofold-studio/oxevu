@@ -10,6 +10,7 @@ use serde_json::{Value, json};
 use sqlx::{Row, SqlitePool};
 use std::{path::PathBuf, sync::Arc};
 use tokio::sync::Semaphore;
+mod artwork;
 mod assets;
 mod scan;
 type Error = (StatusCode, Json<Value>);
@@ -33,6 +34,8 @@ struct App {
     token: String,
     origin: String,
     scan: Arc<Semaphore>,
+    artwork_jobs: Arc<Semaphore>,
+    artwork_cache: PathBuf,
 }
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -77,6 +80,8 @@ async fn main() -> anyhow::Result<()> {
         token,
         origin,
         scan: Arc::new(Semaphore::new(1)),
+        artwork_jobs: Arc::new(Semaphore::new(1)),
+        artwork_cache: dir.join("artwork"),
     };
     let api = Router::new()
         .route("/auth/status", get(status))
@@ -88,6 +93,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/items", get(items))
         .route("/items/{id}", get(item))
         .route("/items/{id}/stream", get(stream))
+        .route("/items/{id}/artwork/{kind}", get(artwork::serve))
         .route("/items/{id}/progress", put(progress));
     let router = Router::new()
         .nest("/api/v1", api)
@@ -302,6 +308,12 @@ async fn catalog(a: &App, h: &HeaderMap) -> Result<Vec<Value>> {
     rows.iter()
         .map(|r| {
             let mut v: Value = serde_json::from_str(r.get("data")).map_err(bad)?;
+            for kind in ["poster", "thumbnail", "backdrop"] {
+                v.as_object_mut()
+                    .ok_or_else(|| bad("invalid catalog item"))?
+                    .entry(format!("{kind}_url"))
+                    .or_insert(Value::Null);
+            }
             v["position_seconds"] = json!(r.try_get::<f64, _>("position").map_err(db)?);
             v["completed"] = json!(r.try_get::<bool, _>("completed").map_err(db)?);
             Ok(v)

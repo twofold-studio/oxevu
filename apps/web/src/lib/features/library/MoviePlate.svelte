@@ -15,6 +15,7 @@
 <TitlePlate
   href={href.item(item.id)}
   title={item.title}
+  poster={item.poster_url}
   {facts}
   detail={formatRuntime(item.duration_seconds)}
   progress={watchedFraction(item)}

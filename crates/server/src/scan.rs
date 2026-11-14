@@ -98,7 +98,8 @@ pub(super) async fn scan(
                 .await
                 .map_err(db)?;
             let item_id = old.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-            let data = json!({"id":item_id,"library_id":id,"title":stem.trim(),"kind":if tv{"episode"}else{"movie"},"show_title":episode.as_ref().and_then(|c|c.get(1)).map(|s|s.as_str().trim()),"season_number":episode.as_ref().and_then(|c|c.get(2)).and_then(|s|s.as_str().parse::<u32>().ok()),"episode_number":episode.as_ref().and_then(|c|c.get(3)).and_then(|s|s.as_str().parse::<u32>().ok()),"duration_seconds":meta["format"]["duration"].as_str().and_then(|s|s.parse::<f64>().ok()),"container":meta["format"]["format_name"],"video_codec":codec("video"),"audio_codec":codec("audio"),"position_seconds":0,"completed":false});
+            let mut data = json!({"id":item_id,"library_id":id,"title":stem.trim(),"kind":if tv{"episode"}else{"movie"},"show_title":episode.as_ref().and_then(|c|c.get(1)).map(|s|s.as_str().trim()),"season_number":episode.as_ref().and_then(|c|c.get(2)).and_then(|s|s.as_str().parse::<u32>().ok()),"episode_number":episode.as_ref().and_then(|c|c.get(3)).and_then(|s|s.as_str().parse::<u32>().ok()),"duration_seconds":meta["format"]["duration"].as_str().and_then(|s|s.parse::<f64>().ok()),"container":meta["format"]["format_name"],"video_codec":codec("video"),"audio_codec":codec("audio"),"position_seconds":0,"completed":false});
+            artwork::attach(&a, &mut data, &path, &root, tv, &mut errors).await;
             sqlx::query("INSERT INTO items VALUES(?,?,?,?) ON CONFLICT(path) DO UPDATE SET data=excluded.data").bind(item_id).bind(&id).bind(path.to_string_lossy().as_ref()).bind(data.to_string()).execute(&a.pool).await.map_err(db)?;
             scanned += 1;
         }

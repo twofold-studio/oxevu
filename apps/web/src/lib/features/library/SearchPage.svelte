@@ -30,7 +30,7 @@
 <Page>
   <PageHeader title={query ? `Results for “${query}”` : "Search"} />
   <CatalogGate>
-    {#snippet skeleton()}<PlateSkeleton count={4} />{/snippet}
+    {#snippet skeleton()}<PlateSkeleton count={6} />{/snippet}
     {#if total === 0}
       <Empty.Root class="border">
         <Empty.Header>

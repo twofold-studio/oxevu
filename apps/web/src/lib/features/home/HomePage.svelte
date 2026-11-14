@@ -13,7 +13,8 @@
   import EpisodeList from "$lib/features/library/EpisodeList.svelte";
   import LibraryEmpty from "$lib/features/library/LibraryEmpty.svelte";
 
-  const PREVIEW = 8;
+  // Divides evenly into the 2/3/4/6-column poster grid.
+  const PREVIEW = 12;
 </script>
 
 {#snippet sectionHeader(title: string, link?: { href: string; label: string })}
@@ -32,7 +33,7 @@
     {#snippet skeleton()}
       <div class="flex flex-col gap-10">
         <Skeleton class="h-40 w-full rounded-xl" />
-        <PlateSkeleton count={4} />
+        <PlateSkeleton count={6} />
       </div>
     {/snippet}
 
