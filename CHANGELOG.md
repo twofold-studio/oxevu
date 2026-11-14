@@ -33,6 +33,10 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Show links use readable title slugs, with redirects from existing ID links.
+- Larger detail posters, backdrops and next-episode thumbnails, with responsive
+  stacked layouts on phones and larger catalog covers.
+
 - Initialized Gitadel development workflow with checked commits and pushes for
   completed steps.
 

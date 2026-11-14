@@ -21,7 +21,7 @@
 </script>
 
 <TitlePlate
-  href={href.show(show.key)}
+  href={href.show(show.slug)}
   title={show.title}
   poster={show.posterUrl}
   {facts}

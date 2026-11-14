@@ -1,4 +1,5 @@
 import type { Item } from "$lib/api/types";
+import { assignShowSlugs } from "./show-slug";
 
 // The API lists episodes flat. Shows are grouped per library by show title so
 // two libraries with the same series name stay distinct.
@@ -10,7 +11,10 @@ export interface Season {
 }
 
 export interface Show {
+  /** Internal identity: library id + title. Never shown in URLs. */
   key: string;
+  /** Unique, readable URL segment; see show-slug.ts. */
+  slug: string;
   title: string;
   libraryId: string;
   seasons: Season[];
@@ -53,7 +57,7 @@ export function groupShows(items: Item[]): Show[] {
     else byShow.set(key, [item]);
   }
 
-  const shows: Show[] = [];
+  const shows: Omit<Show, "slug">[] = [];
   for (const [key, episodes] of byShow) {
     episodes.sort(compareEpisodes);
     const seasons: Season[] = [];
@@ -74,7 +78,10 @@ export function groupShows(items: Item[]): Show[] {
       backdropUrl: episodes.find((e) => e.backdrop_url)?.backdrop_url ?? null,
     });
   }
-  return shows.sort((a, b) => collator.compare(a.title, b.title));
+  const slugs = assignShowSlugs(shows);
+  return shows
+    .map((show) => ({ ...show, slug: slugs.get(show.key) ?? show.key }))
+    .sort((a, b) => collator.compare(a.title, b.title));
 }
 
 export function seasonLabel(number: number | null): string {

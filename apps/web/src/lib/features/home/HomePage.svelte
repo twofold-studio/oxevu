@@ -13,7 +13,7 @@
   import EpisodeList from "$lib/features/library/EpisodeList.svelte";
   import LibraryEmpty from "$lib/features/library/LibraryEmpty.svelte";
 
-  // Divides evenly into the 2/3/4/6-column poster grid.
+  // Divides evenly into the 2/3/4/6-column poster grid (see PlateGrid).
   const PREVIEW = 12;
 </script>
 

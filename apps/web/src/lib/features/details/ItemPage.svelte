@@ -9,18 +9,19 @@
   import { Skeleton } from "$lib/components/ui/skeleton";
   import * as Alert from "$lib/components/ui/alert";
   import Page from "$lib/components/Page.svelte";
+  import DetailLayout from "$lib/components/DetailLayout.svelte";
   import NotFound from "$lib/components/NotFound.svelte";
   import { itemsApi } from "$lib/api/endpoints";
   import { ApiError, errorMessage } from "$lib/api/client";
   import type { Item } from "$lib/api/types";
   import { catalog } from "$lib/state/catalog.svelte";
   import { href } from "$lib/state/router.svelte";
-  import { showKey } from "$lib/media/grouping";
   import { formatClock, formatRuntime } from "$lib/media/format";
   import { resumePosition, watchedFraction } from "$lib/media/progress";
   import ProgressLine from "$lib/features/library/ProgressLine.svelte";
   import Artwork from "$lib/components/Artwork.svelte";
-  import Backdrop from "$lib/components/Backdrop.svelte";
+  import { artworkSrc } from "$lib/api/artwork";
+  import PosterArt from "$lib/features/library/PosterArt.svelte";
   import FileFacts from "./FileFacts.svelte";
   import PlaybackNotice from "./PlaybackNotice.svelte";
 
@@ -49,11 +50,11 @@
   // show poster they inherit. Old records without artwork fields show none.
   const art = $derived.by(() => {
     if (!item) return null;
-    if (item.kind === "episode" && item.thumbnail_url)
-      return { src: item.thumbnail_url, alt: `Still from ${item.title}`, frame: "aspect-video w-full max-w-md" };
-    if (item.poster_url) {
+    if (item.kind === "episode" && artworkSrc(item.thumbnail_url))
+      return { shape: "still" as const, src: item.thumbnail_url, title: item.title };
+    if (artworkSrc(item.poster_url)) {
       const subject = item.kind === "episode" ? (item.show_title ?? item.title) : item.title;
-      return { src: item.poster_url, alt: `Poster for ${subject}`, frame: "aspect-[2/3] w-32 sm:w-44" };
+      return { shape: "poster" as const, src: item.poster_url, title: subject };
     }
     return null;
   });
@@ -64,7 +65,7 @@
   // Neighbouring episodes within the same series, in season/episode order.
   const siblings = $derived.by(() => {
     if (!item || item.kind !== "episode") return null;
-    const show = catalog.shows.find((s) => s.key === showKey(item));
+    const show = catalog.showOf(item);
     if (!show) return null;
     const ordered = show.seasons.flatMap((s) => s.episodes);
     const index = ordered.findIndex((e) => e.id === item.id);
@@ -81,30 +82,39 @@
 </script>
 
 {#if item}
-  <Page class="relative isolate">
-    <Backdrop src={item.backdrop_url} />
-    <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_18rem]">
-      <div class="flex min-w-0 flex-col gap-6">
-        {#if art}
-          <Artwork
-            src={art.src}
-            alt={art.alt}
-            eager
-            class={`${art.frame} shrink-0 rounded-lg border shadow-lg shadow-black/40`}
-          />
-        {/if}
+  {#snippet leadArt()}
+    {#if art?.shape === "still"}
+      <Artwork
+        src={art.src}
+        alt={`Still from ${art.title}`}
+        eager
+        class="aspect-video w-full max-w-xl rounded-xl border shadow-2xl shadow-black/60 lg:max-w-none"
+      />
+    {:else if art}
+      <PosterArt src={art.src} title={art.title} />
+    {/if}
+  {/snippet}
+  <DetailLayout
+    backdrop={item.backdrop_url}
+    poster={item.poster_url}
+    art={art ? leadArt : undefined}
+    artShape={art?.shape}
+  >
+    <div class="flex flex-col gap-6">
         <div class="flex flex-col gap-2">
           {#if item.kind === "episode"}
             <p class="text-sm text-muted-foreground">
               {#if siblings}
-                <a href={href.show(siblings.show.key)} class="text-foreground hover:underline">{siblings.show.title}</a>
+                <a href={href.show(siblings.show.slug)} class="text-foreground hover:underline">{siblings.show.title}</a>
               {:else}
                 {item.show_title ?? "Series"}
               {/if}
               {#if episodeLine}<span class="ml-2">{episodeLine}</span>{/if}
             </p>
           {/if}
-          <h1 class="text-3xl leading-tight font-semibold tracking-tight text-balance break-words sm:text-4xl">
+          <h1
+            class="text-4xl leading-[1.05] font-semibold tracking-tight text-balance break-words [text-shadow:0_2px_24px_rgb(0_0_0/0.6)] lg:text-5xl"
+          >
             {item.title}
           </h1>
           <p class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
@@ -178,13 +188,12 @@
             {/if}
           </nav>
         {/if}
-      </div>
-
-      <aside class="lg:border-l lg:pl-8">
-        <FileFacts {item} />
-      </aside>
     </div>
-  </Page>
+
+    <div class="max-w-xl">
+      <FileFacts {item} />
+    </div>
+  </DetailLayout>
 {:else if error}
   {#if error.missing}
     <NotFound title="Title not found" description="It may have been removed by a rescan." />

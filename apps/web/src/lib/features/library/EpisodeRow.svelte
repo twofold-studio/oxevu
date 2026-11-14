@@ -29,9 +29,9 @@
   );
 </script>
 
-<li class="relative flex items-center gap-3 px-3 py-2.5 transition-colors duration-200 hover:bg-accent/40 sm:gap-4 sm:px-4">
+<li class="relative flex items-center gap-3 px-3 py-3 transition-colors duration-200 hover:bg-accent/40 sm:gap-4 sm:px-4">
   <!-- The title beside it names the episode, so the still is decorative. -->
-  <Artwork src={still} alt="" class="aspect-video w-24 shrink-0 rounded-md border sm:w-36">
+  <Artwork src={still} alt="" class="aspect-video w-28 shrink-0 rounded-md border sm:w-44 lg:w-52">
     {#snippet fallback()}
       <span aria-hidden="true" class="absolute inset-0 flex items-center justify-center text-muted-foreground/50">
         <FilmIcon class="size-4" />

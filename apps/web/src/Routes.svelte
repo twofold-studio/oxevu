@@ -19,8 +19,8 @@
 {:else if route.name === "shows"}
   <ShowsPage />
 {:else if route.name === "show"}
-  {#key route.key}
-    <ShowPage showKey={route.key} />
+  {#key route.ref}
+    <ShowPage showRef={route.ref} />
   {/key}
 {:else if route.name === "item"}
   {#key route.id}

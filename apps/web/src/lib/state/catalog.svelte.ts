@@ -1,7 +1,8 @@
 import { itemsApi } from "$lib/api/endpoints";
 import { errorMessage } from "$lib/api/client";
 import type { Item } from "$lib/api/types";
-import { groupShows } from "$lib/media/grouping";
+import { groupShows, showKey, type Show } from "$lib/media/grouping";
+import { findShow } from "$lib/media/show-slug";
 
 // One shared copy of the item list. Phase one returns every playable item in a
 // single response, so browsing, search and grouping derive from it locally.
@@ -45,6 +46,18 @@ class Catalog {
 
   find(id: string): Item | undefined {
     return this.items.find((item) => item.id === id);
+  }
+
+  /** Resolves a show URL segment (slug or legacy key). */
+  findShow(ref: string): Show | undefined {
+    return findShow(this.shows, ref);
+  }
+
+  /** The series an episode belongs to, for links back to it. */
+  showOf(item: Item): Show | undefined {
+    if (item.kind !== "episode") return undefined;
+    const key = showKey(item);
+    return this.shows.find((show) => show.key === key);
   }
 
   /** Keep the cached copy in step with progress written by the player. */

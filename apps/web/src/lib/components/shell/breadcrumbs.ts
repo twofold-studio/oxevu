@@ -2,7 +2,6 @@ import type { Route } from "$lib/state/router.svelte";
 import { href } from "$lib/state/router.svelte";
 import type { Item } from "$lib/api/types";
 import type { Show } from "$lib/media/grouping";
-import { showKey } from "$lib/media/grouping";
 
 export interface Crumb {
   label: string;
@@ -11,7 +10,8 @@ export interface Crumb {
 
 interface Lookup {
   find: (id: string) => Item | undefined;
-  shows: Show[];
+  findShow: (ref: string) => Show | undefined;
+  showOf: (item: Item) => Show | undefined;
 }
 
 export function breadcrumbs(route: Route, catalog: Lookup): Crumb[] {
@@ -23,7 +23,7 @@ export function breadcrumbs(route: Route, catalog: Lookup): Crumb[] {
     case "shows":
       return [{ label: "Shows" }];
     case "show": {
-      const show = catalog.shows.find((s) => s.key === route.key);
+      const show = catalog.findShow(route.ref);
       return [{ label: "Shows", href: href.shows() }, { label: show?.title ?? "Series" }];
     }
     case "item": {
@@ -31,9 +31,13 @@ export function breadcrumbs(route: Route, catalog: Lookup): Crumb[] {
       if (!item) return [{ label: "Title" }];
       if (item.kind === "movie")
         return [{ label: "Movies", href: href.movies() }, { label: item.title }];
+      const show = catalog.showOf(item);
       return [
         { label: "Shows", href: href.shows() },
-        { label: item.show_title ?? "Series", href: href.show(showKey(item)) },
+        {
+          label: show?.title ?? item.show_title ?? "Series",
+          href: show ? href.show(show.slug) : undefined,
+        },
         { label: item.title },
       ];
     }

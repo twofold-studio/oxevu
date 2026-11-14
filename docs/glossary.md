@@ -28,6 +28,7 @@ Use these terms consistently in code, API fields and documentation.
 | Download job | Tracked transfer, later handled by the BitTorrent module. |
 | Import | Deliberate placement of completed media into a library root, using configured copy/hardlink rules. |
 | Seeding | Uploading torrent data to peers after or during download; source files may need to remain. |
+| Show slug | Readable URL segment such as `arcane`. Duplicate titles receive numeric suffixes; adding or renaming shows can change these links. Internal IDs and progress remain unchanged. |
 | Software release | Dated Oxevu version recorded in VERSION and CHANGELOG.md, starting at 0.1.0. |
 | vd | Home server and target for playback/resource validation. |
 
