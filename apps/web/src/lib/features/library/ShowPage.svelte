@@ -1,6 +1,5 @@
 <script lang="ts">
   import PlayIcon from "@lucide/svelte/icons/play";
-  import * as Tabs from "$lib/components/ui/tabs";
   import { Button } from "$lib/components/ui/button";
   import { Skeleton } from "$lib/components/ui/skeleton";
   import Page from "$lib/components/Page.svelte";
@@ -9,19 +8,19 @@
   import DetailLayout from "$lib/components/DetailLayout.svelte";
   import { catalog } from "$lib/state/catalog.svelte";
   import { href, router } from "$lib/state/router.svelte";
-  import { episodeCode, seasonLabel, type Season } from "$lib/media/grouping";
+  import { episodeCode, seasonKey, seasonLabel } from "$lib/media/grouping";
   import { plural } from "$lib/media/format";
   import { resumePosition } from "$lib/media/progress";
   import { artworkSrc } from "$lib/api/artwork";
   import EpisodeList from "./EpisodeList.svelte";
   import NextUpCard from "./NextUpCard.svelte";
+  import SeasonPicker from "./SeasonPicker.svelte";
   import PosterArt from "./PosterArt.svelte";
 
   /** URL segment: a slug, or a legacy internal key from older links. */
   let { showRef }: { showRef: string } = $props();
 
   const show = $derived(catalog.findShow(showRef));
-  const seasonValue = (season: Season) => String(season.number ?? "none");
 
   // Legacy key links (and hand-typed titles) settle on the canonical slug URL
   // without adding a history entry.
@@ -39,7 +38,7 @@
   const activeSeason = $derived(
     chosenSeason ??
       (show && target
-        ? seasonValue(show.seasons.find((s) => s.episodes.includes(target)) ?? show.seasons[0])
+        ? seasonKey(show.seasons.find((s) => s.episodes.includes(target)) ?? show.seasons[0])
         : ""),
   );
 </script>
@@ -101,27 +100,14 @@
         </section>
       {/if}
 
-      <section aria-labelledby="episodes" class="flex flex-col gap-3">
+      <section aria-labelledby="episodes" class="flex flex-col gap-4">
         <h2 id="episodes" class="text-base font-medium">
           {show.seasons.length === 1 ? seasonLabel(show.seasons[0].number) : "Seasons"}
         </h2>
         {#if show.seasons.length === 1}
           <EpisodeList episodes={show.seasons[0].episodes} label={seasonLabel(show.seasons[0].number)} />
         {:else}
-          <Tabs.Root value={activeSeason} onValueChange={(value) => (chosenSeason = value)}>
-            <div class="mb-1 overflow-x-auto border-b">
-              <Tabs.List variant="line">
-                {#each show.seasons as season (seasonValue(season))}
-                  <Tabs.Trigger value={seasonValue(season)}>{seasonLabel(season.number)}</Tabs.Trigger>
-                {/each}
-              </Tabs.List>
-            </div>
-            {#each show.seasons as season (seasonValue(season))}
-              <Tabs.Content value={seasonValue(season)}>
-                <EpisodeList episodes={season.episodes} label={seasonLabel(season.number)} />
-              </Tabs.Content>
-            {/each}
-          </Tabs.Root>
+          <SeasonPicker seasons={show.seasons} value={activeSeason} onValueChange={(value) => (chosenSeason = value)} />
         {/if}
       </section>
     </DetailLayout>

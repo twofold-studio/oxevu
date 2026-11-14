@@ -3,7 +3,7 @@
   import FilmIcon from "@lucide/svelte/icons/film";
   import type { Item } from "$lib/api/types";
   import { href } from "$lib/state/router.svelte";
-  import { episodeCode } from "$lib/media/grouping";
+  import { episodeCaption } from "$lib/media/grouping";
   import { formatRuntime } from "$lib/media/format";
   import { resumePosition, watchedFraction } from "$lib/media/progress";
   import Artwork from "$lib/components/Artwork.svelte";
@@ -13,7 +13,7 @@
   // episode's details; the play affordance on the still is the same link.
   let { item }: { item: Item } = $props();
 
-  const code = $derived(episodeCode(item));
+  const caption = $derived(episodeCaption(item));
   const resume = $derived(resumePosition(item));
   const fraction = $derived(watchedFraction(item));
   const remaining = $derived(
@@ -51,11 +51,9 @@
       <ProgressLine value={fraction} class="absolute inset-x-0 bottom-0 h-1 bg-background/60" />
     {/if}
   </div>
-  <span class="flex min-w-0 flex-col gap-0.5">
-    <span class="flex gap-3 text-xs text-muted-foreground">
-      {#if code}<span class="font-mono tabular-nums">{code}</span>{/if}
-      {#if remaining}<span>{remaining}</span>{/if}
-    </span>
-    <span class="line-clamp-2 font-medium break-words group-hover:underline">{item.title}</span>
+  <!-- One understated line, "S1:E1 - Title"; truncation keeps the full text in `title`. -->
+  <span class="flex min-w-0 items-baseline justify-between gap-3 text-sm">
+    <span class="truncate text-foreground/85 group-hover:underline" title={caption}>{caption}</span>
+    {#if remaining}<span class="shrink-0 text-xs text-muted-foreground tabular-nums">{remaining}</span>{/if}
   </span>
 </a>

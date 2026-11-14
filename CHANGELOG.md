@@ -39,6 +39,9 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Seasons use selectable poster cards with episode counts and labels. Next Up
+  captions show compact episode numbers and cleaned titles.
+
 - Show links use readable title slugs, with redirects from existing ID links.
 - Larger detail posters, backdrops and next-episode thumbnails, with responsive
   stacked layouts on phones and larger catalog covers.

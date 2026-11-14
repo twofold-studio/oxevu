@@ -8,6 +8,12 @@ export interface Season {
   /** null when the scanner could not read a season number. */
   number: number | null;
   episodes: Item[];
+  /**
+   * Cover for the season card: the first episode art in the season (the
+   * scanner resolves the nearest folder poster, so a `Season 01/poster.jpg`
+   * lands here), else the show poster, else null for an honest placeholder.
+   */
+  posterUrl: string | null;
 }
 
 export interface Show {
@@ -64,7 +70,11 @@ export function groupShows(items: Item[]): Show[] {
     for (const episode of episodes) {
       const last = seasons.at(-1);
       if (last && last.number === episode.season_number) last.episodes.push(episode);
-      else seasons.push({ number: episode.season_number, episodes: [episode] });
+      else seasons.push({ number: episode.season_number, episodes: [episode], posterUrl: null });
+    }
+    const showPoster = episodes.find((e) => e.poster_url)?.poster_url ?? null;
+    for (const season of seasons) {
+      season.posterUrl = season.episodes.find((e) => e.poster_url)?.poster_url ?? showPoster;
     }
     shows.push({
       key,
@@ -74,7 +84,7 @@ export function groupShows(items: Item[]): Show[] {
       episodeCount: episodes.length,
       inProgress: episodes.filter((e) => e.position_seconds > 0 && !e.completed),
       next: episodes.find((e) => !e.completed) ?? episodes[0],
-      posterUrl: episodes.find((e) => e.poster_url)?.poster_url ?? null,
+      posterUrl: showPoster,
       backdropUrl: episodes.find((e) => e.backdrop_url)?.backdrop_url ?? null,
     });
   }
@@ -83,6 +93,9 @@ export function groupShows(items: Item[]): Show[] {
     .map((show) => ({ ...show, slug: slugs.get(show.key) ?? show.key }))
     .sort((a, b) => collator.compare(a.title, b.title));
 }
+
+/** Stable string identity for a season within its show (tab values). */
+export const seasonKey = (season: Season) => String(season.number ?? "none");
 
 export function seasonLabel(number: number | null): string {
   if (number === null) return "Unnumbered";
@@ -96,4 +109,23 @@ export function episodeCode(item: Item): string | null {
   const season = item.season_number === null ? "" : `S${pad(item.season_number)}`;
   const episode = item.episode_number === null ? "" : `E${pad(item.episode_number)}`;
   return season || episode ? season + episode : null;
+}
+
+/** Compact "S1:E1", or the parts that are known. */
+export function shortEpisodeCode(item: Item): string | null {
+  const season = item.season_number === null ? "" : `S${item.season_number}`;
+  const episode = item.episode_number === null ? "" : `E${item.episode_number}`;
+  return season && episode ? `${season}:${episode}` : season || episode || null;
+}
+
+// Older scans may still carry the code in the title ("S01E01 - Pilot");
+// dropping it keeps the caption from saying it twice.
+const LEADING_CODE = /^\s*s\d+\s*[:.]?\s*e\d+\s*[-–—:.]?\s*/i;
+
+/** "S1:E1 - Pilot"; just the title when the numbers are unknown. */
+export function episodeCaption(item: Item): string {
+  const code = shortEpisodeCode(item);
+  if (!code) return item.title;
+  const title = item.title.replace(LEADING_CODE, "").trim();
+  return title ? `${code} - ${title}` : code;
 }
