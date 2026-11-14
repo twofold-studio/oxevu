@@ -1,0 +1,8 @@
+- region "Notifications alt+T" [ref=e1248]
+- link "Gitadel" [ref=e1251]
+- heading "Sign in" [level=1, ref=e1249]
+- button "Use a passkey" [ref=e1250]
+- textbox "Username" [required, ref=e1253]
+- textbox "Password" [required, ref=e1254]
+- button "Show password" [ref=e1255]
+- button "Sign in" [ref=e1252]
