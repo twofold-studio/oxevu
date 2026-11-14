@@ -12,6 +12,7 @@ use std::{path::PathBuf, sync::Arc};
 use tokio::sync::Semaphore;
 mod artwork;
 mod assets;
+mod episode_title;
 mod scan;
 type Error = (StatusCode, Json<Value>);
 type Result<T> = std::result::Result<T, Error>;

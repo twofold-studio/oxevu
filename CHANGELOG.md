@@ -28,6 +28,9 @@ as available; planned features belong in GOAL.md.
 
 ### Fixed
 
+- Episode display names omit series prefixes and common release suffixes while
+  preserving original filenames and saved progress.
+
 - TV scans group seasons by their show folder when release filenames use
   different title spellings or years.
 
