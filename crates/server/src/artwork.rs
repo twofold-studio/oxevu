@@ -139,14 +139,14 @@ pub(super) async fn serve(
     h: HeaderMap,
     Path((id, kind)): Path<(String, String)>,
 ) -> Result<Response> {
-    user(&a, &h).await?;
+    users::authorize_item(&a, &h, &id, false).await?;
     if !matches!(kind.as_str(), "poster" | "thumbnail" | "backdrop") {
         return Err(missing());
     }
     let row = sqlx::query("SELECT items.path,libraries.path root,libraries.kind FROM items JOIN libraries ON library_id=libraries.id WHERE items.id=?")
         .bind(&id).fetch_optional(&a.pool).await.map_err(db)?.ok_or_else(missing)?;
     let path = PathBuf::from(row.get::<String, _>("path"));
-    let root = PathBuf::from(row.get::<String, _>("root"));
+    let root = libraries::item_root(&a, &id, &path).await?;
     let image = match discover(&path, &root, row.get::<String, _>("kind") == "tv", &kind).await {
         Some(image) => image,
         None if kind == "thumbnail" => generate(&a, &path, &root, &id).await?,

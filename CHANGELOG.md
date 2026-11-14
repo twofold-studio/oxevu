@@ -9,6 +9,13 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Backend settings, multiple library roots, users/roles/library grants, and
+  independent resume rules, with migration of existing accounts and locations.
+- Managed direct/remux/CPU/NVIDIA HLS playback sessions with ownership checks,
+  resource bounds, heartbeat expiry, fallback and process cleanup.
+- Server-authoritative watch-party routes with host controls and live access checks.
+- Read-only Jellyfin Playback/Libraries inventory and playback validation record.
+
 - Shared motion tokens, transition helpers and SwapView for reusable view changes.
 - Animated season selection, image reveals and episode status cues with reduced
   motion support. Selected season is retained in the URL.

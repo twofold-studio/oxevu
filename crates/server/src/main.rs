@@ -12,8 +12,18 @@ use std::{path::PathBuf, sync::Arc};
 use tokio::sync::Semaphore;
 mod artwork;
 mod assets;
+mod auth;
+mod catalog;
 mod episode_title;
+mod libraries;
+mod parties;
+mod playback;
 mod scan;
+mod settings;
+mod users;
+use auth::*;
+use catalog::*;
+use libraries::*;
 type Error = (StatusCode, Json<Value>);
 type Result<T> = std::result::Result<T, Error>;
 fn bad(s: impl ToString) -> Error {
@@ -37,6 +47,8 @@ struct App {
     scan: Arc<Semaphore>,
     artwork_jobs: Arc<Semaphore>,
     artwork_cache: PathBuf,
+    playback: Arc<playback::Runtime>,
+    parties: Arc<parties::Store>,
 }
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -76,15 +88,39 @@ async fn main() -> anyhow::Result<()> {
         "initial setup requires a loopback OXEVU_BIND"
     );
     let origin = std::env::var("OXEVU_ORIGIN").unwrap_or_else(|_| "http://localhost:3000".into());
+    let playback = playback::Runtime::new(&dir, &pool)
+        .await
+        .map_err(|e| anyhow::anyhow!("{}", e.1.0))?;
     let app = App {
         pool,
+        parties: Arc::new(parties::Store::default()),
+        playback,
         token,
         origin,
         scan: Arc::new(Semaphore::new(1)),
         artwork_jobs: Arc::new(Semaphore::new(1)),
         artwork_cache: dir.join("artwork"),
     };
+    let reaper = tokio::spawn(playback::reap(app.clone()));
+    let party_reaper = tokio::spawn(parties::reap(app.clone()));
+    let shutdown_runtime = app.playback.clone();
     let api = Router::new()
+        .merge(parties::routes())
+        .route("/playback/capabilities", get(playback::capabilities))
+        .route("/playback/sessions", post(playback::create))
+        .route("/playback/sessions/{id}", get(playback::get))
+        .route(
+            "/playback/sessions/{id}/heartbeat",
+            post(playback::heartbeat),
+        )
+        .route("/playback/sessions/{id}/stop", post(playback::stop))
+        .route("/playback/sessions/{id}/hls/{file}", get(playback::hls))
+        .route("/users", get(users::list).post(users::create))
+        .route("/users/{id}", put(users::update))
+        .route("/auth/password", put(auth::password))
+        .route("/libraries/{id}", put(libraries::update))
+        .route("/libraries/{id}/remove", post(libraries::remove))
+        .route("/settings", get(settings::get).put(settings::put))
         .route("/auth/status", get(status))
         .route("/auth/setup", post(setup))
         .route("/auth/login", post(login))
@@ -103,11 +139,25 @@ async fn main() -> anyhow::Result<()> {
         .layer(middleware::from_fn_with_state(app.clone(), origin_check))
         .with_state(app);
     println!("Oxevu listening on {bind}");
+    let signal_runtime = shutdown_runtime.clone();
     axum::serve(tokio::net::TcpListener::bind(bind).await?, router)
-        .with_graceful_shutdown(async {
+        .with_graceful_shutdown(async move {
+            #[cfg(unix)]
+            if let Ok(mut terminate) =
+                tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            {
+                tokio::select! { _=tokio::signal::ctrl_c()=>{}, _=terminate.recv()=>{} }
+            } else {
+                let _ = tokio::signal::ctrl_c().await;
+            }
+            #[cfg(not(unix))]
             let _ = tokio::signal::ctrl_c().await;
+            signal_runtime.shutdown().await;
         })
         .await?;
+    reaper.abort();
+    party_reaper.abort();
+    shutdown_runtime.shutdown().await;
     Ok(())
 }
 async fn origin_check(State(a): State<App>, r: Request, n: Next) -> Response {
@@ -123,271 +173,6 @@ async fn origin_check(State(a): State<App>, r: Request, n: Next) -> Response {
             .into_response();
     }
     n.run(r).await
-}
-async fn user(a: &App, h: &HeaderMap) -> Result<Value> {
-    let token = h
-        .get("cookie")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|s| {
-            s.split(';')
-                .find_map(|s| s.trim().strip_prefix("oxevu_session="))
-        })
-        .unwrap_or("");
-    let row=sqlx::query("SELECT users.id,username FROM sessions JOIN users ON users.id=sessions.user_id WHERE sessions.id=? AND expires>unixepoch()").bind(token).fetch_optional(&a.pool).await.map_err(db)?;
-    row.map(|r| json!({"id":r.get::<String,_>(0),"username":r.get::<String,_>(1)}))
-        .ok_or((
-            StatusCode::UNAUTHORIZED,
-            Json(json!({"error":"sign in required"})),
-        ))
-}
-async fn status(State(a): State<App>, h: HeaderMap) -> Result<Json<Value>> {
-    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM users")
-        .fetch_one(&a.pool)
-        .await
-        .map_err(db)?;
-    Ok(Json(
-        json!({"setup_required":count==0,"user":user(&a,&h).await.ok()}),
-    ))
-}
-async fn setup(State(a): State<App>, h: HeaderMap, Json(v): Json<Value>) -> Result<Response> {
-    if h.get("x-oxevu-setup-token").and_then(|v| v.to_str().ok()) != Some(&a.token) {
-        return Err((
-            StatusCode::FORBIDDEN,
-            Json(json!({"error":"local setup token required"})),
-        ));
-    }
-    let (name, password) = credentials(&v)?;
-    let hash = hash(password.to_owned()).await?;
-    let id = uuid::Uuid::new_v4().to_string();
-    let result =
-        sqlx::query("INSERT INTO users SELECT ?,?,? WHERE NOT EXISTS(SELECT 1 FROM users)")
-            .bind(&id)
-            .bind(name)
-            .bind(hash)
-            .execute(&a.pool)
-            .await
-            .map_err(db)?;
-    if result.rows_affected() != 1 {
-        return Err(bad("setup already completed"));
-    }
-    session(&a, id, name).await
-}
-fn credentials(v: &Value) -> Result<(&str, &str)> {
-    let n = v["username"]
-        .as_str()
-        .filter(|s| !s.is_empty() && s.len() <= 100)
-        .ok_or_else(|| bad("invalid username"))?;
-    let p = v["password"]
-        .as_str()
-        .filter(|s| s.len() >= 12 && s.len() <= 1024)
-        .ok_or_else(|| bad("password must be 12–1024 bytes"))?;
-    Ok((n, p))
-}
-async fn hash(p: String) -> Result<String> {
-    tokio::task::spawn_blocking(move || {
-        use argon2::password_hash::{PasswordHasher, SaltString, rand_core::OsRng};
-        argon2::Argon2::default()
-            .hash_password(p.as_bytes(), &SaltString::generate(&mut OsRng))
-            .map(|h| h.to_string())
-            .map_err(|_| bad("password hashing failed"))
-    })
-    .await
-    .map_err(bad)?
-}
-async fn login(State(a): State<App>, Json(v): Json<Value>) -> Result<Response> {
-    let (n, p) = credentials(&v)?;
-    let r = sqlx::query("SELECT id,password FROM users WHERE username=?")
-        .bind(n)
-        .fetch_optional(&a.pool)
-        .await
-        .map_err(db)?
-        .ok_or_else(|| bad("invalid credentials"))?;
-    let hashed: String = r.get(1);
-    let p = p.to_owned();
-    let valid = tokio::task::spawn_blocking(move || {
-        use argon2::{PasswordHash, PasswordVerifier};
-        PasswordHash::new(&hashed).is_ok_and(|h| {
-            argon2::Argon2::default()
-                .verify_password(p.as_bytes(), &h)
-                .is_ok()
-        })
-    })
-    .await
-    .map_err(bad)?;
-    if !valid {
-        return Err(bad("invalid credentials"));
-    }
-    session(&a, r.get(0), n).await
-}
-async fn session(a: &App, id: String, name: &str) -> Result<Response> {
-    let token = uuid::Uuid::new_v4().to_string();
-    sqlx::query("INSERT INTO sessions VALUES(?,?,unixepoch()+604800)")
-        .bind(&token)
-        .bind(&id)
-        .execute(&a.pool)
-        .await
-        .map_err(db)?;
-    let secure = if a.origin.starts_with("https:") {
-        "; Secure"
-    } else {
-        ""
-    };
-    Ok((
-        [(
-            axum::http::header::SET_COOKIE,
-            format!(
-                "oxevu_session={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800{secure}"
-            ),
-        )],
-        Json(json!({"user":{"id":id,"username":name}})),
-    )
-        .into_response())
-}
-async fn logout(State(a): State<App>, h: HeaderMap) -> Result<Response> {
-    let u = user(&a, &h).await?;
-    sqlx::query("DELETE FROM sessions WHERE user_id=?")
-        .bind(u["id"].as_str())
-        .execute(&a.pool)
-        .await
-        .map_err(db)?;
-    Ok((
-        StatusCode::NO_CONTENT,
-        [(
-            axum::http::header::SET_COOKIE,
-            "oxevu_session=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0",
-        )],
-    )
-        .into_response())
-}
-async fn libraries(State(a): State<App>, h: HeaderMap) -> Result<Json<Value>> {
-    user(&a, &h).await?;
-    let rows = sqlx::query("SELECT * FROM libraries")
-        .fetch_all(&a.pool)
-        .await
-        .map_err(db)?;
-    Ok(Json(
-        json!({"libraries":rows.iter().map(|r|json!({"id":r.get::<String,_>("id"),"name":r.get::<String,_>("name"),"path":r.get::<String,_>("path"),"kind":r.get::<String,_>("kind")})).collect::<Vec<_>>()}),
-    ))
-}
-async fn add_library(
-    State(a): State<App>,
-    h: HeaderMap,
-    Json(v): Json<Value>,
-) -> Result<Json<Value>> {
-    user(&a, &h).await?;
-    let name = v["name"]
-        .as_str()
-        .filter(|s| !s.is_empty())
-        .ok_or_else(|| bad("name required"))?;
-    let kind = v["kind"]
-        .as_str()
-        .filter(|s| matches!(*s, "movies" | "tv"))
-        .ok_or_else(|| bad("invalid kind"))?;
-    let path = tokio::fs::canonicalize(v["path"].as_str().ok_or_else(|| bad("path required"))?)
-        .await
-        .map_err(bad)?;
-    if !path.is_dir() {
-        return Err(bad("root must be directory"));
-    }
-    let path = path.to_string_lossy();
-    let id = uuid::Uuid::new_v4().to_string();
-    sqlx::query("INSERT INTO libraries VALUES(?,?,?,?)")
-        .bind(&id)
-        .bind(name)
-        .bind(path.as_ref())
-        .bind(kind)
-        .execute(&a.pool)
-        .await
-        .map_err(db)?;
-    Ok(Json(
-        json!({"library":{"id":id,"name":name,"path":path,"kind":kind}}),
-    ))
-}
-async fn catalog(a: &App, h: &HeaderMap) -> Result<Vec<Value>> {
-    let u = user(a, h).await?;
-    let rows=sqlx::query("SELECT items.id,data,CAST(COALESCE(position,0.0) AS REAL) position,COALESCE(completed,0) completed FROM items LEFT JOIN progress ON item_id=items.id AND user_id=?").bind(u["id"].as_str()).fetch_all(&a.pool).await.map_err(db)?;
-    rows.iter()
-        .map(|r| {
-            let mut v: Value = serde_json::from_str(r.get("data")).map_err(bad)?;
-            for kind in ["poster", "thumbnail", "backdrop"] {
-                v.as_object_mut()
-                    .ok_or_else(|| bad("invalid catalog item"))?
-                    .entry(format!("{kind}_url"))
-                    .or_insert(Value::Null);
-            }
-            v["position_seconds"] = json!(r.try_get::<f64, _>("position").map_err(db)?);
-            v["completed"] = json!(r.try_get::<bool, _>("completed").map_err(db)?);
-            Ok(v)
-        })
-        .collect()
-}
-async fn items(State(a): State<App>, h: HeaderMap) -> Result<Json<Value>> {
-    Ok(Json(json!({"items":catalog(&a,&h).await?})))
-}
-async fn item(State(a): State<App>, h: HeaderMap, Path(id): Path<String>) -> Result<Json<Value>> {
-    Ok(Json(
-        json!({"item":catalog(&a,&h).await?.into_iter().find(|v|v["id"]==id).ok_or_else(||(StatusCode::NOT_FOUND,Json(json!({"error":"item not found"}))))?}),
-    ))
-}
-async fn progress(
-    State(a): State<App>,
-    h: HeaderMap,
-    Path(id): Path<String>,
-    Json(v): Json<Value>,
-) -> Result<StatusCode> {
-    let u = user(&a, &h).await?;
-    let p = v["position_seconds"]
-        .as_f64()
-        .filter(|p| p.is_finite() && *p >= 0.)
-        .ok_or_else(|| bad("invalid position"))?;
-    let c = v["completed"]
-        .as_bool()
-        .ok_or_else(|| bad("completed required"))?;
-    if sqlx::query_scalar::<_, i64>("SELECT count(*) FROM items WHERE id=?")
-        .bind(&id)
-        .fetch_one(&a.pool)
-        .await
-        .map_err(db)?
-        == 0
-    {
-        return Err(bad("unknown item"));
-    }
-    sqlx::query("INSERT INTO progress VALUES(?,?,?,?) ON CONFLICT(user_id,item_id) DO UPDATE SET position=excluded.position,completed=excluded.completed").bind(u["id"].as_str()).bind(id).bind(p).bind(c).execute(&a.pool).await.map_err(db)?;
-    Ok(StatusCode::NO_CONTENT)
-}
-async fn stream(
-    State(a): State<App>,
-    h: HeaderMap,
-    Path(id): Path<String>,
-    r: Request,
-) -> Result<Response> {
-    user(&a, &h).await?;
-    let row=sqlx::query("SELECT items.path,items.data,libraries.path root FROM items JOIN libraries ON library_id=libraries.id WHERE items.id=?").bind(id).fetch_optional(&a.pool).await.map_err(db)?.ok_or_else(||bad("unknown item"))?;
-    let path = tokio::fs::canonicalize(row.get::<String, _>("path"))
-        .await
-        .map_err(bad)?;
-    if !path.starts_with(PathBuf::from(row.get::<String, _>("root"))) {
-        return Err(bad("file outside library"));
-    }
-    use tower_http::services::ServeFile;
-    let data: Value = serde_json::from_str(row.get("data")).map_err(bad)?;
-    let container = data["container"].as_str().unwrap_or("");
-    let mime = if path.extension().is_some_and(|ext| ext == "webm") {
-        "video/webm"
-    } else if container.contains("matroska") {
-        "video/x-matroska"
-    } else if container.contains("mp4") || container.contains("mov") {
-        "video/mp4"
-    } else if container.contains("mpegts") {
-        "video/mp2t"
-    } else {
-        "application/octet-stream"
-    };
-    Ok(ServeFile::new_with_mime(path, &mime.parse().map_err(bad)?)
-        .try_call(r)
-        .await
-        .map_err(bad)?
-        .into_response())
 }
 
 #[cfg(test)]
