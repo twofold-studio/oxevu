@@ -22,6 +22,6 @@ Planned capabilities:
 
 ## Start here
 
-Read [the project goal](GOAL.md) for the modules, their first useful milestones, and the order of work. The first local server and web client now support sign-in, read-only scans, catalog browsing, original-file playback, and saved progress. See [development setup](docs/development.md#run-the-first-application) to run it. Transcoding and mobile packaging are still pending.
+Read [the project goal](GOAL.md) for the modules, their first useful milestones, and the order of work. The first local server and web client now support sign-in, read-only scans, catalog browsing, original-file playback, and saved progress. See [development setup](docs/development.md#run-the-first-application) to run it. FFmpeg/NVIDIA playback, settings, users, and watch parties are implemented; mobile packaging is still pending.
 
 The first milestone is to scan an existing movie or TV folder and play a video in a browser, including seeking, resume, and an NVIDIA transcode on the home server. Oxevu will run alongside Jellyfin while this is developed and tested.

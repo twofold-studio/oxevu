@@ -5,6 +5,7 @@
   import ChevronLeftIcon from "@lucide/svelte/icons/chevron-left";
   import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
   import CheckIcon from "@lucide/svelte/icons/check";
+  import UsersRoundIcon from "@lucide/svelte/icons/users-round";
   import { Button } from "$lib/components/ui/button";
   import { Skeleton } from "$lib/components/ui/skeleton";
   import * as Alert from "$lib/components/ui/alert";
@@ -25,6 +26,9 @@
   import PosterArt from "$lib/features/library/PosterArt.svelte";
   import FileFacts from "./FileFacts.svelte";
   import PlaybackNotice from "./PlaybackNotice.svelte";
+  import CreatePartyDialog from "$lib/features/party/CreatePartyDialog.svelte";
+  import { session } from "$lib/state/session.svelte";
+  import { canCreateParties } from "$lib/state/access";
 
   let { id }: { id: string } = $props();
 
@@ -72,6 +76,10 @@
     const index = ordered.findIndex((e) => e.id === item.id);
     return { show, previous: ordered[index - 1], next: ordered[index + 1] };
   });
+
+  let partyOpen = $state(false);
+  let partyOpening = $state(0);
+  const canParty = $derived(canCreateParties(session.user));
 
   const episodeLine = $derived(item?.kind === "episode" ? episodeNumberLabel(item) : null);
 </script>
@@ -141,6 +149,19 @@
               Start over
             </Button>
           {/if}
+          {#if canParty}
+            <Button
+              size="lg"
+              variant="outline"
+              onclick={() => {
+                partyOpening++;
+                partyOpen = true;
+              }}
+            >
+              <UsersRoundIcon data-icon="inline-start" />
+              Watch together
+            </Button>
+          {/if}
         </div>
 
         <div class="max-w-2xl">
@@ -189,6 +210,9 @@
       <FileFacts {item} />
     </div>
   </DetailLayout>
+  {#key partyOpening}
+    {#if partyOpening > 0}<CreatePartyDialog bind:open={partyOpen} itemId={item.id} />{/if}
+  {/key}
 {:else if error}
   {#if error.missing}
     <NotFound title="Title not found" description="It may have been removed by a rescan." />

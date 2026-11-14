@@ -6,8 +6,10 @@
     title,
     detail,
     backHref,
+    backLabel = "Back",
     onretry,
-  }: { title: string; detail: string; backHref: string; onretry?: () => void } = $props();
+  }: { title: string; detail: string; backHref: string; backLabel?: string; onretry?: () => void } =
+    $props();
 </script>
 
 <div class="absolute inset-0 z-10 grid place-items-center bg-black/85 p-6" role="alert">
@@ -18,7 +20,7 @@
       <p class="text-sm leading-6 text-white/70">{detail}</p>
     </div>
     <div class="flex gap-2">
-      <Button href={backHref} variant="outline">Back to details</Button>
+      <Button href={backHref} variant="outline">{backLabel}</Button>
       {#if onretry}<Button onclick={onretry}>Try again</Button>{/if}
     </div>
   </div>

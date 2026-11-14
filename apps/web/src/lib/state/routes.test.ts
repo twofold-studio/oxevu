@@ -37,3 +37,23 @@ describe("show routes", () => {
     expect(parseRoute("#/shows/%E0%A4")).toEqual({ name: "not-found" });
   });
 });
+
+describe("settings and party routes", () => {
+  test("settings sections round-trip", () => {
+    expect(parseRoute(href.settings("users"))).toEqual({ name: "settings", section: "users" });
+    expect(parseRoute(href.settings())).toEqual({ name: "settings", section: null });
+  });
+
+  test("old library links open the libraries section", () => {
+    expect(parseRoute("#/libraries")).toEqual({ name: "settings", section: "libraries" });
+  });
+
+  test("unknown sections are not found", () => {
+    expect(parseRoute("#/settings/billing")).toEqual({ name: "not-found" });
+  });
+
+  test("party links carry the party id", () => {
+    expect(parseRoute(href.party("a/b"))).toEqual({ name: "party", id: "a/b" });
+    expect(parseRoute(href.parties())).toEqual({ name: "parties" });
+  });
+});

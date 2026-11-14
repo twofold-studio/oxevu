@@ -73,11 +73,25 @@ For frontend development run the backend with
 `OXEVU_ORIGIN=http://localhost:5173`, then `pnpm dev` in apps/web. The proxy
 forwards `/api` to port 3000. See crates/server/README.md for server configuration.
 
-Current limits: original-file delivery only, no conversion, track selection or
-online metadata recognition. Local artwork sidecars and generated thumbnails are supported. Browser support depends on container/codecs; copied
-MKV samples may require the later remux/transcode phase. Rescans retain missing
-files, probe output is not yet size-capped, and runtime/media directory separation
-is an operator requirement. NVIDIA and physical mobile testing remain outstanding.
+Settings are available under `#/settings/libraries`, `#/settings/playback`,
+`#/settings/users` and `#/settings/account`. Only administrators manage server
+settings, libraries and users. Existing accounts migrate to administrators.
+Create individual non-admin users with explicit library/playback permissions.
+
+The player selects original, remux or H264/AAC HLS delivery. Automatic conversion
+uses NVIDIA encoding when configured, with an optional CPU fallback. Settings
+include GPU index, height/bitrate/CRF, concurrency, scratch limits and resume rules.
+Hardware decoding, HDR conversion, subtitle selection and trickplay are unsupported.
+FFmpeg path (`OXEVU_FFMPEG`) and scratch directory (`OXEVU_TRANSCODE_DIR`) are server
+configuration; scratch must not overlap media roots or the source tree.
+
+Watch parties are under `#/parties` or Watch together on an item. The host controls
+play/pause/seeking and title changes; members need their own library permissions.
+Parties are in memory and disappear on server restart. Local synchronization tests
+do not establish remote-network or mobile-device behavior.
+
+Rescans retain offline roots safely. File watching and online metadata recognition
+are still deferred. See [validation](playback-validation.md) for evidence and limits.
 
 Artwork caches currently have no eviction or source-change invalidation. Rescan
 after adding local sidecars. Recognition against an external metadata catalog is

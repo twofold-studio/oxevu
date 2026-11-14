@@ -12,8 +12,17 @@ export type Route =
   | { name: "item"; id: string }
   | { name: "watch"; id: string; fromStart: boolean }
   | { name: "search"; query: string }
-  | { name: "libraries" }
+  | { name: "settings"; section: SettingsSection | null }
+  | { name: "parties" }
+  | { name: "party"; id: string }
   | { name: "not-found" };
+
+export const settingsSections = ["libraries", "playback", "users", "account"] as const;
+export type SettingsSection = (typeof settingsSections)[number];
+
+function isSection(value: string | null): value is SettingsSection {
+  return settingsSections.some((section) => section === value);
+}
 
 export const href = {
   home: () => "#/",
@@ -26,7 +35,11 @@ export const href = {
   watch: (id: string, fromStart = false) =>
     `#/watch/${encodeURIComponent(id)}${fromStart ? "?start=0" : ""}`,
   search: (query: string) => `#/search?q=${encodeURIComponent(query)}`,
-  libraries: () => "#/libraries",
+  /** Without a section the settings page picks the first one the user may open. */
+  settings: (section?: SettingsSection) => `#/settings${section ? `/${section}` : ""}`,
+  libraries: () => "#/settings/libraries",
+  parties: () => "#/parties",
+  party: (id: string) => `#/parties/${encodeURIComponent(id)}`,
 };
 
 function decode(part: string): string | null {
@@ -64,7 +77,16 @@ export function parseRoute(hash: string): Route {
     case "search":
       return { name: "search", query: query.get("q") ?? "" };
     case "libraries":
-      return { name: "libraries" };
+      // Links from before the settings area.
+      return { name: "settings", section: "libraries" };
+    case "settings":
+      if (parts.length === 1) return { name: "settings", section: null };
+      return parts.length === 2 && isSection(param)
+        ? { name: "settings", section: param }
+        : { name: "not-found" };
+    case "parties":
+      if (parts.length === 1) return { name: "parties" };
+      return param && parts.length === 2 ? { name: "party", id: param } : { name: "not-found" };
     default:
       return { name: "not-found" };
   }

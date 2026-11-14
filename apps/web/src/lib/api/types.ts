@@ -1,8 +1,19 @@
-// Mirrors docs/api-phase-one.md. Field names stay snake_case so values pass
+// Mirrors docs/api-phase-one.md and docs/api-playback-settings.md. Field names stay snake_case so values pass
 // through unchanged; replace with generated types once the server publishes
 // an OpenAPI description.
 
-export interface User {
+export type SyncplayAccess = "create_join" | "join" | "disabled";
+
+/** Permission flags the server attaches to the signed-in user. */
+export interface UserAccess {
+  is_admin: boolean;
+  disabled: boolean;
+  can_play: boolean;
+  can_transcode: boolean;
+  syncplay_access: SyncplayAccess;
+}
+
+export interface User extends UserAccess {
   id: string;
   username: string;
 }
@@ -25,14 +36,19 @@ export type LibraryKind = "movies" | "tv";
 export interface Library {
   id: string;
   name: string;
+  /** First root, kept for older clients; `paths` is authoritative. */
   path: string;
+  paths: string[];
+  enabled: boolean;
   kind: LibraryKind;
 }
 
-export interface NewLibrary {
+/** Create and update body for `/libraries`. */
+export interface LibraryInput {
   name: string;
-  path: string;
   kind: LibraryKind;
+  paths: string[];
+  enabled: boolean;
 }
 
 export interface ScanResult {

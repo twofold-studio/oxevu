@@ -8,7 +8,14 @@
     duration,
     bufferedEnd,
     onseek,
-  }: { current: number; duration: number; bufferedEnd: number; onseek: (time: number) => void } = $props();
+    disabled = false,
+  }: {
+    current: number;
+    duration: number;
+    bufferedEnd: number;
+    onseek: (time: number) => void;
+    disabled?: boolean;
+  } = $props();
 
   let scrub = $state<number | null>(null);
   const shown = $derived(scrub ?? current);
@@ -26,7 +33,7 @@
     max={duration || 0}
     step="0.1"
     value={shown}
-    disabled={!duration}
+    disabled={disabled || !duration}
     aria-label="Seek"
     aria-valuetext={`${formatClock(shown)} of ${formatClock(duration)}`}
     class="seek relative h-5 w-full cursor-pointer appearance-none bg-transparent disabled:cursor-default"

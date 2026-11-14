@@ -9,6 +9,12 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Playback settings UI, multiple-root library management, account password
+  changes and administrator user/access management.
+- Browser HLS playback with delivery selection, offset-aware seeking, session
+  cleanup and absolute progress. Watch-party UI synchronizes host controls and
+  handles follower drift and blocked autoplay.
+
 - Backend settings, multiple library roots, users/roles/library grants, and
   independent resume rules, with migration of existing accounts and locations.
 - Managed direct/remux/CPU/NVIDIA HLS playback sessions with ownership checks,

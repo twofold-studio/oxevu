@@ -7,6 +7,7 @@
   import VolumeXIcon from "@lucide/svelte/icons/volume-x";
   import MaximizeIcon from "@lucide/svelte/icons/maximize";
   import MinimizeIcon from "@lucide/svelte/icons/minimize";
+  import type { Snippet } from "svelte";
   import { Button } from "$lib/components/ui/button";
   import { formatClock } from "$lib/media/format";
   import SeekBar from "./SeekBar.svelte";
@@ -19,6 +20,8 @@
     muted,
     volume,
     fullscreen,
+    locked = false,
+    extra,
     ontoggle,
     onseek,
     onskip,
@@ -33,6 +36,9 @@
     muted: boolean;
     volume: number;
     fullscreen: boolean;
+    /** Watch-party guests follow the host: no play, pause or seek. */
+    locked?: boolean;
+    extra?: Snippet;
     ontoggle: () => void;
     onseek: (time: number) => void;
     onskip: (delta: number) => void;
@@ -45,17 +51,19 @@
 </script>
 
 <div class="flex flex-col gap-2">
-  <SeekBar {current} {duration} {bufferedEnd} {onseek} />
+  <SeekBar {current} {duration} {bufferedEnd} {onseek} disabled={locked} />
   <div class="flex items-center gap-1">
-    <Button variant="ghost" size="icon-lg" onclick={ontoggle} aria-label={paused ? "Play (k)" : "Pause (k)"}>
-      {#if paused}<PlayIcon />{:else}<PauseIcon />{/if}
-    </Button>
-    <Button variant="ghost" size="icon-lg" onclick={() => onskip(-10)} aria-label="Back 10 seconds (←)">
-      <RotateCcwIcon />
-    </Button>
-    <Button variant="ghost" size="icon-lg" onclick={() => onskip(10)} aria-label="Forward 10 seconds (→)">
-      <RotateCwIcon />
-    </Button>
+    {#if !locked}
+      <Button variant="ghost" size="icon-lg" onclick={ontoggle} aria-label={paused ? "Play (k)" : "Pause (k)"}>
+        {#if paused}<PlayIcon />{:else}<PauseIcon />{/if}
+      </Button>
+      <Button variant="ghost" size="icon-lg" onclick={() => onskip(-10)} aria-label="Back 10 seconds (←)">
+        <RotateCcwIcon />
+      </Button>
+      <Button variant="ghost" size="icon-lg" onclick={() => onskip(10)} aria-label="Forward 10 seconds (→)">
+        <RotateCwIcon />
+      </Button>
+    {/if}
     <div class="group/vol flex items-center">
       <Button variant="ghost" size="icon-lg" onclick={onmute} aria-label={silent ? "Unmute (m)" : "Mute (m)"}>
         {#if silent}<VolumeXIcon />{:else}<Volume2Icon />{/if}
@@ -75,6 +83,7 @@
       {formatClock(current)} <span class="text-white/50">/ {formatClock(duration)}</span>
     </span>
     <span class="flex-1"></span>
+    {@render extra?.()}
     <Button
       variant="ghost"
       size="icon-lg"

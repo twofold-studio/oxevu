@@ -1,6 +1,6 @@
 # Architecture
 
-Status: first local server and web client implemented. Conversion, hardware acceleration and mobile packaging remain pending.
+Status: local server and web client include managed FFmpeg/NVIDIA playback, settings, user access and watch parties. Hardware decoding, HDR conversion and mobile packaging remain pending.
 
 Oxevu is one Rust service with a bundled web UI. FFmpeg and ffprobe are external executable dependencies; the server supervises their jobs. Application data and media remain outside the executable. Mobile apps connect to the same server and do not run a second media server.
 

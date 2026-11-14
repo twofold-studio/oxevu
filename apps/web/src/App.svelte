@@ -8,6 +8,7 @@
   import Unreachable from "$lib/features/auth/Unreachable.svelte";
   import AppShell from "$lib/components/shell/AppShell.svelte";
   import PlayerPage from "$lib/features/player/PlayerPage.svelte";
+  import PartyRoom from "$lib/features/party/PartyRoom.svelte";
   import Routes from "./Routes.svelte";
 
   onMount(() => {
@@ -28,6 +29,10 @@
     <!-- The player owns the whole viewport; the shell would only get in the way. -->
     {#key router.route.id}
       <PlayerPage id={router.route.id} fromStart={router.route.fromStart} />
+    {/key}
+  {:else if router.route.name === "party"}
+    {#key router.route.id}
+      <PartyRoom id={router.route.id} />
     {/key}
   {:else}
     <AppShell>

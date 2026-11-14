@@ -2,6 +2,7 @@
   import * as Tooltip from "$lib/components/ui/tooltip";
   import { Separator } from "$lib/components/ui/separator";
   import { router } from "$lib/state/router.svelte";
+  import { session } from "$lib/state/session.svelte";
   import { cn } from "$lib/utils";
   import { browseNav, manageNav, type NavItem } from "./nav";
 </script>
@@ -34,7 +35,7 @@
   aria-label="Primary"
   class="sticky top-16 hidden h-[calc(100dvh-4rem)] w-[3.5rem] shrink-0 flex-col items-center gap-1 border-r bg-sidebar py-3 md:flex"
 >
-  {#each browseNav as item (item.href)}
+  {#each browseNav(session.user) as item (item.href)}
     {@render link(item)}
   {/each}
   <Separator class="my-2 data-horizontal:w-7" />

@@ -1,15 +1,16 @@
 <script lang="ts">
   import { router } from "$lib/state/router.svelte";
+  import { session } from "$lib/state/session.svelte";
   import { cn } from "$lib/utils";
   import { browseNav, manageNav } from "./nav";
 
-  const items = [...browseNav, ...manageNav];
+  const items = $derived([...browseNav(session.user), ...manageNav]);
 </script>
 
 <!-- Touch-sized bottom navigation replaces the rail below md. -->
 <nav
   aria-label="Primary"
-  class="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+  class="fixed inset-x-0 bottom-0 z-40 grid auto-cols-fr grid-flow-col border-t bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
 >
   {#each items as item (item.href)}
     {@const active = item.active(router.route)}

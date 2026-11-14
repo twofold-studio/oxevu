@@ -1,6 +1,7 @@
 import { authApi } from "$lib/api/endpoints";
 import { setUnauthorizedListener, errorMessage } from "$lib/api/client";
 import type { Credentials, User } from "$lib/api/types";
+import { catalog } from "./catalog.svelte";
 
 type SessionPhase = "loading" | "unreachable" | "setup" | "signed-out" | "signed-in";
 
@@ -26,12 +27,29 @@ class Session {
     }
   }
 
+  /**
+   * Re-read the signed-in user without blanking the app, so role and
+   * permission changes made elsewhere show up in navigation.
+   */
+  async refresh() {
+    if (this.phase !== "signed-in") return;
+    try {
+      const status = await authApi.status();
+      if (status.user) this.user = status.user;
+      else this.expire();
+    } catch {
+      // Keep the current view; real requests report their own errors.
+    }
+  }
+
   /** Pass `setupToken` to create the first administrator instead of signing in. */
   async signIn(credentials: Credentials, setupToken?: string) {
     const { user } =
       setupToken === undefined
         ? await authApi.login(credentials)
         : await authApi.setup(credentials, setupToken);
+    // Another account (or changed access) sees a different catalog.
+    catalog.reset();
     this.user = user;
     this.error = null;
     this.phase = "signed-in";

@@ -1,6 +1,6 @@
 <script lang="ts">
   import LogOutIcon from "@lucide/svelte/icons/log-out";
-  import FolderCogIcon from "@lucide/svelte/icons/folder-cog";
+  import SettingsIcon from "@lucide/svelte/icons/settings";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { buttonVariants } from "$lib/components/ui/button";
   import { session } from "$lib/state/session.svelte";
@@ -39,13 +39,14 @@
       <DropdownMenu.Label class="flex flex-col gap-0.5">
         <span class="text-xs font-normal text-muted-foreground">Signed in as</span>
         <span class="truncate">{username}</span>
+        {#if session.user?.is_admin}<span class="text-xs font-normal text-muted-foreground">Administrator</span>{/if}
       </DropdownMenu.Label>
     </DropdownMenu.Group>
     <DropdownMenu.Separator />
     <DropdownMenu.Group>
-      <DropdownMenu.Item onSelect={() => router.go(href.libraries())}>
-        <FolderCogIcon />
-        Libraries
+      <DropdownMenu.Item onSelect={() => router.go(href.settings())}>
+        <SettingsIcon />
+        Settings
       </DropdownMenu.Item>
       <DropdownMenu.Item onSelect={signOut}>
         <LogOutIcon />

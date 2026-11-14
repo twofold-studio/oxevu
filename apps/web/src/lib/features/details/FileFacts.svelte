@@ -9,7 +9,6 @@
     ["Video", formatCodec(item.video_codec)],
     ["Audio", formatCodec(item.audio_codec)],
     ["Duration", item.duration_seconds ? formatClock(item.duration_seconds) : null],
-    ["Delivery", "Original file"],
   ]);
 </script>
 

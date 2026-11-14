@@ -1,6 +1,6 @@
 import { parseRoute, type Route } from "./routes";
 
-export { href, parseRoute, type Route } from "./routes";
+export { href, parseRoute, type Route, type SettingsSection } from "./routes";
 
 class Router {
   route = $state<Route>(parseRoute(window.location.hash));

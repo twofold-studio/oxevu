@@ -6,7 +6,8 @@
   import ShowPage from "$lib/features/library/ShowPage.svelte";
   import SearchPage from "$lib/features/library/SearchPage.svelte";
   import ItemPage from "$lib/features/details/ItemPage.svelte";
-  import LibrariesPage from "$lib/features/settings/LibrariesPage.svelte";
+  import SettingsPage from "$lib/features/settings/SettingsPage.svelte";
+  import PartiesPage from "$lib/features/party/PartiesPage.svelte";
   import NotFound from "$lib/components/NotFound.svelte";
 
   let { route }: { route: Route } = $props();
@@ -28,8 +29,10 @@
   {/key}
 {:else if route.name === "search"}
   <SearchPage query={route.query} />
-{:else if route.name === "libraries"}
-  <LibrariesPage />
+{:else if route.name === "settings"}
+  <SettingsPage section={route.section} />
+{:else if route.name === "parties"}
+  <PartiesPage />
 {:else}
   <NotFound />
 {/if}

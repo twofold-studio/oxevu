@@ -17,12 +17,23 @@ Observed on vd, 2026-11-15. This records checks completed so far, not full accep
 - Parent created a party, sought to 30 seconds, checked its revision and left.
   The test stopped its playback session and closed its party afterward.
 
-## Pending integration
+## Frontend integration
 
-Browser playback, seeking and resume with the new frontend; independent browser
-participants synchronized across play/pause/seek; reconnect/autoplay behavior;
-settings and user administration through the UI. GPU1 and physical mobile devices
-are untested. Do not claim these from API tests or generated fixtures alone.
+- Implementation agent reports 89 frontend tests passing, type-check/lint/format
+  checks and build passing, plus Svelte analysis of changed components.
+- On a generated legal fixture library: direct MP4, NVIDIA AVI conversion,
+  forced conversion, rapid seek coalescing, absolute resume and scratch cleanup.
+- Two browser users: host pause/play/seek followed within approximately 0.2s
+  in the local fixture test, title changes and room close reached followers.
+- On the migrated real-library copy at port 3016: Arcane S1E1 HEVC/EAC3 played
+  through NVIDIA at 1920x816; seeking to 1200s and back to 1180s recreated the
+  session correctly. Scratch was empty after leaving. Test progress was written
+  only to the copied database.
+- Settings save/persist, two-root library creation/scanning and a user without
+  library access were exercised in the browser. Grant changes revoked sessions.
+
+GPU1, physical/mobile devices and synchronization over a real remote network
+remain untested. Browser checks above were performed by the implementation agent.
 
 ## Current limits
 

@@ -1,8 +1,11 @@
 import HouseIcon from "@lucide/svelte/icons/house";
 import FilmIcon from "@lucide/svelte/icons/film";
 import TvIcon from "@lucide/svelte/icons/tv";
-import FolderCogIcon from "@lucide/svelte/icons/folder-cog";
+import UsersRoundIcon from "@lucide/svelte/icons/users-round";
+import SettingsIcon from "@lucide/svelte/icons/settings";
 import type { Component } from "svelte";
+import type { User } from "$lib/api/types";
+import { canJoinParties } from "$lib/state/access";
 import { href, type Route } from "$lib/state/router.svelte";
 
 export interface NavItem {
@@ -12,24 +15,40 @@ export interface NavItem {
   active: (route: Route) => boolean;
 }
 
-export const browseNav: NavItem[] = [
-  { label: "Home", href: href.home(), icon: HouseIcon, active: (r) => r.name === "home" },
-  { label: "Movies", href: href.movies(), icon: FilmIcon, active: (r) => r.name === "movies" },
-  {
-    label: "Shows",
-    href: href.shows(),
-    icon: TvIcon,
-    active: (r) => r.name === "shows" || r.name === "show",
-  },
-];
+const home: NavItem = {
+  label: "Home",
+  href: href.home(),
+  icon: HouseIcon,
+  active: (r) => r.name === "home",
+};
+const movies: NavItem = {
+  label: "Movies",
+  href: href.movies(),
+  icon: FilmIcon,
+  active: (r) => r.name === "movies",
+};
+const shows: NavItem = {
+  label: "Shows",
+  href: href.shows(),
+  icon: TvIcon,
+  active: (r) => r.name === "shows" || r.name === "show",
+};
+const parties: NavItem = {
+  label: "Parties",
+  href: href.parties(),
+  icon: UsersRoundIcon,
+  active: (r) => r.name === "parties" || r.name === "party",
+};
+const settings: NavItem = {
+  label: "Settings",
+  href: href.settings(),
+  icon: SettingsIcon,
+  active: (r) => r.name === "settings",
+};
 
-// The API has no role flag yet; the libraries page explains a 403 instead of
-// hiding this entry.
-export const manageNav: NavItem[] = [
-  {
-    label: "Libraries",
-    href: href.libraries(),
-    icon: FolderCogIcon,
-    active: (r) => r.name === "libraries",
-  },
-];
+/** Role-aware hints; the server still authorizes every page's requests. */
+export function browseNav(user: User | null): NavItem[] {
+  return canJoinParties(user) ? [home, movies, shows, parties] : [home, movies, shows];
+}
+
+export const manageNav: NavItem[] = [settings];

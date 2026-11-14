@@ -44,8 +44,10 @@ export function breadcrumbs(route: Route, catalog: Lookup): Crumb[] {
     }
     case "search":
       return [{ label: "Search" }];
-    case "libraries":
-      return [{ label: "Libraries" }];
+    case "settings":
+      return [{ label: "Settings" }];
+    case "parties":
+      return [{ label: "Watch parties" }];
     default:
       return [{ label: "Not found" }];
   }
