@@ -82,3 +82,23 @@ is an operator requirement. NVIDIA and physical mobile testing remain outstandin
 Artwork caches currently have no eviction or source-change invalidation. Rescan
 after adding local sidecars. Recognition against an external metadata catalog is
 not implemented yet; copied sample artwork is optional local input.
+
+## Shared interface motion
+
+Use the tokens in `apps/web/src/app.css` and `lib/motion.ts` for consistent timing.
+`animate-rise`, `animate-drop` and `animate-fade` handle entrances; `press` and
+`lift` add restrained interaction feedback. Artwork handles image reveal itself.
+
+Use `SwapView` for changing content without collapsing its region:
+
+```svelte
+<SwapView key={selectedSeason}>
+  {#snippet children(season)}
+    <EpisodeList episodes={episodesFor(season)} />
+  {/snippet}
+</SwapView>
+```
+
+Render from the snippet's key so outgoing content stays correct. Reduced motion
+skips travel and view transitions. Keep selection visible without animation.
+Season URLs accept `?season=N`; returning from an episode restores that season.

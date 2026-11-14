@@ -20,7 +20,7 @@
   <ShowsPage />
 {:else if route.name === "show"}
   {#key route.ref}
-    <ShowPage showRef={route.ref} />
+    <ShowPage showRef={route.ref} season={route.season} />
   {/key}
 {:else if route.name === "item"}
   {#key route.id}

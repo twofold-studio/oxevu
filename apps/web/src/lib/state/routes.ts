@@ -7,7 +7,8 @@ export type Route =
   | { name: "home" }
   | { name: "movies" }
   | { name: "shows" }
-  | { name: "show"; ref: string }
+  /** `season` is a `seasonKey`, kept in the URL so Back restores the tab. */
+  | { name: "show"; ref: string; season?: string }
   | { name: "item"; id: string }
   | { name: "watch"; id: string; fromStart: boolean }
   | { name: "search"; query: string }
@@ -19,7 +20,8 @@ export const href = {
   movies: () => "#/movies",
   shows: () => "#/shows",
   /** Takes `Show.slug`; legacy key links still resolve through `findShow`. */
-  show: (slug: string) => `#/shows/${encodeURIComponent(slug)}`,
+  show: (slug: string, season?: string) =>
+    `#/shows/${encodeURIComponent(slug)}${season === undefined ? "" : `?season=${encodeURIComponent(season)}`}`,
   item: (id: string) => `#/items/${encodeURIComponent(id)}`,
   watch: (id: string, fromStart = false) =>
     `#/watch/${encodeURIComponent(id)}${fromStart ? "?start=0" : ""}`,
@@ -49,7 +51,10 @@ export function parseRoute(hash: string): Route {
       return parts.length === 1 ? { name: "movies" } : { name: "not-found" };
     case "shows":
       if (parts.length === 1) return { name: "shows" };
-      return param ? { name: "show", ref: param } : { name: "not-found" };
+      if (!param) return { name: "not-found" };
+      return query.has("season")
+        ? { name: "show", ref: param, season: query.get("season") ?? "" }
+        : { name: "show", ref: param };
     case "items":
       return param ? { name: "item", id: param } : { name: "not-found" };
     case "watch":

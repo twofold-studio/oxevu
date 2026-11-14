@@ -9,6 +9,10 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Shared motion tokens, transition helpers and SwapView for reusable view changes.
+- Animated season selection, image reveals and episode status cues with reduced
+  motion support. Selected season is retained in the URL.
+
 - Authenticated local posters, backdrops and episode stills, plus cached FFmpeg
   thumbnails. Library cards and details now display available artwork.
 

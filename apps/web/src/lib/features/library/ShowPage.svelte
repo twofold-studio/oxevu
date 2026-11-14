@@ -8,7 +8,7 @@
   import DetailLayout from "$lib/components/DetailLayout.svelte";
   import { catalog } from "$lib/state/catalog.svelte";
   import { href, router } from "$lib/state/router.svelte";
-  import { episodeCode, seasonKey, seasonLabel } from "$lib/media/grouping";
+  import { episodeCode, initialSeason, seasonLabel } from "$lib/media/grouping";
   import { plural } from "$lib/media/format";
   import { resumePosition } from "$lib/media/progress";
   import { artworkSrc } from "$lib/api/artwork";
@@ -18,14 +18,14 @@
   import PosterArt from "./PosterArt.svelte";
 
   /** URL segment: a slug, or a legacy internal key from older links. */
-  let { showRef }: { showRef: string } = $props();
+  let { showRef, season }: { showRef: string; season?: string } = $props();
 
   const show = $derived(catalog.findShow(showRef));
 
   // Legacy key links (and hand-typed titles) settle on the canonical slug URL
   // without adding a history entry.
   $effect(() => {
-    if (show && show.slug !== showRef) router.go(href.show(show.slug), true);
+    if (show && show.slug !== showRef) router.go(href.show(show.slug, season), true);
   });
 
   // What "Play" means for a series: the episode in progress, else the next unwatched.
@@ -33,14 +33,13 @@
   const resuming = $derived(target ? resumePosition(target) !== null : false);
   const watched = $derived(show ? show.seasons.reduce((n, s) => n + s.episodes.filter((e) => e.completed).length, 0) : 0);
 
-  // Open on the season holding the target episode; user choice wins afterwards.
-  let chosenSeason = $state<string | null>(null);
-  const activeSeason = $derived(
-    chosenSeason ??
-      (show && target
-        ? seasonKey(show.seasons.find((s) => s.episodes.includes(target)) ?? show.seasons[0])
-        : ""),
-  );
+  // The selected season lives in the URL (replaced, not pushed), so leaving
+  // for an episode and pressing Back reopens the same tab. Without one, open
+  // on the season holding the target episode.
+  const activeSeason = $derived(show ? initialSeason(show, season, target) : "");
+  function chooseSeason(value: string) {
+    if (show && value !== activeSeason) router.go(href.show(show.slug, value), true);
+  }
 </script>
 
 <CatalogGate>
@@ -105,9 +104,13 @@
           {show.seasons.length === 1 ? seasonLabel(show.seasons[0].number) : "Seasons"}
         </h2>
         {#if show.seasons.length === 1}
-          <EpisodeList episodes={show.seasons[0].episodes} label={seasonLabel(show.seasons[0].number)} />
+          <EpisodeList
+            episodes={show.seasons[0].episodes}
+            label={seasonLabel(show.seasons[0].number)}
+            upNextId={target?.id}
+          />
         {:else}
-          <SeasonPicker seasons={show.seasons} value={activeSeason} onValueChange={(value) => (chosenSeason = value)} />
+          <SeasonPicker seasons={show.seasons} value={activeSeason} onValueChange={chooseSeason} upNextId={target?.id} />
         {/if}
       </section>
     </DetailLayout>

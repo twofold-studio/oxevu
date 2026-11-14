@@ -1,7 +1,7 @@
 import type { Route } from "$lib/state/router.svelte";
 import { href } from "$lib/state/router.svelte";
 import type { Item } from "$lib/api/types";
-import type { Show } from "$lib/media/grouping";
+import { seasonKeyOf, type Show } from "$lib/media/grouping";
 
 export interface Crumb {
   label: string;
@@ -36,7 +36,8 @@ export function breadcrumbs(route: Route, catalog: Lookup): Crumb[] {
         { label: "Shows", href: href.shows() },
         {
           label: show?.title ?? item.show_title ?? "Series",
-          href: show ? href.show(show.slug) : undefined,
+          // Back to the show lands on this episode's season tab.
+          href: show ? href.show(show.slug, seasonKeyOf(item.season_number)) : undefined,
         },
         { label: item.title },
       ];

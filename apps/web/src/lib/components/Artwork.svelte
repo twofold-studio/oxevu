@@ -28,6 +28,22 @@
   // Keyed by URL so a later record with different artwork gets a fresh try.
   let failed = $state<string | null>(null);
   const visible = $derived(url !== null && failed !== url);
+
+  // Reveal state, keyed by URL like `failed`: "fresh" fades in on load,
+  // "cached" (already complete when mounted, e.g. returning to a page) shows
+  // at once. The frame's muted fill holds the space meanwhile.
+  let loaded = $state<{ url: string; how: "fresh" | "cached" } | null>(null);
+  const loadedAs = $derived(loaded && loaded.url === url ? loaded.how : undefined);
+
+  function markLoaded(how: "fresh" | "cached") {
+    if (url !== null && loaded?.url !== url) loaded = { url, how };
+  }
+
+  // Runs again when `url` changes; a load event may already have fired
+  // before listeners existed, so check `complete` directly.
+  function checkCached(img: HTMLImageElement) {
+    if (url !== null && img.complete && img.naturalWidth > 0) markLoaded("cached");
+  }
 </script>
 
 {#if visible || fallback}
@@ -39,8 +55,11 @@
         loading={eager ? "eager" : "lazy"}
         decoding="async"
         draggable="false"
+        data-loaded={loadedAs}
+        onload={() => markLoaded("fresh")}
         onerror={() => (failed = url)}
-        class={cn("absolute inset-0 size-full object-cover", imageClass)}
+        {@attach checkCached}
+        class={cn("reveal absolute inset-0 size-full object-cover", imageClass)}
       />
     {:else}
       {@render fallback?.()}

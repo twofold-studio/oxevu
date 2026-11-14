@@ -133,17 +133,87 @@
   }
 }
 
-/* Gitadel motion: content settles in, no bounce. */
+/* Motion vocabulary (Gitadel source values, see ft-ui-style): content settles
+   in on one ease-out curve, never bounces, and never holds up input. The same
+   numbers live in lib/motion.ts for Svelte transitions; keep them in step.
+   `ease-settle` and `duration-*` work as Tailwind utilities. */
+@theme static {
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-control: 180ms;
+  --motion-fade: 260ms;
+  --motion-rise: 360ms;
+  --motion-drop: 200ms;
+  --motion-travel: 6px;
+}
+
 @keyframes oxevu-rise {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(var(--motion-travel));
   }
 }
-@utility animate-rise {
-  animation: oxevu-rise 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+@keyframes oxevu-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+@keyframes oxevu-fade {
+  from {
+    opacity: 0;
+  }
 }
 
+/* Entrances. `backwards` fill (not `both`) drops the transform once settled,
+   so a finished entrance never becomes a containing block for fixed or
+   sticky children. */
+@utility animate-rise {
+  animation: oxevu-rise var(--motion-rise) var(--ease-settle) backwards;
+}
+@utility animate-drop {
+  animation: oxevu-drop var(--motion-drop) var(--ease-settle) backwards;
+}
+@utility animate-fade {
+  animation: oxevu-fade var(--motion-fade) var(--ease-settle) backwards;
+}
+
+/* Quiet feedback for pressable surfaces (cards, posters). `lift` is the
+   sparse 2px hover raise; use it on a few large targets, not every control.
+   Both act on `transform` only, so they never move surrounding layout. */
+@utility press {
+  transition: transform var(--motion-control) var(--ease-settle);
+  &:active {
+    transform: scale(0.98);
+  }
+}
+@utility lift {
+  transition: transform var(--motion-control) var(--ease-settle);
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+  &:active {
+    transform: translateY(0) scale(0.98);
+  }
+}
+
+/* Images fade in once loaded (see Artwork.svelte) instead of popping in
+   row by row. An animation rather than a transition, so callers keep their
+   own `transition-*` for hover effects. Already-cached images ("cached")
+   show at once. */
+@utility reveal {
+  &:not([data-loaded]) {
+    opacity: 0;
+  }
+  &[data-loaded="fresh"] {
+    animation: oxevu-fade var(--motion-fade) var(--ease-settle) backwards;
+  }
+}
+
+/* Reduced motion: no travel, delays or nonessential transitions. Selection
+   and focus states change instantly but stay fully visible. Svelte JS
+   transitions check the same query in lib/motion.ts. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -151,6 +221,12 @@
     animation-duration: 1ms !important;
     animation-delay: 0ms !important;
     transition-duration: 1ms !important;
+    transition-delay: 0ms !important;
+  }
+  .press:active,
+  .lift:hover,
+  .lift:active {
+    transform: none;
   }
 }
 

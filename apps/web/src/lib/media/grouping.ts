@@ -94,8 +94,27 @@ export function groupShows(items: Item[]): Show[] {
     .sort((a, b) => collator.compare(a.title, b.title));
 }
 
-/** Stable string identity for a season within its show (tab values). */
-export const seasonKey = (season: Season) => String(season.number ?? "none");
+/** Stable string identity for a season within its show (tab values, URLs). */
+export const seasonKey = (season: Season) => seasonKeyOf(season.number);
+
+/** The same key from a bare season number, e.g. an episode's `season_number`. */
+export const seasonKeyOf = (number: number | null) => String(number ?? "none");
+
+/**
+ * The season tab a show page should open on: the requested key when that
+ * season exists (a stale or hand-edited URL falls through), else the season
+ * holding `target` (what Play would start), else the first season.
+ */
+export function initialSeason(
+  show: Show,
+  requested: string | undefined,
+  target: Item | undefined,
+): string {
+  if (requested !== undefined && show.seasons.some((s) => seasonKey(s) === requested))
+    return requested;
+  const holding = target && show.seasons.find((s) => s.episodes.some((e) => e.id === target.id));
+  return seasonKey(holding ?? show.seasons[0]);
+}
 
 export function seasonLabel(number: number | null): string {
   if (number === null) return "Unnumbered";

@@ -19,6 +19,20 @@ describe("show routes", () => {
     });
   });
 
+  test("the selected season round-trips as a query", () => {
+    expect(href.show("arcane", "2")).toBe("#/shows/arcane?season=2");
+    expect(parseRoute(href.show("arcane", "2"))).toEqual({
+      name: "show",
+      ref: "arcane",
+      season: "2",
+    });
+    expect(parseRoute(href.show("arcane", "none"))).toEqual({
+      name: "show",
+      ref: "arcane",
+      season: "none",
+    });
+  });
+
   test("malformed escapes are not found", () => {
     expect(parseRoute("#/shows/%E0%A4")).toEqual({ name: "not-found" });
   });

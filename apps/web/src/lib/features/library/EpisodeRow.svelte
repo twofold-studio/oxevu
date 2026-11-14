@@ -11,7 +11,16 @@
   import Artwork from "$lib/components/Artwork.svelte";
   import ProgressLine from "./ProgressLine.svelte";
 
-  let { item, showContext = false }: { item: Item; showContext?: boolean } = $props();
+  let {
+    item,
+    showContext = false,
+    upNext = false,
+  }: {
+    item: Item;
+    showContext?: boolean;
+    /** This is the episode the series' Play button would start or resume. */
+    upNext?: boolean;
+  } = $props();
 
   const code = $derived(episodeCode(item));
   // Episodes use their own still; movies (in Continue watching) fall back to the backdrop.
@@ -29,7 +38,14 @@
   );
 </script>
 
-<li class="relative flex items-center gap-3 px-3 py-3 transition-colors duration-200 hover:bg-accent/40 sm:gap-4 sm:px-4">
+<!-- Up next carries a bright edge marker plus a text label, so it reads with
+     motion and colour turned off and is spoken as part of the link. -->
+<li
+  class={[
+    "relative flex items-center gap-3 px-3 py-3 transition-colors duration-(--motion-control) ease-settle hover:bg-accent/40 has-[a:active]:bg-accent/60 sm:gap-4 sm:px-4",
+    upNext && "bg-accent/25 before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-brand",
+  ]}
+>
   <!-- The title beside it names the episode, so the still is decorative. -->
   <Artwork src={still} alt="" class="aspect-video w-28 shrink-0 rounded-md border sm:w-44 lg:w-52">
     {#snippet fallback()}
@@ -42,13 +58,21 @@
     href={href.item(item.id)}
     class="flex min-w-0 flex-1 flex-col gap-0.5 after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
   >
-    {#if (showContext && item.show_title) || code}
+    {#if (showContext && item.show_title) || code || upNext}
       <span class="flex min-w-0 gap-2 text-xs text-muted-foreground">
         {#if code}<span class="shrink-0 font-mono tabular-nums">{code}</span>{/if}
+        {#if upNext}<span class="shrink-0 font-medium text-brand">{resume !== null ? "Continue" : "Up next"}</span>{/if}
         {#if showContext && item.show_title}<span class="truncate">{item.show_title}</span>{/if}
       </span>
     {/if}
     <span class="line-clamp-2 font-medium break-words sm:line-clamp-1">{item.title}</span>
+    <!-- Phones hide the status column; keep watched/remaining visible here. -->
+    {#if status}
+      <span class="flex items-center gap-1 text-xs text-muted-foreground sm:hidden">
+        {#if item.completed}<CheckIcon class="size-3" />{/if}
+        {status}
+      </span>
+    {/if}
   </a>
   <span class="hidden shrink-0 items-center gap-1.5 text-sm text-muted-foreground sm:flex">
     {#if item.completed}<CheckIcon class="size-3.5" />{/if}

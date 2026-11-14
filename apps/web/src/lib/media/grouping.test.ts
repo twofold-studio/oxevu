@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vite-plus/test";
 import type { Item } from "$lib/api/types";
-import { episodeCaption, groupShows } from "./grouping";
+import { episodeCaption, groupShows, initialSeason } from "./grouping";
 
 const LIB = "11111111-1111-4111-8111-111111111111";
 const art = (path: string) => `/api/v1/items/${path}/artwork/poster`;
@@ -71,5 +71,24 @@ describe("episodeCaption", () => {
 
   test("falls back to the title when numbers are unknown", () => {
     expect(episodeCaption(episode(null, null, { title: "Pilot" }))).toBe("Pilot");
+  });
+});
+
+describe("initialSeason", () => {
+  const [show] = groupShows([episode(1, 1), episode(1, 2), episode(2, 1), episode(null, null)]);
+  const s2e1 = show.seasons[1].episodes[0];
+
+  test("a season named in the URL wins", () => {
+    expect(initialSeason(show, "1", s2e1)).toBe("1");
+    expect(initialSeason(show, "none", s2e1)).toBe("none");
+  });
+
+  test("a stale or unknown season falls back to the up-next season", () => {
+    expect(initialSeason(show, "7", s2e1)).toBe("2");
+    expect(initialSeason(show, "", s2e1)).toBe("2");
+  });
+
+  test("with nothing to go on, the first season opens", () => {
+    expect(initialSeason(show, undefined, undefined)).toBe("1");
   });
 });

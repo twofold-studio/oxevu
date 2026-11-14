@@ -17,6 +17,7 @@
   import { catalog } from "$lib/state/catalog.svelte";
   import { href } from "$lib/state/router.svelte";
   import { formatClock, formatRuntime } from "$lib/media/format";
+  import { seasonKeyOf } from "$lib/media/grouping";
   import { resumePosition, watchedFraction } from "$lib/media/progress";
   import ProgressLine from "$lib/features/library/ProgressLine.svelte";
   import Artwork from "$lib/components/Artwork.svelte";
@@ -105,7 +106,7 @@
           {#if item.kind === "episode"}
             <p class="text-sm text-muted-foreground">
               {#if siblings}
-                <a href={href.show(siblings.show.slug)} class="text-foreground hover:underline">{siblings.show.title}</a>
+                <a href={href.show(siblings.show.slug, seasonKeyOf(item.season_number))} class="text-foreground hover:underline">{siblings.show.title}</a>
               {:else}
                 {item.show_title ?? "Series"}
               {/if}
