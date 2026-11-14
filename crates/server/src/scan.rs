@@ -98,11 +98,51 @@ pub(super) async fn scan(
                 .await
                 .map_err(db)?;
             let item_id = old.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-            let mut data = json!({"id":item_id,"library_id":id,"title":stem.trim(),"kind":if tv{"episode"}else{"movie"},"show_title":episode.as_ref().and_then(|c|c.get(1)).map(|s|s.as_str().trim()),"season_number":episode.as_ref().and_then(|c|c.get(2)).and_then(|s|s.as_str().parse::<u32>().ok()),"episode_number":episode.as_ref().and_then(|c|c.get(3)).and_then(|s|s.as_str().parse::<u32>().ok()),"duration_seconds":meta["format"]["duration"].as_str().and_then(|s|s.parse::<f64>().ok()),"container":meta["format"]["format_name"],"video_codec":codec("video"),"audio_codec":codec("audio"),"position_seconds":0,"completed":false});
+            let mut data = json!({"id":item_id,"library_id":id,"title":stem.trim(),"kind":if tv{"episode"}else{"movie"},"show_title":show_title(&path, &root, episode.as_ref().and_then(|c|c.get(1)).map(|s|s.as_str())),"season_number":episode.as_ref().and_then(|c|c.get(2)).and_then(|s|s.as_str().parse::<u32>().ok()),"episode_number":episode.as_ref().and_then(|c|c.get(3)).and_then(|s|s.as_str().parse::<u32>().ok()),"duration_seconds":meta["format"]["duration"].as_str().and_then(|s|s.parse::<f64>().ok()),"container":meta["format"]["format_name"],"video_codec":codec("video"),"audio_codec":codec("audio"),"position_seconds":0,"completed":false});
             artwork::attach(&a, &mut data, &path, &root, tv, &mut errors).await;
             sqlx::query("INSERT INTO items VALUES(?,?,?,?) ON CONFLICT(path) DO UPDATE SET data=excluded.data").bind(item_id).bind(&id).bind(path.to_string_lossy().as_ref()).bind(data.to_string()).execute(&a.pool).await.map_err(db)?;
             scanned += 1;
         }
     }
     Ok(Json(json!({"scanned":scanned,"errors":errors})))
+}
+
+// A configured TV root uses show folders; release filenames can differ by season.
+fn show_title(
+    path: &std::path::Path,
+    root: &std::path::Path,
+    fallback: Option<&str>,
+) -> Option<String> {
+    let relative = path.strip_prefix(root).ok()?;
+    if relative.components().count() > 1 {
+        return relative
+            .components()
+            .next()
+            .map(|c| c.as_os_str().to_string_lossy().into_owned());
+    }
+    fallback.map(|title| title.trim().trim_end_matches('-').trim().to_owned())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::show_title;
+    use std::path::Path;
+
+    #[test]
+    fn seasons_with_different_release_names_share_the_show_folder() {
+        let root = Path::new("/tv");
+        for (path, release_title) in [
+            ("/tv/Arcane/Season 01/episode.mkv", "Arcane (2021) - "),
+            ("/tv/Arcane/Season 02/episode.mkv", "Arcane "),
+        ] {
+            assert_eq!(
+                show_title(Path::new(path), root, Some(release_title)).as_deref(),
+                Some("Arcane")
+            );
+        }
+        assert_eq!(
+            show_title(Path::new("/tv/Arcane.S01E01.mkv"), root, Some("Arcane ")).as_deref(),
+            Some("Arcane")
+        );
+    }
 }

@@ -28,6 +28,9 @@ as available; planned features belong in GOAL.md.
 
 ### Fixed
 
+- TV scans group seasons by their show folder when release filenames use
+  different title spellings or years.
+
 - Fresh catalog items without progress no longer panic during SQLite decoding.
 - Matroska delivery is distinguished from WebM despite ffprobe sharing a format list.
 

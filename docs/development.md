@@ -66,7 +66,7 @@ on loopback during setup. Never commit the token or runtime database.
 
 Sample library roots on vd are `/home/fractal-tess/.local/share/oxevu-dev/media/movies`
 and `/home/fractal-tess/.local/share/oxevu-dev/media/tv`, containing Anna and Arcane
-S02E01 respectively. Add them as Movies and TV libraries, then scan. They are
+both seasons (18 episodes) respectively. Add them as Movies and TV libraries, then scan. They are
 separate copies; originals remain in Jellyfin's Blockade folders.
 
 For frontend development run the backend with
