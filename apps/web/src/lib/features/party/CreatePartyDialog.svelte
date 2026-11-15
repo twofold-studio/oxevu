@@ -44,7 +44,7 @@
 </script>
 
 <Dialog.Root bind:open>
-  <Dialog.Content class="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+  <Dialog.Content>
     <Dialog.Header>
       <Dialog.Title>Start a watch party</Dialog.Title>
       <Dialog.Description>

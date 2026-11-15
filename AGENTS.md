@@ -13,6 +13,8 @@ Read [goal](GOAL.md), [architecture](docs/architecture.md),
 - Vite Plus / Svelte 5 / TypeScript / shadcn-svelte / Tailwind v4 in `apps/web`.
 - Embed release web assets; supervise external FFmpeg/ffprobe. No Node server.
 - Use dark mode, semantic tokens and `ft-ui-style`.
+- Follow [overlay rules](docs/ui-overlays.md): centered modals for tasks,
+  anchored menus for short choices; no application drawers.
 - Keep HTTP handlers thin; share API contracts with TypeScript.
 - Add directories when needed. Mobile packaging follows a device playback spike.
 

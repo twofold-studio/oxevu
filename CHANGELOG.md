@@ -9,6 +9,9 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Shared overlay rules and centered user-management modals. Task dialogs now
+  use common widths, viewport gutters and scrolling on desktop and phones.
+
 - Translucent seek/volume feedback over video and previous/next episode controls
   that follow library ordering across seasons.
 

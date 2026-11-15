@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy, untrack } from "svelte";
   import { Autosave } from "../autosave";
-  import * as Sheet from "$lib/components/ui/sheet";
+  import * as Dialog from "$lib/components/ui/dialog";
   import * as Field from "$lib/components/ui/field";
   import * as ToggleGroup from "$lib/components/ui/toggle-group";
   import { Input } from "$lib/components/ui/input";
@@ -82,15 +82,15 @@
   }
 </script>
 
-<Sheet.Root bind:open>
-  <Sheet.Content class="w-full overflow-y-auto sm:max-w-md">
-    <Sheet.Header>
-      <Sheet.Title>{user ? `Edit ${user.username}` : "Add a user"}</Sheet.Title>
-      <Sheet.Description>
+<Dialog.Root bind:open>
+  <Dialog.Content>
+    <Dialog.Header>
+      <Dialog.Title>{user ? `Edit ${user.username}` : "Add a user"}</Dialog.Title>
+      <Dialog.Description>
         {user ? "Changes to role or access sign this account out of its other sessions." : "New accounts can sign in right away. There is no public sign-up."}
-      </Sheet.Description>
-    </Sheet.Header>
-    <form class="px-4 pb-4" onsubmit={submit} novalidate>
+      </Dialog.Description>
+    </Dialog.Header>
+    <form onsubmit={submit} novalidate>
       <Field.Group>
         <Field.Field data-invalid={show(errors.username) ? true : undefined}>
           <Field.Label for="user-name">Username</Field.Label>
@@ -153,7 +153,7 @@
 
         {#if failure}<p class="text-sm text-destructive" role="alert">{failure}</p>{/if}
 
-        <div class="flex justify-end gap-2">
+        <Dialog.Footer>
           {#if user}
             <p class="text-sm text-muted-foreground" role="status">{autosaveStatus}</p>
             {#if draft.password}<Button type="submit" disabled={pending}>Change password</Button>{/if}
@@ -163,8 +163,8 @@
               {#if pending}<Spinner data-icon="inline-start" />{/if}Add user
             </Button>
           {/if}
-        </div>
+        </Dialog.Footer>
       </Field.Group>
     </form>
-  </Sheet.Content>
-</Sheet.Root>
+  </Dialog.Content>
+</Dialog.Root>

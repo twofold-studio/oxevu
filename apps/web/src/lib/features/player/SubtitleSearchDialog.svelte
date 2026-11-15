@@ -52,7 +52,7 @@
 </script>
 
 <Dialog.Root bind:open>
-  <Dialog.Content portalProps={{ disabled: true }} class="max-h-[85dvh] overflow-y-auto sm:max-w-xl">
+  <Dialog.Content portalProps={{ disabled: true }} size="wide">
     <Dialog.Header>
       <Dialog.Title>Find subtitles</Dialog.Title>
       <Dialog.Description>Search OpenSubtitles for this title. An administrator must configure the integration first. Downloads count against the account's quota and stay in Oxevu's data folder.</Dialog.Description>

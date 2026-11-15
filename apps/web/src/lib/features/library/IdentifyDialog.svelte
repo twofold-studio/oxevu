@@ -64,7 +64,7 @@
 </script>
 
 <Dialog.Root bind:open>
-  <Dialog.Content class="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
+  <Dialog.Content size="wide">
     <Dialog.Header>
       <Dialog.Title>Identify {item.kind === "episode" ? "series" : "movie"}</Dialog.Title>
       <Dialog.Description>Find the correct title, then confirm its metadata. Media files stay unchanged.</Dialog.Description>
