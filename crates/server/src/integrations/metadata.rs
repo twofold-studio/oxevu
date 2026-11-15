@@ -66,7 +66,7 @@ pub(crate) async fn search(
                 &[("query", q.query), ("include_adult", "false".into())],
             )
             .await?;
-            data["results"].as_array().into_iter().flatten().take(20).map(|v|json!({"provider":"tmdb","id":v["id"].as_u64().map(|n|n.to_string()),"title":if tv{&v["name"]}else{&v["title"]},"year":if tv{v["first_air_date"].as_str()}else{v["release_date"].as_str()}.map(|s|s.chars().take(4).collect::<String>()),"kind":if tv{"tv"}else{"movie"},"overview":v["overview"],"poster_url":null})).collect::<Vec<_>>()
+            data["results"].as_array().into_iter().flatten().take(20).map(|v|json!({"provider":"tmdb","id":v["id"].as_u64().map(|n|n.to_string()),"title":if tv{&v["name"]}else{&v["title"]},"year":if tv{v["first_air_date"].as_str()}else{v["release_date"].as_str()}.map(|s|s.chars().take(4).collect::<String>()),"kind":if tv{"tv"}else{"movie"},"overview":v["overview"],"poster_url":image(&v["poster_path"]).map(|path|format!("https://image.tmdb.org/t/p/w185{path}"))})).collect::<Vec<_>>()
         }
         "omdb" => {
             let data = omdb(
@@ -77,7 +77,7 @@ pub(crate) async fn search(
                 ],
             )
             .await?;
-            data["Search"].as_array().into_iter().flatten().take(20).map(|v|json!({"provider":"omdb","id":v["imdbID"],"title":v["Title"],"year":v["Year"],"kind":if tv{"tv"}else{"movie"},"overview":null,"poster_url":null})).collect()
+            data["Search"].as_array().into_iter().flatten().take(20).map(|v|json!({"provider":"omdb","id":v["imdbID"],"title":v["Title"],"year":v["Year"],"kind":if tv{"tv"}else{"movie"},"overview":null,"poster_url":v["Poster"].as_str().filter(|url|url.starts_with("https://") && url.len() <= 2048)})).collect()
         }
         _ => return Err(bad("unsupported metadata provider")),
     };

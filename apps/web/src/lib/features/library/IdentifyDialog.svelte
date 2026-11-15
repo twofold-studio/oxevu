@@ -11,6 +11,7 @@
   import { catalog } from "$lib/state/catalog.svelte";
   import { cn } from "$lib/utils";
   import { href } from "$lib/state/router.svelte";
+  import MatchPoster from "./MatchPoster.svelte";
 
   let { open = $bindable(false), item, onsaved }: {
     open: boolean;
@@ -94,12 +95,15 @@
       <ul class="flex flex-col divide-y rounded-lg border" aria-label="Matching titles">
         {#each results as result (`${result.provider}:${result.id}`)}
           <li>
-            <button type="button" class={cn("flex w-full flex-col gap-1 px-4 py-3 text-left transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50", selected?.id === result.id && selected.provider === result.provider && "bg-accent")}
+            <button type="button" class={cn("flex w-full items-start gap-4 px-4 py-3 text-left transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50", selected?.id === result.id && selected.provider === result.provider && "bg-accent")}
               aria-pressed={selected?.id === result.id && selected.provider === result.provider}
               disabled={pending} onclick={() => (selected = result)}>
+              <MatchPoster url={result.poster_url} />
+              <span class="flex min-w-0 flex-1 flex-col gap-1">
               <span class="font-medium">{result.title}{result.year ? ` (${result.year})` : ""}</span>
               <span class="text-xs text-muted-foreground">{result.kind === "tv" ? "Series" : "Movie"} · {result.provider === "tmdb" ? "TMDB" : "OMDb"}</span>
               {#if result.overview}<span class="line-clamp-3 text-sm text-muted-foreground">{result.overview}</span>{/if}
+              </span>
             </button>
           </li>
         {/each}

@@ -9,6 +9,9 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Poster covers in TMDB and OMDb identification results, with a fallback for
+  missing or failed images.
+
 - Title, series and season pages show a compact icon-led facts line under the
   title: years, certificate, score with its provider mark, runtime and "Ends at"
   finish time. Credits use icons and genre chips; TMDB/IMDb links use local
