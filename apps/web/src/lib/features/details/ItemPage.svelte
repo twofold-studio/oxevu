@@ -24,6 +24,8 @@
   import Artwork from "$lib/components/Artwork.svelte";
   import { artworkSrc } from "$lib/api/artwork";
   import PosterArt from "$lib/features/library/PosterArt.svelte";
+  import IdentifyButton from "$lib/features/library/IdentifyButton.svelte";
+  import MetadataDetails from "$lib/features/library/MetadataDetails.svelte";
   import FileFacts from "./FileFacts.svelte";
   import PlaybackNotice from "./PlaybackNotice.svelte";
   import CreatePartyDialog from "$lib/features/party/CreatePartyDialog.svelte";
@@ -149,6 +151,7 @@
               Start over
             </Button>
           {/if}
+          <IdentifyButton {item} onsaved={(updated) => (fetched = updated)} />
           {#if canParty}
             <Button
               size="lg"
@@ -163,6 +166,8 @@
             </Button>
           {/if}
         </div>
+
+        <MetadataDetails {item} />
 
         <div class="max-w-2xl">
           <PlaybackNotice {item} />

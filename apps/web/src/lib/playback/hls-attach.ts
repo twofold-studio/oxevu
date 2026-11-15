@@ -60,6 +60,7 @@ export function attachStream(
   url: string,
   hls: boolean,
   onFailure: (failure: StreamFailure) => void,
+  onBandwidth?: (mbps: number) => void,
 ): AttachedStream {
   if (!hls) return attachSrc(video, url);
   const Hls = loadedHls?.default;
@@ -93,6 +94,9 @@ export function attachStream(
         ? `The stream request failed (${status}).`
         : `The stream failed: ${data.details}.`,
     });
+  });
+  player.on(Hls.Events.FRAG_LOADED, () => {
+    onBandwidth?.(player.bandwidthEstimate / 1_000_000);
   });
   player.loadSource(url);
   player.attachMedia(video);

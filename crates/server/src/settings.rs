@@ -64,9 +64,8 @@ impl Settings {
         {
             return Err(bad("settings outside supported ranges"));
         }
-        // Decode is deliberately unavailable until a real decode probe is implemented.
-        if self.hardware_decoding {
-            return Err(bad("hardware decoding is not available"));
+        if self.hardware_decoding && self.hardware_acceleration != "nvenc" {
+            return Err(bad("hardware decoding requires NVIDIA acceleration"));
         }
         Ok(())
     }
@@ -105,14 +104,14 @@ pub async fn put(
 mod tests {
     use super::*;
     #[test]
-    fn unsupported_decode_is_rejected() {
+    fn nvidia_decode_is_accepted() {
         assert!(
             Settings {
                 hardware_decoding: true,
                 ..Default::default()
             }
             .validate()
-            .is_err()
+            .is_ok()
         );
     }
     #[test]

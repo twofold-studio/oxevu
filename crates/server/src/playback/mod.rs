@@ -1,4 +1,6 @@
 use crate::*;
+use axum::http::header;
+mod quality;
 pub(crate) mod runtime;
 mod worker;
 pub(crate) use runtime::Runtime;
@@ -45,8 +47,9 @@ pub(crate) async fn create(
     if duration.is_some_and(|d| start >= d) {
         return Err(bad("start offset exceeds duration"));
     }
-    let settings = settings::load(&a).await?;
-    let direct = mode == "direct" || (mode == "auto" && supported);
+    let mut settings = settings::load(&a).await?;
+    let quality = quality::apply(&v, &mut settings)?;
+    let direct = !quality && (mode == "direct" || (mode == "auto" && supported));
     let method = if direct {
         "direct"
     } else {
@@ -56,7 +59,7 @@ pub(crate) async fn create(
         if !settings.transcoding_enabled {
             return Err(bad("transcoding disabled"));
         }
-        if mode == "auto" && data["video_codec"] == "h264" {
+        if !quality && mode == "auto" && data["video_codec"] == "h264" {
             "remux"
         } else if settings.hardware_acceleration == "nvenc" && settings.hardware_encoding {
             "nvenc"
@@ -67,7 +70,7 @@ pub(crate) async fn create(
     let id = uuid::Uuid::new_v4().to_string();
     let (cancel, rx) = watch::channel(false);
     let (done, done_rx) = watch::channel(direct);
-    let value = json!({"id":id,"item_id":item,"method":method,"status":if direct{"ready"}else{"starting"},"stream_url":if direct{format!("/api/v1/items/{item}/stream")}else{format!("/api/v1/playback/sessions/{id}/hls/index.m3u8")},"start_seconds":start,"duration_seconds":duration,"reason":if direct{"Native playback requested"}else{"H264/AAC HLS delivery"},"error":null});
+    let value = json!({"id":id,"item_id":item,"method":method,"status":if direct{"ready"}else{"starting"},"stream_url":if direct{format!("/api/v1/items/{item}/stream")}else{format!("/api/v1/playback/sessions/{id}/hls/index.m3u8")},"start_seconds":start,"duration_seconds":duration,"reason":if direct{"Native playback requested"}else{"H264/AAC HLS delivery"},"error":null,"max_height":settings.max_height,"video_bitrate_mbps":settings.max_video_bitrate_mbps});
     let mut sessions = a.playback.sessions.lock().await;
     if a.playback
         .shutting_down
@@ -190,6 +193,24 @@ pub(crate) async fn hls(
         .map_err(|_| bad("segment unavailable"))?;
     if !path.starts_with(&directory) {
         return Err(users::forbidden());
+    }
+    if file == "index.m3u8" {
+        let playlist = tokio::fs::read_to_string(&path).await.map_err(bad)?;
+        // A growing EVENT is still live to HLS clients. Explicitly start at the
+        // beginning of this session, whose timestamps are relative to the seek.
+        let playlist = playlist.replacen(
+            "#EXTM3U\n",
+            "#EXTM3U\n#EXT-X-START:TIME-OFFSET=0,PRECISE=YES\n",
+            1,
+        );
+        return Ok((
+            [
+                (header::CONTENT_TYPE, "application/vnd.apple.mpegurl"),
+                (header::CACHE_CONTROL, "no-store"),
+            ],
+            playlist,
+        )
+            .into_response());
     }
     let mime = if file.ends_with("m3u8") {
         "application/vnd.apple.mpegurl"

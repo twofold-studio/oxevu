@@ -15,11 +15,13 @@ mod assets;
 mod auth;
 mod catalog;
 mod episode_title;
+mod integrations;
 mod libraries;
 mod parties;
 mod playback;
 mod scan;
 mod settings;
+mod subtitles;
 mod users;
 use auth::*;
 use catalog::*;
@@ -121,6 +123,28 @@ async fn main() -> anyhow::Result<()> {
         .route("/libraries/{id}", put(libraries::update))
         .route("/libraries/{id}/remove", post(libraries::remove))
         .route("/settings", get(settings::get).put(settings::put))
+        .route(
+            "/integrations",
+            get(integrations::get).put(integrations::put),
+        )
+        .route("/items/{id}/metadata/search", get(integrations::search))
+        .route("/items/{id}/metadata/match", post(integrations::apply))
+        .route(
+            "/items/{id}/metadata/artwork/{kind}",
+            get(integrations::metadata_artwork),
+        )
+        .route(
+            "/items/{id}/metadata/studios/{name}",
+            get(integrations::studio),
+        )
+        .route(
+            "/items/{id}/subtitles/search",
+            get(integrations::subtitle_search),
+        )
+        .route(
+            "/items/{id}/subtitles/download",
+            post(integrations::subtitle_download),
+        )
         .route("/auth/status", get(status))
         .route("/auth/setup", post(setup))
         .route("/auth/login", post(login))
@@ -130,6 +154,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/items", get(items))
         .route("/items/{id}", get(item))
         .route("/items/{id}/stream", get(stream))
+        .route("/items/{id}/subtitles", get(subtitles::list))
+        .route("/items/{id}/subtitles/{track}", get(subtitles::serve))
         .route("/items/{id}/artwork/{kind}", get(artwork::serve))
         .route("/items/{id}/progress", put(progress));
     let router = Router::new()

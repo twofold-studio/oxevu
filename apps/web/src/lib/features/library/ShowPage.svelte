@@ -15,6 +15,8 @@
   import EpisodeList from "./EpisodeList.svelte";
   import NextUpCard from "./NextUpCard.svelte";
   import SeasonPicker from "./SeasonPicker.svelte";
+  import IdentifyButton from "./IdentifyButton.svelte";
+  import MetadataDetails from "./MetadataDetails.svelte";
   import PosterArt from "./PosterArt.svelte";
 
   /** URL segment: a slug, or a legacy internal key from older links. */
@@ -84,13 +86,18 @@
           </p>
         </div>
         {#if target}
-          <Button href={href.watch(target.id)} size="lg" class="self-start">
-            <PlayIcon data-icon="inline-start" />
-            {resuming ? "Resume" : "Play"}
-            {episodeName(target)}
-          </Button>
+          <div class="flex flex-wrap gap-2">
+            <Button href={href.watch(target.id)} size="lg" class="self-start">
+              <PlayIcon data-icon="inline-start" />
+              {resuming ? "Resume" : "Play"}
+              {episodeName(target)}
+            </Button>
+            <IdentifyButton item={target} />
+          </div>
         {/if}
       </header>
+
+      {#if target}<MetadataDetails item={target} series />{/if}
 
       {#if target}
         <section aria-labelledby="next-up" class="flex flex-col gap-3">

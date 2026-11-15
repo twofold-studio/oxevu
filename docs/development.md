@@ -81,7 +81,8 @@ Create individual non-admin users with explicit library/playback permissions.
 The player selects original, remux or H264/AAC HLS delivery. Automatic conversion
 uses NVIDIA encoding when configured, with an optional CPU fallback. Settings
 include GPU index, height/bitrate/CRF, concurrency, scratch limits and resume rules.
-Hardware decoding, HDR conversion, subtitle selection and trickplay are unsupported.
+NVIDIA hardware decoding is available when its runtime probe succeeds. Text subtitle selection is supported; image subtitle burn-in, HDR conversion and trickplay are unsupported.
+Optional provider setup is described in [integrations](integrations.md).
 FFmpeg path (`OXEVU_FFMPEG`) and scratch directory (`OXEVU_TRANSCODE_DIR`) are server
 configuration; scratch must not overlap media roots or the source tree.
 
@@ -116,3 +117,8 @@ Use `SwapView` for changing content without collapsing its region:
 Render from the snippet's key so outgoing content stays correct. Reduced motion
 skips travel and view transitions. Keep selection visible without animation.
 Season URLs accept `?season=N`; returning from an episode restores that season.
+
+Settings edits save automatically after a short pause. Invalid values are not sent.
+Creating users/libraries, changing passwords and removing libraries remain explicit
+actions. Enable Hardware decoding under Settings → Playback to use CUDA decoding
+for new converted streams; the player delivery menu reports the actual decoder.

@@ -37,7 +37,7 @@
   function saved(library: Library, created: boolean) {
     const list = libraries.value ?? [];
     libraries.value = created ? [...list, library] : list.map((l) => (l.id === library.id ? library : l));
-    toast.success(created ? `Added ${library.name}. Scan it to list its titles.` : `Saved ${library.name}.`);
+    if (created) toast.success(`Added ${library.name}. Scan it to list its titles.`);
     // Enabled state and roots change what the catalog shows.
     if (!created) void catalog.ensure(true);
   }

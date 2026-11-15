@@ -2,6 +2,7 @@
   import SettingsIcon from "@lucide/svelte/icons/settings-2";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { buttonVariants } from "$lib/components/ui/button";
+  import { qualityPresets, type QualityId } from "$lib/playback/quality";
   import type { PlaybackMode } from "$lib/api/playback-types";
   import type { PlaybackEngine } from "$lib/playback/engine.svelte";
   import { methodDetail, methodLabel, modeLabel } from "$lib/playback/method";
@@ -30,10 +31,18 @@
       {#if method}
         <span class="text-xs leading-5 font-normal text-muted-foreground">{methodDetail[method]}</span>
       {/if}
+      {#if engine.session?.decoder}
+        <span class="text-xs font-normal text-muted-foreground">Decoder: {engine.session.decoder === "cuda" ? "NVIDIA CUDA" : engine.session.decoder === "copy" ? "Stream copy" : "CPU"}</span>
+      {/if}
       {#if engine.session?.reason}
         <span class="text-xs leading-5 font-normal text-muted-foreground">{engine.session.reason}</span>
       {/if}
     </DropdownMenu.Label>
+    {#if engine.session?.video_bitrate_mbps}
+      <DropdownMenu.Label class="text-xs font-normal text-muted-foreground">
+        Up to {engine.session.max_height}p · {engine.session.video_bitrate_mbps} Mbps
+      </DropdownMenu.Label>
+    {/if}
     <DropdownMenu.Separator />
     <DropdownMenu.RadioGroup
       value={engine.mode}
@@ -49,5 +58,16 @@
         </DropdownMenu.RadioItem>
       {/each}
     </DropdownMenu.RadioGroup>
+    <DropdownMenu.Separator />
+    <DropdownMenu.RadioGroup value={engine.quality} onValueChange={(value) => engine.setQuality(value as QualityId)}>
+      <DropdownMenu.GroupHeading>Quality</DropdownMenu.GroupHeading>
+      <DropdownMenu.RadioItem value="auto">Automatic</DropdownMenu.RadioItem>
+      {#each qualityPresets as preset (preset.id)}
+        <DropdownMenu.RadioItem value={preset.id} disabled={!canTranscode}>{preset.label}</DropdownMenu.RadioItem>
+      {/each}
+    </DropdownMenu.RadioGroup>
+    <DropdownMenu.Label class="text-xs leading-5 font-normal text-muted-foreground">
+      Automatic reduces quality on slower connections. Server limits apply. Changing quality briefly restarts the stream.
+    </DropdownMenu.Label>
   </DropdownMenu.Content>
 </DropdownMenu.Root>

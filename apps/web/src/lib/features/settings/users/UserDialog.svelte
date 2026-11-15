@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onDestroy, untrack } from "svelte";
+  import { Autosave } from "../autosave";
   import * as Sheet from "$lib/components/ui/sheet";
   import * as Field from "$lib/components/ui/field";
   import * as ToggleGroup from "$lib/components/ui/toggle-group";
@@ -36,13 +38,33 @@
   let submitted = $state(false);
   let pending = $state(false);
   let failure = $state<string | null>(null);
+  let autosaveStatus = $state("Changes save automatically.");
 
   const creating = $derived(!user);
   const errors = $derived(validateUser(draft, creating));
-  const show = (message: string | null) => (submitted ? message : null);
+  const show = (message: string | null) => (submitted || user ? message : null);
+
+  const autosave = new Autosave<ReturnType<typeof toUserInput>>(async (body) => {
+    if (!user) return;
+    const saved = (await usersApi.update(user.id, body)).user;
+    onsaved(saved, false);
+  }, (state, error) => {
+    pending = state === "saving";
+    failure = state === "error" ? errorMessage(error) : null;
+    autosaveStatus = state === "saving" ? "Saving changes…" : "Changes saved.";
+  });
+  untrack(() => autosave.reset({ ...toUserInput($state.snapshot(draft), libraries.map((library) => library.id)), password: undefined }));
+  $effect(() => {
+    if (!user) return;
+    const valid = !hasUserErrors(validateUser({ ...draft, password: "" }, false));
+    const body = valid ? { ...toUserInput($state.snapshot(draft), libraries.map((library) => library.id)), password: undefined } : null;
+    untrack(() => autosave.update(body));
+  });
+  onDestroy(() => { void autosave.flush(); });
 
   async function submit(event: SubmitEvent) {
     event.preventDefault();
+    if (user && !draft.password) { void autosave.flush(); return; }
     submitted = true;
     failure = null;
     if (hasUserErrors(errors) || pending) return;
@@ -132,11 +154,15 @@
         {#if failure}<p class="text-sm text-destructive" role="alert">{failure}</p>{/if}
 
         <div class="flex justify-end gap-2">
-          <Button variant="outline" onclick={() => (open = false)}>Cancel</Button>
-          <Button type="submit" disabled={pending}>
-            {#if pending}<Spinner data-icon="inline-start" />{/if}
-            {user ? "Save changes" : "Add user"}
-          </Button>
+          {#if user}
+            <p class="text-sm text-muted-foreground" role="status">{autosaveStatus}</p>
+            {#if draft.password}<Button type="submit" disabled={pending}>Change password</Button>{/if}
+          {:else}
+            <Button variant="outline" onclick={() => (open = false)}>Cancel</Button>
+            <Button type="submit" disabled={pending}>
+              {#if pending}<Spinner data-icon="inline-start" />{/if}Add user
+            </Button>
+          {/if}
         </div>
       </Field.Group>
     </form>

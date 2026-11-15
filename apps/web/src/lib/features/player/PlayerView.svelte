@@ -12,6 +12,7 @@
   import { cn } from "$lib/utils";
   import PlayerControls from "./PlayerControls.svelte";
   import PlaybackFailure from "./PlaybackFailure.svelte";
+  import SubtitleMenu from "./SubtitleMenu.svelte";
   import DeliveryMenu from "./DeliveryMenu.svelte";
   import { ProgressReporter } from "./progress-reporter";
   import { createIdle } from "./idle.svelte";
@@ -75,7 +76,7 @@
     return range ? offset + range.end : 0;
   });
   const settled = $derived(engine.phase === "ready" && engine.pendingTarget === null);
-  const controlsVisible = $derived(!idle.idle || paused || engine.problem !== null);
+  const controlsVisible = $derived(!idle.idle || paused || engine.problem !== null || engine.subtitles.searchOpen);
   const subtitle = $derived(
     item.kind === "episode"
       ? [item.show_title, episodeNumberLabel(item)].filter(Boolean).join(" · ")
@@ -195,7 +196,7 @@
   onpointermove={idle.poke}
   onpointerdown={idle.poke}
 >
-  <!-- Subtitles are not supported yet. -->
+  <!-- Text tracks are attached by the playback engine after session offsets settle. -->
   <video
     bind:this={video}
     bind:duration={mediaDuration}
@@ -303,6 +304,7 @@
           onfullscreen={toggleFullscreen}
         >
           {#snippet extra()}
+            <SubtitleMenu subtitles={engine.subtitles} itemId={item.id} canDownload={canTranscode} />
             <DeliveryMenu {engine} {canTranscode} />
           {/snippet}
         </PlayerControls>

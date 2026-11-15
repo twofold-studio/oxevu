@@ -344,3 +344,16 @@ settings, folder view, external content suggestions.
   inventoried.
 - Movies and Shows were inspected through Manage library with live values;
   other types only through the Add form with defaults.
+
+## Player quality follow-up (2026-11-15)
+
+Inspected the web player Settings → Quality menu on this instance without
+changing its quality preference. It offers Auto, 40, 20, 15, 10, 8, 6, 4, 3,
+1.5 Mbps, 720 kbps and 420 kbps. Auto currently displays a 40 Mbps ceiling.
+The Settings menu also offers aspect ratio, playback speed, repeat mode and
+playback information. The UI alone does not establish how Auto estimates bandwidth.
+
+TMDB and OMDb require application credentials; their installed plugins do not
+imply anonymous APIs. OpenSubtitles.com requires an application API key plus
+account credentials for downloads. Studio artwork can use the public, attributed
+CC BY-SA 4.0 Jellyfin Artwork repository without a personal API key.

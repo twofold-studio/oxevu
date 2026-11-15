@@ -11,10 +11,30 @@ pub(crate) async fn catalog(a: &App, h: &HeaderMap) -> Result<Vec<Value>> {
             visible.push(r)
         }
     }
+    let metadata = sqlx::query("SELECT item_id,data FROM item_metadata")
+        .fetch_all(&a.pool)
+        .await
+        .map_err(db)?;
+    let metadata: std::collections::HashMap<String, Value> = metadata
+        .into_iter()
+        .map(|r| {
+            let id = r.get::<String, _>("item_id");
+            let data = serde_json::from_str::<Value>(r.get("data"))
+                .map_err(|_| bad("invalid matched metadata"))?;
+            Ok((id, data))
+        })
+        .collect::<Result<_>>()?;
     visible
         .iter()
         .map(|r| {
             let mut v: Value = serde_json::from_str(r.get("data")).map_err(bad)?;
+            if let Some(enriched) = metadata
+                .get(&r.get::<String, _>("id"))
+                .and_then(Value::as_object)
+                && let Some(object) = v.as_object_mut()
+            {
+                object.extend(enriched.clone());
+            }
             for kind in ["poster", "thumbnail", "backdrop"] {
                 v.as_object_mut()
                     .ok_or_else(|| bad("invalid catalog item"))?

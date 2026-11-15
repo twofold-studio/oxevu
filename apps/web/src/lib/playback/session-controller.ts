@@ -44,6 +44,8 @@ export class SessionController {
   private active: PlaybackSession | null = null;
   private heartbeat: ReturnType<typeof setInterval> | undefined;
   private disposed = false;
+  private queue: Promise<unknown> = Promise.resolve();
+  private closing: Promise<void> = Promise.resolve();
 
   constructor(
     private readonly api: SessionApi,
@@ -59,34 +61,54 @@ export class SessionController {
   }
 
   /** Resolves with the ready session, or null when a newer call superseded it. */
-  async open(body: PlaybackSessionRequest): Promise<PlaybackSession | null> {
-    if (this.disposed) return null;
+  open(body: PlaybackSessionRequest): Promise<PlaybackSession | null> {
+    if (this.disposed) return Promise.resolve(null);
     const generation = ++this.generation;
     this.release(false);
+    const opened = this.queue.then(async () => {
+      if (this.stale(generation)) return null;
+      await this.closing;
+      if (this.stale(generation)) return null;
+      return this.start(body, generation);
+    });
+    // A failed create must not prevent a later explicit retry.
+    this.queue = opened.catch(() => undefined);
+    return opened;
+  }
 
+  private async start(
+    body: PlaybackSessionRequest,
+    generation: number,
+  ): Promise<PlaybackSession | null> {
     let session = await this.api.create(body);
-    const deadline = this.now() + this.timing.startTimeoutMs;
-    while (session.status === "starting") {
-      if (this.stale(generation)) return this.discard(session);
-      if (this.now() >= deadline) {
-        this.discard(session);
-        throw new SessionFailedError("The server took too long to start the stream.", session);
-      }
-      await this.sleep(this.timing.pollMs);
-      if (this.stale(generation)) return this.discard(session);
-      session = await this.api.get(session.id);
-    }
-    if (this.stale(generation)) return this.discard(session);
-    if (session.status === "failed" || !session.stream_url) {
-      this.discard(session);
-      throw new SessionFailedError(
-        session.error ?? "The server couldn't start this stream.",
-        session,
-      );
-    }
+    // Track starting sessions too: cancellation must not wait for readiness.
     this.active = session;
-    this.startHeartbeat(session);
-    return session;
+    if (this.stale(generation)) return this.discard(session);
+    const deadline = this.now() + this.timing.startTimeoutMs;
+    try {
+      while (session.status === "starting") {
+        if (this.stale(generation)) return this.discard(session);
+        if (this.now() >= deadline) {
+          throw new SessionFailedError("The server took too long to start the stream.", session);
+        }
+        await this.sleep(this.timing.pollMs);
+        if (this.stale(generation)) return this.discard(session);
+        session = await this.api.get(session.id);
+      }
+      if (this.stale(generation)) return this.discard(session);
+      if (session.status === "failed" || !session.stream_url) {
+        throw new SessionFailedError(
+          session.error ?? "The server couldn't start this stream.",
+          session,
+        );
+      }
+      this.active = session;
+      this.startHeartbeat(session);
+      return session;
+    } catch (error) {
+      await this.discard(session);
+      throw error;
+    }
   }
 
   /** Stop the current session; `keepalive` lets the request outlive the page. */
@@ -95,7 +117,16 @@ export class SessionController {
     this.heartbeat = undefined;
     const session = this.active;
     this.active = null;
-    if (session) void this.api.stop(session.id, keepalive).catch(() => undefined);
+    if (session) {
+      this.closing = this.closing
+        .then(() => this.api.stop(session.id, keepalive))
+        .catch((error: unknown) => {
+          if (error instanceof ApiError && (error.status === 404 || error.status === 410)) return;
+          throw error;
+        });
+      // Teardown callers needn't await, but open always waits before creating.
+      void this.closing.catch(() => undefined);
+    }
   }
 
   /** Cancel pending opens and stop everything. Safe to call more than once. */
@@ -109,8 +140,9 @@ export class SessionController {
     return this.disposed || generation !== this.generation;
   }
 
-  private discard(session: PlaybackSession): null {
-    void this.api.stop(session.id).catch(() => undefined);
+  private async discard(session: PlaybackSession): Promise<null> {
+    if (this.active?.id === session.id) this.release(false);
+    await this.closing;
     return null;
   }
 

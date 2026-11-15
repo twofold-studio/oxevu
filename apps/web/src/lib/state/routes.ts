@@ -17,7 +17,13 @@ export type Route =
   | { name: "party"; id: string }
   | { name: "not-found" };
 
-export const settingsSections = ["libraries", "playback", "users", "account"] as const;
+export const settingsSections = [
+  "libraries",
+  "playback",
+  "integrations",
+  "users",
+  "account",
+] as const;
 export type SettingsSection = (typeof settingsSections)[number];
 
 function isSection(value: string | null): value is SettingsSection {

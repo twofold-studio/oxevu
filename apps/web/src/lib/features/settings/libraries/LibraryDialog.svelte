@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onDestroy, untrack } from "svelte";
+  import { Autosave } from "../autosave";
   import * as Dialog from "$lib/components/ui/dialog";
   import * as Field from "$lib/components/ui/field";
   import * as ToggleGroup from "$lib/components/ui/toggle-group";
@@ -28,21 +30,39 @@
   let submitted = $state(false);
   let pending = $state(false);
   let failure = $state<string | null>(null);
+  let autosaveStatus = $state("Changes save automatically.");
 
   const errors = $derived(validateLibrary(draft));
-  const show = <T,>(value: T): T | null => (submitted ? value : null);
+  const show = <T,>(value: T): T | null => (submitted || library ? value : null);
+
+  const autosave = new Autosave<ReturnType<typeof toInput>>(async (body) => {
+    if (!library) return;
+    const saved = (await librariesApi.update(library.id, body)).library;
+    onsaved(saved, false);
+  }, (state, error) => {
+    pending = state === "saving";
+    failure = state === "error" ? errorMessage(error) : null;
+    autosaveStatus = state === "saving" ? "Saving changes…" : "Changes saved.";
+  });
+  untrack(() => autosave.reset(toInput($state.snapshot(draft))));
+  $effect(() => {
+    if (!library) return;
+    const valid = !hasErrors(errors);
+    const body = valid ? toInput($state.snapshot(draft)) : null;
+    untrack(() => autosave.update(body));
+  });
+  onDestroy(() => { void autosave.flush(); });
 
   async function submit(event: SubmitEvent) {
     event.preventDefault();
+    if (library) { void autosave.flush(); return; }
     submitted = true;
     failure = null;
     if (hasErrors(errors) || pending) return;
     pending = true;
     try {
       const body = toInput(draft);
-      const saved = library
-        ? (await librariesApi.update(library.id, body)).library
-        : (await librariesApi.create(body)).library;
+      const saved = (await librariesApi.create(body)).library;
       onsaved(saved, !library);
       open = false;
     } catch (error) {
@@ -84,7 +104,7 @@
 
         <PathList
           bind:paths={draft.paths}
-          errors={submitted ? errors.path : []}
+          errors={submitted || library ? errors.path : []}
           listError={show(errors.paths)}
         />
 
@@ -99,11 +119,14 @@
         {#if failure}<p class="text-sm text-destructive" role="alert">{failure}</p>{/if}
 
         <Dialog.Footer>
-          <Button variant="outline" onclick={() => (open = false)}>Cancel</Button>
-          <Button type="submit" disabled={pending}>
-            {#if pending}<Spinner data-icon="inline-start" />{/if}
-            {library ? "Save changes" : "Add library"}
-          </Button>
+          {#if library}
+            <p class="text-sm text-muted-foreground" role="status">{autosaveStatus}</p>
+          {:else}
+            <Button variant="outline" onclick={() => (open = false)}>Cancel</Button>
+            <Button type="submit" disabled={pending}>
+              {#if pending}<Spinner data-icon="inline-start" />{/if}Add library
+            </Button>
+          {/if}
         </Dialog.Footer>
       </Field.Group>
     </form>

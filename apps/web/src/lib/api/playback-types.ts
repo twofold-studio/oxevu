@@ -4,6 +4,8 @@ export type PlaybackMode = "auto" | "direct" | "transcode";
 export type PlaybackMethod = "direct" | "remux" | "cpu" | "nvenc";
 
 export interface PlaybackSessionRequest {
+  max_height?: number;
+  video_bitrate_mbps?: number;
   item_id: string;
   start_seconds: number;
   mode: PlaybackMode;
@@ -11,6 +13,9 @@ export interface PlaybackSessionRequest {
 }
 
 export interface PlaybackSession {
+  max_height?: number;
+  video_bitrate_mbps?: number;
+  decoder?: "cuda" | "cpu" | "copy";
   id: string;
   item_id: string;
   method: PlaybackMethod;

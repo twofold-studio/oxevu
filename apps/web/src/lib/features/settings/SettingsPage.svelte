@@ -10,6 +10,7 @@
   import PlaybackSection from "./playback/PlaybackSection.svelte";
   import UsersSection from "./users/UsersSection.svelte";
   import AccountSection from "./account/AccountSection.svelte";
+  import IntegrationsSection from "./integrations/IntegrationsSection.svelte";
   import ResourceGate from "./ResourceGate.svelte";
 
   let { section }: { section: SettingsSection | null } = $props();
@@ -17,6 +18,7 @@
   const labels: Record<SettingsSection, string> = {
     libraries: "Libraries",
     playback: "Playback",
+    integrations: "Integrations",
     users: "Users",
     account: "Account",
   };
@@ -60,6 +62,8 @@
         <LibrariesSection />
       {:else if active === "playback"}
         <PlaybackSection />
+      {:else if active === "integrations"}
+        <IntegrationsSection />
       {:else if active === "users"}
         <UsersSection />
       {:else}

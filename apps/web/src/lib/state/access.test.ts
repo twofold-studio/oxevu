@@ -6,6 +6,7 @@ describe("access hints", () => {
     expect(settingsSectionsFor({ is_admin: true })).toEqual([
       "libraries",
       "playback",
+      "integrations",
       "users",
       "account",
     ]);

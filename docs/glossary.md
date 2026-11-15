@@ -36,3 +36,9 @@ Use these terms consistently in code, API fields and documentation.
 
 Service replacements: Jellyfin (library/player), Seerr/Jellyseerr (requests),
 Radarr (movies), Sonarr (series), Prowlarr (indexers), qBittorrent (BitTorrent).
+
+- **Provider:** an optional external metadata, artwork or subtitle service. Its
+  application credentials belong to Oxevu, independently of Jellyfin.
+- **WebVTT:** timed text captions browsers can display separately from video.
+- **Quality preset:** a per-stream resolution and bitrate ceiling, bounded by
+  the administrator's server limits.

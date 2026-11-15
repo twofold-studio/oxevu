@@ -66,7 +66,7 @@ Capabilities = {ffmpeg_available:boolean,nvenc_available:boolean,
  hardware_decode_available:boolean,ffmpeg_path:string|null,scratch_path:string|null,
  notes:string[]}.
 Capability claims require actual runtime probe or explicit unavailable reason.
-Tone mapping, subtitles, per-codec decode toggles, HEVC/AV1 output, advanced throttle,
+Tone mapping, per-codec decode toggles, HEVC/AV1 output, advanced throttle,
 trickplay and arbitrary FFmpeg arguments are deferred; no nonfunctional settings.
 HDR must be detected/reported; do not silently claim correct HDR conversion.
 
@@ -74,7 +74,7 @@ HDR must be detected/reported; do not silently claim correct HDR conversion.
 
 POST `/playback/sessions` body
 `{item_id,start_seconds:number,mode:"auto"|"direct"|"transcode",
-direct_play_supported:boolean}` -> `{session:PlaybackSession}`.
+direct_play_supported:boolean,max_height?:number,video_bitrate_mbps?:number}` -> `{session:PlaybackSession}`.
 Browser assesses native container/codecs; auto chooses original when supported,
 otherwise remux H264 compatible sources where possible, else H264/AAC HLS.
 Permissions prohibit transcoding/remux if user lacks can_transcode.
@@ -82,7 +82,7 @@ Permissions prohibit transcoding/remux if user lacks can_transcode.
 PlaybackSession = {id,item_id,method:"direct"|"remux"|"cpu"|"nvenc",
 status:"starting"|"ready"|"failed",stream_url:string|null,
 start_seconds:number,duration_seconds:number|null,reason:string|null,
-error:string|null}.
+error:string|null,decoder?:"cuda"|"cpu"|"copy"}.
 GET `/playback/sessions/{id}` -> same envelope; owners only (admin may inspect).
 POST `/playback/sessions/{id}/heartbeat` -> 204, renew idle lease.
 POST `/playback/sessions/{id}/stop` -> 204; kill/reap children and clean scratch.
@@ -129,3 +129,21 @@ CPU and NVIDIA conversion on vd using samples; GPU failure fallback; seeking/res
 manifest/segment auth, job/disk bounds and cleanup; settings persist across restart;
 two browser party participants synchronize play/pause/seek and cannot control as guest.
 Document measured/untested limits; don't call this phase complete from mocks alone.
+
+## Subtitles and integrations
+
+GET `/items/{id}/subtitles` lists embedded text/image tracks, matching sidecars
+and downloaded subtitles. GET `/items/{id}/subtitles/{track}` serves authenticated
+WebVTT for supported text formats. Bitmap tracks are listed as unsupported.
+The browser subtracts the HLS session offset from cue times.
+
+Admin GET/PUT `/integrations` reads redacted provider state and updates optional
+TMDB, OMDb, OpenSubtitles and keyless studio-image configuration. Blank secrets
+preserve saved values; `clear_credentials:true` removes them. See
+[integration setup](integrations.md) for provider requirements and attribution.
+
+Admin GET `/items/{id}/metadata/search?provider=tmdb&query=...` searches candidates;
+POST `/items/{id}/metadata/match` with `{provider,id}` applies a confirmed match.
+GET `/items/{id}/subtitles/search?language=en` searches OpenSubtitles; POST
+`/items/{id}/subtitles/download` with `{id,language}` caches a selected subtitle.
+All item routes enforce library access; downloads also require conversion permission.

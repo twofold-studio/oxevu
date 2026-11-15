@@ -136,7 +136,53 @@ pub async fn capabilities(a: &App, admin: bool) -> Value {
             .collect::<Vec<_>>(),
         )
         .await;
-    let value = json!({"ffmpeg_available":available,"nvenc_available":nvenc,"hardware_decode_available":false,"ffmpeg_path":Some(&r.ffmpeg),"scratch_path":Some(r.scratch.to_string_lossy()),"notes": [if !available {"FFmpeg execution failed"}else if !nvenc{"Selected GPU failed an actual H264 NVENC encode probe"}else{"Selected GPU passed an actual H264 NVENC encode probe"},"Hardware decoding and HDR tone mapping are unsupported"]});
+    let fixture = r
+        .scratch
+        .join(format!("probe-{}.h264", uuid::Uuid::new_v4()));
+    let mut encode = [
+        "-nostdin",
+        "-v",
+        "error",
+        "-f",
+        "lavfi",
+        "-i",
+        "color=size=320x180:rate=24",
+        "-frames:v",
+        "2",
+        "-c:v",
+        "libx264",
+        "-f",
+        "h264",
+    ]
+    .map(String::from)
+    .to_vec();
+    encode.push(fixture.to_string_lossy().into_owned());
+    let decoded = available
+        && probe(&r.ffmpeg, &encode).await
+        && probe(
+            &r.ffmpeg,
+            &[
+                "-nostdin".into(),
+                "-v".into(),
+                "error".into(),
+                "-hwaccel".into(),
+                "cuda".into(),
+                "-hwaccel_device".into(),
+                settings.gpu_index.to_string(),
+                "-hwaccel_output_format".into(),
+                "cuda".into(),
+                "-i".into(),
+                fixture.to_string_lossy().into_owned(),
+                "-vf".into(),
+                "scale_cuda=w=160:h=90:format=nv12,hwdownload,format=nv12".into(),
+                "-f".into(),
+                "null".into(),
+                "-".into(),
+            ],
+        )
+        .await;
+    let _ = tokio::fs::remove_file(fixture).await;
+    let value = json!({"ffmpeg_available":available,"nvenc_available":nvenc,"hardware_decode_available":decoded,"ffmpeg_path":Some(&r.ffmpeg),"scratch_path":Some(r.scratch.to_string_lossy()),"notes": [if !available {"FFmpeg execution failed"}else if !nvenc{"Selected GPU failed an actual H264 NVENC encode probe"}else{"Selected GPU passed an actual H264 NVENC encode probe"},if decoded {"CUDA H264 decode and scale probe passed; codec support depends on GPU; HDR tone mapping unsupported"} else {"CUDA decode/scale probe failed; HDR tone mapping unsupported"}]});
     *cache = Some((settings.gpu_index, std::time::Instant::now(), value.clone()));
     redact(value, admin)
 }
@@ -163,13 +209,20 @@ pub async fn disk_usage(root: &std::path::Path) -> std::io::Result<u64> {
     let mut bytes = 0u64;
     let mut count = 0;
     while let Some(dir) = dirs.pop() {
-        let mut entries = tokio::fs::read_dir(dir).await?;
+        let mut entries = match tokio::fs::read_dir(&dir).await {
+            Ok(entries) => entries,
+            // Another session can finish while the shared scratch tree is sampled.
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound && dir != root => continue,
+            Err(error) => return Err(error),
+        };
         while let Some(e) = entries.next_entry().await? {
             count += 1;
             if count > 8192 {
                 return Err(std::io::Error::other("scratch file limit exceeded"));
             }
-            let meta = e.metadata().await?;
+            let Some(meta) = sampled_metadata(&e.path()).await? else {
+                continue;
+            };
             if meta.is_dir() {
                 dirs.push(e.path())
             } else {
@@ -179,6 +232,16 @@ pub async fn disk_usage(root: &std::path::Path) -> std::io::Result<u64> {
     }
     Ok(bytes)
 }
+// FFmpeg atomically renames temporary HLS files while this sampler walks them.
+// A missing file contributes no bytes; permission and I/O failures still fail closed.
+async fn sampled_metadata(path: &std::path::Path) -> std::io::Result<Option<std::fs::Metadata>> {
+    match tokio::fs::metadata(path).await {
+        Ok(metadata) => Ok(Some(metadata)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(error),
+    }
+}
+
 pub async fn run_process(
     mut command: Command,
     mut cancel: watch::Receiver<bool>,
@@ -300,5 +363,25 @@ async fn resolve_candidate(path: &std::path::Path) -> Result<PathBuf> {
             }
             Err(_) => return Err(bad("scratch path is inaccessible")),
         }
+    }
+}
+
+#[cfg(test)]
+mod disk_tests {
+    use super::*;
+    #[tokio::test]
+    async fn disappearing_atomic_output_is_not_a_disk_limit_failure() {
+        let root = std::env::temp_dir().join(uuid::Uuid::new_v4().to_string());
+        tokio::fs::create_dir(&root).await.unwrap();
+        let file = root.join("index.m3u8.tmp");
+        tokio::fs::write(&file, b"playlist").await.unwrap();
+        let mut entries = tokio::fs::read_dir(&root).await.unwrap();
+        let entry = entries.next_entry().await.unwrap().unwrap();
+        tokio::fs::rename(&file, root.join("index.m3u8"))
+            .await
+            .unwrap();
+        assert!(sampled_metadata(&entry.path()).await.unwrap().is_none());
+        assert_eq!(disk_usage(&root).await.unwrap(), 8);
+        tokio::fs::remove_dir_all(&root).await.unwrap();
     }
 }

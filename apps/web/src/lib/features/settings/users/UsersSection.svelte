@@ -37,7 +37,7 @@
     if (!data.value) return;
     const users = created ? [...data.value.users, user] : data.value.users.map((u) => (u.id === user.id ? user : u));
     data.value = { ...data.value, users };
-    toast.success(created ? `Added ${user.username}.` : `Saved ${user.username}.`);
+    if (created) toast.success(`Added ${user.username}.`);
     // Your own role or access may have changed; the server may also have
     // ended this session, which the next request reports.
     if (user.id === session.user?.id) void session.load();

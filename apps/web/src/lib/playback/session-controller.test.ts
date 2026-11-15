@@ -44,30 +44,87 @@ const timing = { pollMs: 1, heartbeatMs: 1000, startTimeoutMs: 50 };
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe("SessionController", () => {
-  it("stops sessions superseded by a newer open, even when they arrive late", async () => {
-    const { api, pending, stopped } = fakeApi();
+  it("coalesces queued opens to the latest target", async () => {
+    const { api, pending } = fakeApi();
     const controller = new SessionController(api, () => undefined, timing);
     const first = controller.open(request);
     const second = controller.open({ ...request, start_seconds: 50 });
     await flush();
-    pending[1](session("b"));
-    pending[0](session("a"));
+    expect(pending).toHaveLength(1);
+    pending[0](session("b"));
     expect(await first).toBeNull();
     expect((await second)?.id).toBe("b");
-    expect(stopped).toEqual(["a"]);
-    expect(controller.session?.id).toBe("b");
     controller.dispose();
   });
 
-  it("stops the previous ready session when a new one opens", async () => {
-    const { api, pending, stopped } = fakeApi();
+  it("waits for stop acknowledgement before creating a replacement", async () => {
+    const { api, pending } = fakeApi();
+    let stopped!: () => void;
+    api.stop = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          stopped = resolve;
+        }),
+    );
     const controller = new SessionController(api, () => undefined, timing);
     const first = controller.open(request);
     await flush();
     pending[0](session("a"));
     await first;
-    void controller.open(request);
+    const replacement = controller.open(request);
+    await flush();
+    expect(stopped).toBeTypeOf("function");
+    expect(pending).toHaveLength(1);
+    stopped();
+    await flush();
+    expect(pending).toHaveLength(2);
+    pending[1](session("b"));
+    await replacement;
+    controller.dispose();
+    await flush();
+    stopped();
+  });
+
+  it("stops superseded starting sessions before creating the next", async () => {
+    const { api, pending, stopped } = fakeApi();
+    let wake!: () => void;
+    const controller = new SessionController(
+      api,
+      () => undefined,
+      timing,
+      () =>
+        new Promise<void>((resolve) => {
+          wake = resolve;
+        }),
+    );
+    const first = controller.open(request);
+    await flush();
+    pending[0](session("a", "starting"));
+    await flush();
+    const replacement = controller.open({ ...request, start_seconds: 50 });
+    await flush();
     expect(stopped).toEqual(["a"]);
+    expect(pending).toHaveLength(1);
+    wake();
+    await first;
+    await flush();
+    pending[1](session("b"));
+    await replacement;
+    controller.dispose();
+  });
+
+  it("does not create another transcode when stopping failed", async () => {
+    const { api, pending } = fakeApi();
+    api.stop = vi.fn(async () => {
+      throw new Error("network unavailable");
+    });
+    const controller = new SessionController(api, () => undefined, timing);
+    const first = controller.open(request);
+    await flush();
+    pending[0](session("a"));
+    await first;
+    await expect(controller.open(request)).rejects.toThrow("network unavailable");
+    expect(pending).toHaveLength(1);
     controller.dispose();
   });
 
@@ -107,6 +164,7 @@ describe("SessionController", () => {
     const { api, pending, stopped } = fakeApi();
     const controller = new SessionController(api, () => undefined, timing);
     const opened = controller.open(request);
+    await flush();
     controller.dispose(true);
     await flush();
     pending[0](session("a"));

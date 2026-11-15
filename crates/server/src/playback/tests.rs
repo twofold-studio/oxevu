@@ -112,6 +112,18 @@ async fn readable(a: &App, h: &HeaderMap, id: &str) {
     .await
     .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(
+        response.headers()[header::CONTENT_TYPE],
+        "application/vnd.apple.mpegurl"
+    );
+    assert_eq!(response.headers()[header::CACHE_CONTROL], "no-store");
+    let body = axum::body::to_bytes(response.into_body(), 1024 * 1024)
+        .await
+        .unwrap();
+    let playlist = std::str::from_utf8(&body).unwrap();
+    assert!(playlist.contains("#EXT-X-PLAYLIST-TYPE:EVENT"));
+    assert!(playlist.contains("#EXT-X-START:TIME-OFFSET=0,PRECISE=YES"));
+
     let output = tokio::process::Command::new("ffprobe")
         .args([
             "-v",
@@ -441,3 +453,6 @@ async fn stopping_active_encoder_kills_and_reaps_child() {
     a.playback.shutdown().await;
     tokio::fs::remove_dir_all(root).await.unwrap();
 }
+
+#[path = "hardware_tests.rs"]
+mod hardware_tests;

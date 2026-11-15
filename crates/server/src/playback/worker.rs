@@ -45,13 +45,14 @@ async fn metadata(
         }
     }
 }
-fn command(
+pub(super) fn command(
     a: &App,
     path: &std::path::Path,
     dir: &std::path::Path,
     start: f64,
     method: &str,
     s: &settings::Settings,
+    decode: bool,
 ) -> Command {
     let mut cmd = Command::new(&a.playback.ffmpeg);
     cmd.args([
@@ -65,18 +66,37 @@ fn command(
         "file,pipe",
         "-ss",
     ])
-    .arg(start.to_string())
-    .arg("-i")
-    .arg(path)
-    .args(["-map", "0:v:0", "-map", "0:a:0?", "-sn", "-dn"]);
+    .arg(start.to_string());
+    if decode {
+        cmd.args(["-hwaccel", "cuda", "-hwaccel_device"])
+            .arg(s.gpu_index.to_string())
+            .args(["-hwaccel_output_format", "cuda"]);
+    }
+    cmd.arg("-i")
+        .arg(path)
+        .args(["-map", "0:v:0", "-map", "0:a:0?", "-sn", "-dn"]);
     if method == "remux" {
         cmd.args(["-c:v", "copy"]);
     } else {
+        let filter = if decode {
+            format!(
+                "scale_cuda=w=-2:h='trunc(min(ih,{})/2)*2':format=nv12{}",
+                s.max_height,
+                if method == "nvenc" {
+                    ""
+                } else {
+                    ",hwdownload,format=nv12"
+                }
+            )
+        } else {
+            format!(
+                "scale=-2:'trunc(min(ih,{})/2)*2',format=yuv420p",
+                s.max_height
+            )
+        };
         cmd.args([
             "-vf",
-            &format!("scale=-2:'trunc(min(ih,{})/2)*2'", s.max_height),
-            "-pix_fmt",
-            "yuv420p",
+            &filter,
             "-c:v",
             if method == "nvenc" {
                 "h264_nvenc"
@@ -98,7 +118,7 @@ fn command(
             "-bufsize",
             &format!("{}k", (s.max_video_bitrate_mbps * 2000.) as u64),
             "-force_key_frames",
-            "expr:gte(t,n_forced*4)",
+            "expr:gte(t,n_forced*2)",
         ]);
     }
     cmd.args([
@@ -117,7 +137,10 @@ fn command(
         "-f",
         "hls",
         "-hls_time",
-        "4",
+        "2",
+        // EVENT keeps the growing playlist anchored at the requested seek offset.
+        "-hls_playlist_type",
+        "event",
         "-hls_list_size",
         "0",
         "-hls_flags",
@@ -191,8 +214,16 @@ pub async fn run(
                 .into();
             }
         }
-        if s.hardware_decoding {
-            return Err("Hardware decoding is unsupported".into());
+        let supported_decode = streams.iter().any(|v| {
+            v["codec_type"] == "video"
+                && matches!(
+                    v["codec_name"].as_str(),
+                    Some("h264" | "hevc" | "mpeg2video" | "vc1" | "vp8" | "vp9" | "av1")
+                )
+        });
+        let decode = s.hardware_decoding && method != "remux" && supported_decode;
+        if s.hardware_decoding && method != "remux" && !supported_decode && !s.allow_cpu_fallback {
+            return Err("Source codec is unsupported by CUDA decoding".into());
         }
         let limit = (s.scratch_limit_gb * 1024. * 1024. * 1024.) as u64;
         if runtime::disk_usage(&a.playback.scratch)
@@ -204,9 +235,19 @@ pub async fn run(
         }
         if let Some(e) = a.playback.sessions.lock().await.get_mut(&id) {
             e.value["method"] = json!(method);
+            e.value["decoder"] = json!(if method == "remux" {
+                "copy"
+            } else if decode {
+                "cuda"
+            } else {
+                "cpu"
+            });
+            if s.hardware_decoding && !supported_decode && method != "remux" {
+                e.value["reason"] = json!("Source codec unsupported by CUDA; using CPU decoding");
+            }
         }
         let mut result = runtime::run_process(
-            command(&a, &path, &dir, start, &method, &s),
+            command(&a, &path, &dir, start, &method, &s, decode),
             cancel.clone(),
             &a.playback.scratch,
             limit,
@@ -216,11 +257,13 @@ pub async fn run(
         )
         .await;
         // One GPU retry at the same absolute offset, never an unbounded retry loop.
-        if method == "nvenc"
+        if (method == "nvenc" || decode)
             && s.allow_cpu_fallback
-            && result
-                .as_ref()
-                .is_err_and(|e| e == "FFmpeg encoding failed" || e == "FFmpeg could not start")
+            && result.as_ref().is_err_and(|e| {
+                e == "FFmpeg encoding failed"
+                    || e == "FFmpeg could not start"
+                    || e == "FFmpeg startup timed out"
+            })
             && !*cancel.borrow()
         {
             let _ = tokio::fs::remove_dir_all(&dir).await;
@@ -231,10 +274,11 @@ pub async fn run(
             if let Some(e) = a.playback.sessions.lock().await.get_mut(&id) {
                 e.value["method"] = json!(method);
                 e.value["status"] = json!("starting");
-                e.value["reason"] = json!("NVENC failed; using CPU fallback");
+                e.value["decoder"] = json!("cpu");
+                e.value["reason"] = json!("GPU pipeline failed; using CPU fallback");
             }
             result = runtime::run_process(
-                command(&a, &path, &dir, start, &method, &s),
+                command(&a, &path, &dir, start, &method, &s, false),
                 cancel.clone(),
                 &a.playback.scratch,
                 limit,

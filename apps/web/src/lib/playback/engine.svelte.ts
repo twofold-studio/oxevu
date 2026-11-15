@@ -5,7 +5,15 @@ import { directPlaySupported } from "./direct-support";
 import { attachStream, prepareHls, type AttachedStream, type StreamFailure } from "./hls-attach";
 import { explainMediaError, explainSessionError, type PlaybackProblem } from "./playback-error";
 import { SessionController } from "./session-controller";
-import { planSeek, seekableRange, toAbsolute, toMedia } from "./timeline";
+import { Subtitles } from "./subtitles.svelte";
+import {
+  AutomaticQuality,
+  initialNetworkQuality,
+  qualityPresets,
+  type QualityId,
+  type QualityLimit,
+} from "./quality";
+import { mediaOffset, clampTarget, planSeek, seekableRange, toAbsolute, toMedia } from "./timeline";
 
 export type EnginePhase = "idle" | "starting" | "ready" | "failed";
 
@@ -28,6 +36,10 @@ export class PlaybackEngine {
   session = $state<PlaybackSession | null>(null);
   problem = $state<PlaybackProblem | null>(null);
   mode = $state<PlaybackMode>("auto");
+  quality = $state<QualityId>("auto");
+  readonly subtitles = new Subtitles();
+  private qualityLimit: QualityLimit | undefined;
+  private readonly automaticQuality = new AutomaticQuality();
   /** Explains an automatic change of delivery, such as the direct-play fallback. */
   notice = $state<string | null>(null);
   /** Absolute target while a new session is prepared; shown on the timeline. */
@@ -54,10 +66,12 @@ export class PlaybackEngine {
   private loadToken = 0;
   private seekTimer: ReturnType<typeof setTimeout> | undefined;
   private disposed = false;
+  private metadataWait: AbortController | null = null;
 
   constructor(item: Item, canTranscode: boolean, onSignedOut: () => void) {
     this.item = item;
     this.canTranscode = canTranscode;
+    this.qualityLimit = canTranscode ? initialNetworkQuality() : undefined;
     this.onSignedOut = onSignedOut;
     this.directOk = directPlaySupported(item);
     this.controller = new SessionController(
@@ -76,6 +90,7 @@ export class PlaybackEngine {
 
   attach(video: HTMLVideoElement) {
     this.video = video;
+    void this.subtitles.load(this.item.id);
   }
 
   /** Start (or restart) a session at an absolute position. */
@@ -87,6 +102,9 @@ export class PlaybackEngine {
     this.pendingTarget = absolute;
     this.phase = "starting";
     this.problem = null;
+    this.metadataWait?.abort();
+    this.metadataWait = new AbortController();
+    const metadataSignal = this.metadataWait.signal;
     // Drop the old stream now: its server session is about to be stopped.
     this.detach();
 
@@ -98,6 +116,7 @@ export class PlaybackEngine {
         start_seconds: Math.round(absolute * 1000) / 1000,
         mode: this.mode,
         direct_play_supported: this.directOk,
+        ...(this.mode !== "direct" ? this.qualityLimit : undefined),
       });
       video = this.video;
       if (!session || token !== this.loadToken || !video) return;
@@ -111,6 +130,7 @@ export class PlaybackEngine {
         session.stream_url ?? "",
         session.method !== "direct",
         (f) => this.streamFailed(f, token),
+        (mbps) => this.sampleBandwidth(mbps),
       );
     } catch (error) {
       if (token !== this.loadToken) return;
@@ -118,12 +138,21 @@ export class PlaybackEngine {
       return;
     }
 
-    if (!(await waitForMetadata(video)) || token !== this.loadToken) return;
+    const metadataReady = await waitForMetadata(video, metadataSignal);
+    if (token !== this.loadToken) return;
+    if (!metadataReady) {
+      this.fail({
+        title: "The stream did not become ready",
+        detail: "Try again. The previous playback session has been stopped.",
+      });
+      return;
+    }
     const target = toMedia(session, absolute);
     if (target > 0.25) video.currentTime = target;
     this.mediaTime = video.currentTime;
     this.pendingTarget = null;
     this.phase = "ready";
+    this.subtitles.attach(video, mediaOffset(session));
     if (this.wantPlaying) await this.play();
   }
 
@@ -157,7 +186,14 @@ export class PlaybackEngine {
   seek(target: number) {
     const video = this.video;
     if (!video || !this.session || this.phase !== "ready") {
-      if (this.phase === "starting") void this.load(target);
+      if (this.phase === "starting") {
+        this.pendingTarget = clampTarget(target, this.duration);
+        clearTimeout(this.seekTimer);
+        this.seekTimer = setTimeout(
+          () => void this.load(this.pendingTarget ?? target),
+          SESSION_SEEK_DEBOUNCE_MS,
+        );
+      }
       return;
     }
     // Some native HLS players report no seekable range for a growing
@@ -188,6 +224,32 @@ export class PlaybackEngine {
     this.mode = mode;
     this.notice = null;
     void this.load(this.absolute, this.video ? !this.video.paused : this.wantPlaying);
+  }
+
+  setQuality(id: QualityId) {
+    if (!this.canTranscode || id === this.quality) return;
+    this.quality = id;
+    this.qualityLimit =
+      id === "auto" ? initialNetworkQuality() : qualityPresets.find((q) => q.id === id);
+    if (this.mode === "direct") this.mode = "auto";
+    void this.load(this.absolute, !this.paused);
+  }
+
+  private sampleBandwidth(mbps: number) {
+    if (
+      this.quality !== "auto" ||
+      this.mode === "direct" ||
+      !this.canTranscode ||
+      this.phase !== "ready"
+    )
+      return;
+    const current = this.session?.video_bitrate_mbps ?? this.qualityLimit?.video_bitrate_mbps ?? 8;
+    const next = this.automaticQuality.sample(mbps, current, performance.now());
+    if (!next) return;
+    this.qualityLimit = next;
+    this.notice =
+      "Quality reduced to fit your connection. Choose a fixed quality in Playback to override it.";
+    void this.load(this.absolute, !this.paused);
   }
 
   retry() {
@@ -227,7 +289,9 @@ export class PlaybackEngine {
   /** Stop everything. `keepalive` is for page unload. */
   dispose(keepalive = false) {
     this.disposed = true;
+    this.subtitles.dispose();
     this.loadToken++;
+    this.metadataWait?.abort();
     clearTimeout(this.seekTimer);
     this.detach();
     this.controller.dispose(keepalive);
@@ -261,14 +325,20 @@ export class PlaybackEngine {
   }
 }
 
-function waitForMetadata(video: HTMLVideoElement): Promise<boolean> {
+function waitForMetadata(video: HTMLVideoElement, signal: AbortSignal): Promise<boolean> {
+  if (signal.aborted) return Promise.resolve(false);
   if (video.readyState >= HTMLMediaElement.HAVE_METADATA) return Promise.resolve(true);
   return new Promise((resolve) => {
     const done = (ok: boolean) => {
+      clearTimeout(timeout);
+      signal.removeEventListener("abort", onAbort);
       video.removeEventListener("loadedmetadata", onMeta);
       video.removeEventListener("error", onError);
       resolve(ok);
     };
+    const onAbort = () => done(false);
+    const timeout = setTimeout(() => done(false), 30_000);
+    signal.addEventListener("abort", onAbort, { once: true });
     const onMeta = () => done(true);
     // Errors reach handleMediaError through the player's error handler.
     const onError = () => done(false);

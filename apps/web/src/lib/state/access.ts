@@ -15,5 +15,7 @@ export const canCreateParties = (user: Access) => user?.syncplay_access === "cre
 
 /** Settings sections a user may open, in tab order. */
 export function settingsSectionsFor(user: Access): SettingsSection[] {
-  return isAdmin(user) ? ["libraries", "playback", "users", "account"] : ["account"];
+  return isAdmin(user)
+    ? ["libraries", "playback", "integrations", "users", "account"]
+    : ["account"];
 }

@@ -9,6 +9,20 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Playback quality presets and conservative automatic quality reductions for
+  limited connections, with server-enforced bitrate and resolution limits.
+- Embedded and sidecar text subtitle selection, offset-aware browser captions,
+  and optional OpenSubtitles search/download without writing into media folders.
+- Administrator integrations for TMDB, OMDb and OpenSubtitles with redacted
+  credentials; keyless, attributed studio artwork enabled by default. Explicit
+  title identification applies reviewed metadata matches and preserves rescans.
+
+- NVIDIA CUDA decoding/scaling with NVENC or CPU encoding, real capability
+  probes, explicit decoder status and tested CPU fallback.
+- Automatic saving for playback settings and existing user/library edits, with
+  serialized writes, field validation and save/error feedback. Creation, password
+  changes and removal retain explicit actions.
+
 - Playback settings UI, multiple-root library management, account password
   changes and administrator user/access management.
 - Browser HLS playback with delivery selection, offset-aware seeking, session
@@ -44,6 +58,14 @@ as available; planned features belong in GOAL.md.
 - Python in the development shell for the changelog helper.
 
 ### Fixed
+
+- Scratch disk accounting tolerates FFmpeg atomic file renames, preventing false
+  disk-limit failures that interrupted ongoing playback.
+
+- Seeking cancels and reaps starting/active sessions before replacement,
+  coalesces rapid requests, and avoids exhausting the transcode job limit.
+- HLS uses two-second EVENT segments and starts at the session origin.
+- Switches have visible off-state tracks and contrasting thumbs.
 
 - Episode display names omit series prefixes and common release suffixes while
   preserving original filenames and saved progress.

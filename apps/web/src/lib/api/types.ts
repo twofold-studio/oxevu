@@ -1,3 +1,5 @@
+import type { MetadataFields } from "./metadata";
+
 // Mirrors docs/api-phase-one.md and docs/api-playback-settings.md. Field names stay snake_case so values pass
 // through unchanged; replace with generated types once the server publishes
 // an OpenAPI description.
@@ -58,7 +60,7 @@ export interface ScanResult {
 
 export type ItemKind = "movie" | "episode";
 
-export interface Item {
+export interface Item extends MetadataFields {
   id: string;
   library_id: string;
   title: string;

@@ -62,7 +62,7 @@
       label="Hardware decoding"
       description={capabilities.hardware_decode_available
         ? "Decode the source on the GPU as well."
-        : "Not available yet: this server decodes on the CPU and rejects this setting."}
+        : "NVIDIA decoding was not available in the runtime probe for the selected GPU."}
       disabled={off || !capabilities.hardware_decode_available}
       error={errors.hardware_decoding}
       bind:checked={draft.hardware_decoding}
