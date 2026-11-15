@@ -19,7 +19,7 @@
         in {
           default = pkgs.mkShell {
             packages = with pkgs; [
-              rustc cargo rustfmt clippy rust-analyzer pkg-config openssl
+              rustc cargo rustfmt clippy rust-analyzer pkg-config openssl cmake
               nodejs_22 pnpm ffmpeg sqlite just git curl jq nixfmt direnv python3
               jdk17 android.androidsdk
             ];

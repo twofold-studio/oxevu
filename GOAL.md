@@ -110,6 +110,9 @@ The next acquisition phase follows the proposed
 [replacement plan](docs/acquisition-plan.md): verify the embedded torrent engine
 and network policy, then requests, one movie through download/import, TV coverage,
 automation and staged migration. It does not authorize retiring the old services.
+The [librqbit spike](docs/torrent-engine.md) verifies initial loopback transfers
+and process restart; compatibility and production resource checks remain open.
+Direct torrent traffic is permitted by the owner; no VPN is required.
 
 1. Write the playback specification and define the first end-to-end slice.
 2. Build the shared server foundation and the library/player, initially alongside Jellyfin.
@@ -125,5 +128,6 @@ The order of the later modules may change as implementation reveals dependencies
 - Mobile packaging and playback technology, especially iOS codec and background-playback constraints.
 - Metadata providers and their terms, rate limits, and credentials.
 - Which existing watch history, users, and library metadata should migrate from Jellyfin.
-- Torrent engine, indexer protocol coverage, and VPN configuration.
+- Torrent engine acceptance beyond the librqbit spike, indexer coverage and
+  optional interface binding.
 - Release platforms, license, and exact distribution format.

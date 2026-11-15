@@ -4,6 +4,10 @@ Run `direnv allow` from the project root, or enter with `nix develop`. The first
 
 The shell provides Rust/Cargo/rustfmt/Clippy/rust-analyzer, Node.js/pnpm, pkg-config/OpenSSL, FFmpeg/ffprobe, SQLite, Java 17, Android API 35/build tools, adb, avdmanager and an Android emulator with a Google APIs system image matching the host architecture. Versions are pinned by flake.lock. Mobile framework-specific NDK or native bridge dependencies will be added when that framework is chosen.
 
+The optional [torrent engine harness](torrent-engine.md) uses CMake, also provided
+by the shell, to build its native TLS dependency. It does not enable downloads in
+the application.
+
 ## Android
 
 Create a user-local virtual device once:

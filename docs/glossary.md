@@ -28,6 +28,9 @@ Use these terms consistently in code, API fields and documentation.
 | Download job | Tracked transfer, later handled by the BitTorrent module. |
 | Import | Deliberate placement of completed media into a library root, using configured copy/hardlink rules. |
 | Seeding | Uploading torrent data to peers after or during download; source files may need to remain. |
+| Infohash | Hash identifying torrent metadata; used to deduplicate transfers, independently of media-provider IDs. |
+| Tracker | BitTorrent service that announces peers to each other; distinct from an indexer. |
+| Private torrent | Torrent whose metadata restricts peer discovery to its tracker; support depends on engine and tracker rules. |
 | Show slug | Readable URL segment such as `arcane`. Duplicate titles receive numeric suffixes; adding or renaming shows can change these links. Internal IDs and progress remain unchanged. |
 | Watch party | Authorized group sharing a server-controlled timeline; each member has an independent playback session and library permissions. |
 | Playback lease | Heartbeat-renewed session lifetime; idle sessions are stopped and cleaned up. |

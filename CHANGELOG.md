@@ -9,10 +9,19 @@ as available; planned features belong in GOAL.md.
 
 ### Decisions
 
+- Direct torrent traffic is permitted; a VPN is optional. Pin librqbit 9.1.0 for
+  the embedded-engine prototype, with remaining compatibility gates documented.
+
 - Proposed a phased requests, movie/series management and embedded BitTorrent
   replacement plan, with engine/network validation and staged migration gates.
 
 ### Added
+
+- Opt-in torrent acceptance harness with generated loopback fixtures: private
+  v1 transfer, selective files, pause, persistence across downloader processes,
+  seeding accounting, public magnet retrieval, duplicate detection and cleanup.
+  No application download queue yet. Added CMake to the development shell for
+  the engine's native TLS dependency.
 
 - Directional seek feedback near the video edges, off-center volume feedback,
   and per-press pulse/ripple animations with a static reduced-motion alternative.

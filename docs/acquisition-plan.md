@@ -1,7 +1,8 @@
 # Acquisition replacement plan
 
-Status: proposed, 2026-11-16. No acquisition features are implemented by this
-document. Implement in milestones; keep the existing services running until
+Status: implementation started, 2026-11-16. The development-only
+[torrent acceptance harness](torrent-engine.md) pins librqbit 9.1.0; requests,
+indexers, queue administration and imports remain planned. Keep existing services running until
 their replacement passes acceptance and the owner authorizes retirement.
 
 ## Outcome
@@ -47,6 +48,10 @@ runtime dependencies of the completed replacement.
 
 Exit: recorded engine/version decision and repeatable transfer, restart and
 network-isolation acceptance. No real queue import or automatic downloads yet.
+
+The initial loopback TCP/v1 checks pass. Real tracker compatibility, public
+discovery paths, crash recovery and playback/resource coexistence remain gates;
+see the engine report before treating milestone 0 as complete.
 
 ### 1. Requests, wanted titles and permissions
 
@@ -165,15 +170,24 @@ destinations, app state and transcode cache. Reserve disk space across all of th
 Bound hashing, imports, metadata requests and torrents; prioritize active playback.
 Use the same authenticated API and server-side ACL checks for every new resource.
 
+## Network decision
+
+The owner permits direct torrent traffic (2026-11-16). A VPN interface or network
+namespace is not required for real downloads. Peer, tracker and discovery traffic
+may use the server's normal routes. Indexer and metadata requests keep their own
+ordinary routing; no global proxy or playback routing change is implied.
+
+The acceptance harness remains loopback-only, with DHT, local discovery and UPnP
+disabled. Optional interface binding needs its own acceptance before being
+offered as a VPN-only setting; these loopback checks do not establish VPN safety.
+
 ## Decisions before real downloads
 
-1. Network policy: VPN-only or explicitly permitted direct traffic; which
-   interface/namespace and which traffic must follow that policy?
-2. Initial indexers: which are already Torznab-compatible, and is a temporary
+1. Initial indexers: which are already Torznab-compatible, and is a temporary
    Prowlarr bridge acceptable for sources needing it?
-3. Download/staging roots and approved writable library destinations. Are they
+2. Download/staging roots and approved writable library destinations. Are they
    on the same filesystem? Is copy fallback acceptable?
-4. Initial acquisition profile, languages, seeding requirements and which users
+3. Initial acquisition profile, languages, seeding requirements and which users
    may auto-approve. Proposed rollout: admin approval and manual release choice,
    no upgrades or automatic deletion, then opt into automation after acceptance.
 
