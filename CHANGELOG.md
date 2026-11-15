@@ -7,6 +7,11 @@ as available; planned features belong in GOAL.md.
 
 ## Unreleased
 
+### Decisions
+
+- Proposed a phased requests, movie/series management and embedded BitTorrent
+  replacement plan, with engine/network validation and staged migration gates.
+
 ### Added
 
 - Directional seek feedback near the video edges, off-center volume feedback,

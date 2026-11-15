@@ -106,6 +106,11 @@ This is a working plan, not a list of features that exist today. Favor the small
 
 ## Order of work
 
+The next acquisition phase follows the proposed
+[replacement plan](docs/acquisition-plan.md): verify the embedded torrent engine
+and network policy, then requests, one movie through download/import, TV coverage,
+automation and staged migration. It does not authorize retiring the old services.
+
 1. Write the playback specification and define the first end-to-end slice.
 2. Build the shared server foundation and the library/player, initially alongside Jellyfin.
 3. Deliver and test the web interface, then package and test the shared interface on Android and iOS.
