@@ -17,6 +17,12 @@
   import IdentifyButton from "./IdentifyButton.svelte";
   import MetadataDetails from "./MetadataDetails.svelte";
   import PosterArt from "./PosterArt.svelte";
+  import TitleFacts from "./metadata/TitleFacts.svelte";
+  import MetaFact from "./metadata/MetaFact.svelte";
+  import { seasonRating } from "$lib/media/metadata";
+  import CheckIcon from "@lucide/svelte/icons/check";
+  import LayersIcon from "@lucide/svelte/icons/layers";
+  import TvIcon from "@lucide/svelte/icons/tv";
 
   /** URL segment: a slug, or a legacy internal key from older links. */
   let { showRef, season }: { showRef: string; season?: string } = $props();
@@ -80,13 +86,20 @@
             <a href={href.show(show.slug)} class="text-sm text-muted-foreground hover:underline">Back to series</a>
             <h2 class="text-xl font-medium">{seasonLabel(selectedSeason.number)}</h2>
           {/if}
-          <p class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-            {#if !selectedSeason}<span>{plural(show.seasons.length, "season")}</span>{/if}
-            <span>{plural(selectedSeason?.episodes.length ?? show.episodeCount, "episode")}</span>
+          {#snippet counts()}
+            {#if !selectedSeason}<MetaFact icon={LayersIcon}>{plural(show.seasons.length, "season")}</MetaFact>{/if}
+            <MetaFact icon={TvIcon}>{plural(selectedSeason?.episodes.length ?? show.episodeCount, "episode")}</MetaFact>
             {#if watched > 0}
-              <span>{watched === show.episodeCount ? "All watched" : `${watched} watched`}</span>
+              <MetaFact icon={CheckIcon}>{watched === show.episodeCount ? "All watched" : `${watched} watched`}</MetaFact>
             {/if}
-          </p>
+          {/snippet}
+          {#if target}
+            <!-- A season page scores the season; without one it shows no score
+                 rather than the series score under a season heading. -->
+            <TitleFacts item={target} series rating={selectedSeason ? seasonRating(selectedSeason.episodes[0]) : undefined} children={counts} />
+          {:else}
+            <ul aria-label="Details" class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">{@render counts()}</ul>
+          {/if}
         </div>
         {#if target}
           <div class="flex flex-wrap gap-2">
@@ -103,8 +116,7 @@
       {#if target}<MetadataDetails item={target} series />{/if}
       {#if selectedSeason}
         {@const metadata = selectedSeason.episodes[0]}
-        {#if metadata?.season_overview}<p class="text-sm text-muted-foreground">{metadata.season_overview}</p>{/if}
-        {#if metadata?.season_rating}<p class="text-sm text-muted-foreground">TMDB {metadata.season_rating.toFixed(1)}/10</p>{/if}
+        {#if metadata?.season_overview}<p class="max-w-3xl text-sm leading-7 text-muted-foreground">{metadata.season_overview}</p>{/if}
       {/if}
 
       {#if target && !selectedSeason}

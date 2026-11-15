@@ -33,6 +33,7 @@ export interface MetadataFields {
   show_end_year?: number | null;
   show_content_rating?: string | null;
   show_rating?: number | null;
+  show_rating_source?: string | null;
   show_genres?: string[];
   show_studios?: string[];
   show_creators?: string[];

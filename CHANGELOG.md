@@ -9,6 +9,14 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Title, series and season pages show a compact icon-led facts line under the
+  title: years, certificate, score with its provider mark, runtime and "Ends at"
+  finish time. Credits use icons and genre chips; TMDB/IMDb links use local
+  typographic marks. Scores only carry a provider when the record stores one,
+  episodes hide unattributed (series-copied) scores, and episode pages label
+  the year span as the series'. Finish times refresh every 30 seconds. On phones, episode row
+  actions move to their own line so titles and facts are no longer squeezed.
+
 - Metadata refresh preserves local season posters instead of replacing them with
   the series-level provider poster.
 

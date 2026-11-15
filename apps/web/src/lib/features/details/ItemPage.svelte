@@ -26,6 +26,9 @@
   import PosterArt from "$lib/features/library/PosterArt.svelte";
   import IdentifyButton from "$lib/features/library/IdentifyButton.svelte";
   import MetadataDetails from "$lib/features/library/MetadataDetails.svelte";
+  import TitleFacts from "$lib/features/library/metadata/TitleFacts.svelte";
+  import MetaFact from "$lib/features/library/metadata/MetaFact.svelte";
+  import HistoryIcon from "@lucide/svelte/icons/history";
   import FileFacts from "./FileFacts.svelte";
   import PlaybackNotice from "./PlaybackNotice.svelte";
   import CreatePartyDialog from "$lib/features/party/CreatePartyDialog.svelte";
@@ -122,18 +125,17 @@
           >
             {item.title}
           </h1>
-          <p class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
-            {#if formatRuntime(item.duration_seconds)}<span>{formatRuntime(item.duration_seconds)}</span>{/if}
+          <TitleFacts {item}>
             {#if item.completed}
-              <span class="flex items-center gap-1.5"><CheckIcon class="size-3.5" /> Watched</span>
+              <MetaFact icon={CheckIcon}>Watched</MetaFact>
             {:else if resume !== null}
-              <span>
+              <MetaFact icon={HistoryIcon}>
                 Stopped at {formatClock(resume)}{item.duration_seconds
                   ? `, ${formatRuntime(item.duration_seconds - resume) ?? "<1m"} left`
                   : ""}
-              </span>
+              </MetaFact>
             {/if}
-          </p>
+          </TitleFacts>
         </div>
 
         {#if fraction !== null && !item.completed}

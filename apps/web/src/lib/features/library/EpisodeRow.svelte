@@ -11,6 +11,11 @@
   import Artwork from "$lib/components/Artwork.svelte";
   import ProgressLine from "./ProgressLine.svelte";
   import ItemActions from "./ItemActions.svelte";
+  import FlagIcon from "@lucide/svelte/icons/flag";
+  import { endsAt, itemRating } from "$lib/media/metadata";
+  import { now } from "$lib/state/clock.svelte";
+  import MetaFact from "./metadata/MetaFact.svelte";
+  import RatingBadge from "./metadata/RatingBadge.svelte";
 
   let {
     item,
@@ -31,6 +36,8 @@
   const still = $derived(item.thumbnail_url ?? (item.kind === "movie" ? item.backdrop_url : null));
   const resume = $derived(resumePosition(item));
   const fraction = $derived(watchedFraction(item));
+  const rating = $derived(itemRating(item));
+  const finish = $derived(endsAt(item.duration_seconds, resume, now()));
   const status = $derived(
     item.completed
       ? "Watched"
@@ -60,7 +67,7 @@
   </Artwork>
   <a
     href={href.item(item.id)}
-    class="flex min-w-0 flex-1 flex-col gap-0.5 after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
+    class="flex min-w-0 flex-1 flex-col gap-0.5 max-sm:basis-[calc(100%-7.75rem)] after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
   >
     {#if (showContext && item.show_title) || number || upNext}
       <span class="flex min-w-0 gap-2 text-xs text-muted-foreground">
@@ -70,10 +77,12 @@
       </span>
     {/if}
     <span class="line-clamp-2 font-medium break-words sm:line-clamp-1">{name}</span>
-    <span class="flex flex-wrap gap-3 text-xs text-muted-foreground">
-      {#if item.rating}<span>{item.rating_source ?? "Rating"} {item.rating.toFixed(1)}/10</span>{/if}
-      {#if item.duration_seconds}<span>Ends at {new Date(Date.now() + Math.max(0, item.duration_seconds - (resume ?? 0)) * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>{/if}
-    </span>
+    {#if rating || finish}
+      <ul aria-label="Details" class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        {#if rating}<li><RatingBadge {rating} /></li>{/if}
+        {#if finish}<MetaFact icon={FlagIcon} label={`Ends at ${finish}`}>{finish}</MetaFact>{/if}
+      </ul>
+    {/if}
     {#if item.overview}<span class="line-clamp-2 text-sm text-muted-foreground">{item.overview}</span>{/if}
     <!-- Phones hide the status column; keep watched/remaining visible here. -->
     {#if status}
@@ -87,17 +96,21 @@
     {#if item.completed}<CheckIcon class="size-3.5" />{/if}
     {status ?? formatRuntime(item.duration_seconds) ?? ""}
   </span>
-  <!-- Sits above the row link overlay so it stays independently clickable. -->
-  <ItemActions {item} />
-  <Button
-    href={href.watch(item.id)}
-    variant="ghost"
-    size="icon"
-    class="relative z-10 shrink-0"
-    aria-label={`${resume !== null ? "Resume" : "Play"} ${name}`}
-  >
-    <PlayIcon />
-  </Button>
+  <!-- Sits above the row link overlay so it stays independently clickable.
+       Phones wrap the actions onto their own right-aligned line so the title
+       and facts keep the width beside the still. -->
+  <div class="ms-auto flex shrink-0 items-center sm:ms-0">
+    <ItemActions {item} />
+    <Button
+      href={href.watch(item.id)}
+      variant="ghost"
+      size="icon"
+      class="relative z-10 shrink-0"
+      aria-label={`${resume !== null ? "Resume" : "Play"} ${name}`}
+    >
+      <PlayIcon />
+    </Button>
+  </div>
   {#if fraction !== null && !item.completed}
     <ProgressLine value={fraction} class="absolute inset-x-0 bottom-0" />
   {/if}

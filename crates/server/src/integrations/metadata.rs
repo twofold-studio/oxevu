@@ -172,12 +172,14 @@ async fn apply_inner(a: App, h: HeaderMap, id: String, m: Match) -> Result<Json<
         }
         _ => return Err(bad("unsupported metadata provider")),
     };
+    enrichment["rating_source"] = json!(if m.provider == "tmdb" { "TMDB" } else { "IMDb" });
     if tv {
         for field in [
             "overview",
             "year",
             "end_year",
             "rating",
+            "rating_source",
             "genres",
             "studios",
             "creators",
@@ -211,6 +213,8 @@ async fn apply_inner(a: App, h: HeaderMap, id: String, m: Match) -> Result<Json<
         }
         let mut data = enrichment.clone();
         if tv {
+            data["rating"] = Value::Null;
+            data["rating_source"] = Value::Null;
             data["show_title"] = source["show_title"].clone();
             data["title"] = source["title"].clone();
             if m.provider == "tmdb"
