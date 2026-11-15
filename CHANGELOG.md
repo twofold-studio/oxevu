@@ -9,6 +9,9 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Translucent seek/volume feedback over video and previous/next episode controls
+  that follow library ordering across seasons.
+
 - Poster covers in TMDB and OMDb identification results, with a fallback for
   missing or failed images.
 

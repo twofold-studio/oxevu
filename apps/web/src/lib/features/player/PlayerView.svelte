@@ -18,6 +18,8 @@
   import { createIdle } from "./idle.svelte";
   import { playerShortcut } from "./shortcuts";
   import { readSeekSeconds } from "$lib/playback/seek-preference";
+  import ActionFeedback from "./ActionFeedback.svelte";
+  import EpisodeNavigation from "./EpisodeNavigation.svelte";
 
   /** User-initiated changes, reported so a watch-party host can broadcast them. */
   export type PlayerIntent = { type: "play" | "pause" } | { type: "seek"; position: number };
@@ -66,6 +68,23 @@
   let saveFailed = $state(false);
   let subtitlesOpen = $state(false);
   let deliveryOpen = $state(false);
+  let feedback = $state<{ kind: "back" | "forward" | "volume" | "mute"; label: string } | null>(null);
+  let feedbackTimer: ReturnType<typeof setTimeout>;
+  onMount(() => () => clearTimeout(feedbackTimer));
+
+  function announce(kind: "back" | "forward" | "volume" | "mute", label: string) {
+    feedback = { kind, label };
+    clearTimeout(feedbackTimer);
+    feedbackTimer = setTimeout(() => (feedback = null), 850);
+  }
+
+  function skip(delta: number) {
+    if (locked || !duration) return;
+    const target = Math.min(Math.max(current + delta, 0), Math.max(duration - 0.5, 0));
+    const moved = Math.round(Math.abs(target - current) * 10) / 10;
+    seek(target);
+    announce(delta < 0 ? "back" : "forward", `${delta < 0 ? "Back" : "Forward"} ${moved} seconds`);
+  }
 
   const idle = createIdle(2500);
   const offset = $derived(engine.session ? mediaOffset(engine.session) : 0);
@@ -167,8 +186,10 @@
 
   function setVolume(value: number) {
     if (!video) return;
+    const previous = video.volume;
     video.volume = Math.min(Math.max(value, 0), 1);
     video.muted = video.volume === 0;
+    announce(video.muted ? "mute" : "volume", `Volume ${video.volume > previous ? "up" : video.volume < previous ? "down" : ""} ${Math.round(video.volume * 100)}%`);
   }
 
   function onTimeUpdate() {
@@ -190,7 +211,7 @@
       case "toggle":
         return toggle();
       case "skip":
-        return seek(current + action.seconds);
+        return skip(action.seconds);
       case "volume":
         return setVolume(video.volume + action.delta);
       case "mute":
@@ -272,6 +293,7 @@
   {/if}
 
   {@render aside?.()}
+  <ActionFeedback action={feedback} />
 
   <div
     class={cn(
@@ -304,6 +326,7 @@
       <div
         class="pointer-events-auto bg-linear-to-t from-black/85 to-transparent px-4 pt-12 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6"
       >
+        {#if item.kind === "episode" && !locked && !onintent}<EpisodeNavigation {item} />{/if}
         <PlayerControls
           {paused}
           {current}
@@ -319,7 +342,7 @@
           {locked}
           ontoggle={toggle}
           onseek={seek}
-          onskip={(delta) => seek(current + delta)}
+          onskip={skip}
           {seekSeconds}
           onmute={() => video && (video.muted = !video.muted)}
           onvolume={setVolume}
