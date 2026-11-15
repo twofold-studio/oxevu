@@ -79,8 +79,22 @@ remain untested. Browser checks above were performed by the implementation agent
   limit. Fixing the sampler preserves errors for unreadable/missing scratch roots.
 - After the sampler fix, a fresh real Arcane CUDA/NVENC 720p/4 Mbps session
   stayed ready through 65 seconds of polling and was explicitly stopped.
-- No live TMDB, OMDb or OpenSubtitles credentials were configured for testing.
-  Their live search/download acceptance remains outstanding. Recognition currently
+- At initial validation, no live TMDB, OMDb or OpenSubtitles credentials were configured.
+  The registration follow-up below covers live searches. Recognition currently
   requires an explicit reviewed match; scanning does not make automatic network matches.
 - Native HLS uses browser network hints/server defaults; sustained throughput
   adaptation is available through hls.js. Bitmap subtitle burn-in is unavailable.
+
+## Provider registration follow-up (2026-11-15)
+
+- Registered Oxevu application credentials with TMDB, OMDb and OpenSubtitles.
+  Credentials are stored in Bitwarden and the private server configuration,
+  outside source control. All three providers are enabled on the local server.
+- Live Oxevu searches returned TMDB candidates for Arcane, OMDb movie candidates
+  and English OpenSubtitles results. OpenSubtitles API login issued a token.
+  A subtitle download was not exercised in this registration check.
+- OpenSubtitles canonicalizes search URLs using redirects. The HTTP client now
+  follows at most three redirects on the original origin. Regression coverage
+  checks credential preservation, blocked external redirects and bounded loops.
+- Final server checks: 42 tests passed, three hardware tests skipped in the
+  normal suite; formatting, strict workspace Clippy and changelog validation passed.

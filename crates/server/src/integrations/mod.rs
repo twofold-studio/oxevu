@@ -1,5 +1,6 @@
 use crate::*;
 use serde::{Deserialize, Serialize};
+mod http;
 mod metadata;
 mod opensubtitles;
 mod studios;
@@ -143,12 +144,7 @@ pub(crate) async fn put(
     Ok(Json(response(&c)))
 }
 pub(super) fn client() -> Result<reqwest::Client> {
-    reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(20))
-        .redirect(reqwest::redirect::Policy::none())
-        .user_agent("Oxevu/0.1.0")
-        .build()
-        .map_err(|_| bad("HTTP client unavailable"))
+    http::client().map_err(|_| bad("HTTP client unavailable"))
 }
 pub(super) async fn bytes(mut response: reqwest::Response, limit: usize) -> Result<Vec<u8>> {
     if !response.status().is_success() {

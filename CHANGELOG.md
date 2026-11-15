@@ -59,6 +59,10 @@ as available; planned features belong in GOAL.md.
 
 ### Fixed
 
+- Provider HTTP requests follow bounded redirects on the original origin, so
+  OpenSubtitles search canonicalization works without forwarding credentials
+  to another host.
+
 - Scratch disk accounting tolerates FFmpeg atomic file renames, preventing false
   disk-limit failures that interrupted ongoing playback.
 

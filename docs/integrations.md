@@ -31,3 +31,15 @@ This product uses the TMDB API but is not endorsed or certified by TMDB.
 
 The TMDB mark in settings is an unmodified approved logo downloaded from its
 [official attribution page](https://www.themoviedb.org/about/logos-attribution).
+
+## Registration notes
+
+Application keys can belong to the server operator; each viewer does not need
+their own key. Register Oxevu with each provider rather than reusing Jellyfin's
+application credentials. Keep keys in the server data directory and a password
+manager, outside Git. Registration may require email verification and contact
+information; a TMDB account alone does not issue an application key.
+
+Provider redirects are limited to three hops on the original scheme, host and
+port. This supports OpenSubtitles search normalization while preventing
+application credentials from following a redirect to another origin.
