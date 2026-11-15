@@ -7,12 +7,14 @@
     current,
     duration,
     bufferedEnd,
+    readyRanges = [],
     onseek,
     disabled = false,
   }: {
     current: number;
     duration: number;
     bufferedEnd: number;
+    readyRanges?: { start: number; end: number }[];
     onseek: (time: number) => void;
     disabled?: boolean;
   } = $props();
@@ -24,7 +26,9 @@
 
 <div class="group/seek relative flex h-5 items-center">
   <div class="pointer-events-none absolute inset-x-0 h-1 overflow-hidden rounded-full bg-white/20 transition-[height] group-hover/seek:h-1.5">
-    <div class="absolute inset-y-0 left-0 bg-white/25" style:width="{pct(bufferedEnd)}%"></div>
+    {#each readyRanges as range (range)}
+      <div class="absolute inset-y-0 bg-white/40" style:left="{pct(range.start)}%" style:width="{Math.max(0, pct(range.end) - pct(range.start))}%"></div>
+    {/each}
     <div class="absolute inset-y-0 left-0 bg-brand" style:width="{pct(shown)}%"></div>
   </div>
   <input

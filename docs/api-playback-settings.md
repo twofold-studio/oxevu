@@ -102,6 +102,14 @@ position. Use hls.js where native HLS absent; clean up session on leave/unload,
 heartbeat while active, no overlapping leaked sessions during rapid seeks.
 Cached partial sessions end at `cache_end_seconds`; clients continue with a new
 session there when the title continues. See [conversion cache](playback-cache.md).
+Session creation includes `cached_ranges:[{start,end}]` in absolute seconds for
+compatible cache entries. This is a snapshot, refreshed when a session opens;
+cache eviction can invalidate it while playback remains open. Browser buffered
+ranges are drawn separately at their actual offsets.
+
+PUT `/items/{id}/favorite` accepts `{favorite:boolean}` and changes only the
+authenticated user's favorite state. Catalog items include `favorite:boolean`.
+The existing progress endpoint also supports explicit watched/unwatched changes.
 Monitor global job/disk limits, timeout failed startup, cap stderr, clean idle and
 shutdown. If GPU fails and fallback allowed retry CPU once and report actual method.
 

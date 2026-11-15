@@ -155,6 +155,16 @@
     }
   }
 
+  async function togglePicture() {
+    if (!video) return;
+    try {
+      if (document.pictureInPictureElement) await document.exitPictureInPicture();
+      else await video.requestPictureInPicture();
+    } catch {
+      engine.notice = "Picture in picture is unavailable in this browser.";
+    }
+  }
+
   function setVolume(value: number) {
     if (!video) return;
     video.volume = Math.min(Math.max(value, 0), 1);
@@ -270,10 +280,11 @@
     )}
   >
     <!-- Scrims keep white controls legible over bright frames. -->
+    <div aria-hidden="true" class="pointer-events-none absolute inset-0 shadow-[inset_0_0_12vw_3vw_rgba(0,0,0,0.65)]"></div>
     <div
       class="pointer-events-auto flex items-start gap-3 bg-linear-to-b from-black/80 to-transparent px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-10 sm:px-6"
     >
-      <Button href={backHref} variant="ghost" size="icon-lg" aria-label="Back">
+      <Button href={backHref} variant="ghost" size="icon-lg" aria-label="Back to title information" class="press rounded-full bg-black/40 backdrop-blur-sm">
         <ArrowLeftIcon />
       </Button>
       <div class="flex min-w-0 flex-1 flex-col pt-1">
@@ -298,6 +309,10 @@
           {current}
           {duration}
           {bufferedEnd}
+          readyRanges={[
+            ...(engine.session?.cached_ranges ?? []),
+            ...buffered.map((range) => ({ start: range.start + offset, end: range.end + offset })),
+          ]}
           {muted}
           {volume}
           {fullscreen}
@@ -309,6 +324,7 @@
           onmute={() => video && (video.muted = !video.muted)}
           onvolume={setVolume}
           onfullscreen={toggleFullscreen}
+          onpicture={typeof document !== "undefined" && document.pictureInPictureEnabled ? togglePicture : undefined}
         >
           {#snippet extra()}
             <SubtitleMenu subtitles={engine.subtitles} itemId={item.id} canDownload={canTranscode} bind:open={subtitlesOpen} />

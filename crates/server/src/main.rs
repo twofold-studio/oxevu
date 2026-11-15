@@ -155,6 +155,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/libraries/{id}/scan", post(scan::scan))
         .route("/items", get(items))
         .route("/items/{id}", get(item))
+        .route("/items/{id}/favorite", put(catalog::favorite))
         .route("/items/{id}/stream", get(stream))
         .route("/items/{id}/subtitles", get(subtitles::list))
         .route("/items/{id}/subtitles/{track}", get(subtitles::serve))

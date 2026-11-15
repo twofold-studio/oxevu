@@ -13,10 +13,14 @@ export interface MetadataResult {
 }
 
 export interface MetadataFields {
+  favorite?: boolean;
   overview?: string | null;
   year?: number | null;
   end_year?: number | null;
   rating?: number | null;
+  rating_source?: string | null;
+  season_overview?: string | null;
+  season_rating?: number | null;
   content_rating?: string | null;
   genres?: string[];
   studios?: string[];

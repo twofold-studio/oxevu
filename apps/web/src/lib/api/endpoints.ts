@@ -67,6 +67,8 @@ export const librariesApi = {
 };
 
 export const itemsApi = {
+  favorite: (itemId: string, favorite: boolean) =>
+    request<void>(`/items/${id(itemId)}/favorite`, { method: "PUT", body: { favorite } }),
   list: () => request<{ items: Item[] }>("/items"),
   get: (itemId: string) => request<{ item: Item }>(`/items/${id(itemId)}`),
   saveProgress: (itemId: string, body: ProgressUpdate, keepalive = false) =>

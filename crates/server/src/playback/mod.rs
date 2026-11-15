@@ -90,6 +90,11 @@ pub(crate) async fn create(
         value["height"] = json!(hit.height);
         value["reason"] = json!("Reusing finalized transcoded segments");
     }
+    value["cached_ranges"] = json!(if direct {
+        Vec::new()
+    } else {
+        cache::ranges(&a, &path, method, &settings).await
+    });
     let mut sessions = a.playback.sessions.lock().await;
     if a.playback
         .shutting_down

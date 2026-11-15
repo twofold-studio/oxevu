@@ -9,8 +9,7 @@
   import Artwork from "$lib/components/Artwork.svelte";
   import ProgressLine from "./ProgressLine.svelte";
 
-  // A large 16:9 still for the episode a series would play next. Links to the
-  // episode's details; the play affordance on the still is the same link.
+  // Details and playback have separate links so keyboard users can choose either.
   let { item }: { item: Item } = $props();
 
   const caption = $derived(episodeCaption(item));
@@ -23,11 +22,11 @@
   );
 </script>
 
-<a
-  href={href.item(item.id)}
+<div
   class="group flex w-full max-w-[28rem] flex-col gap-2.5 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-4 focus-visible:ring-offset-background"
 >
   <div class="relative overflow-hidden rounded-xl border shadow-xl shadow-black/40">
+    <a href={href.item(item.id)} aria-label={`Episode information: ${caption}`} class="block focus-visible:ring-2 focus-visible:ring-ring">
     <!-- The caption names the episode, so the still is decorative. -->
     <Artwork
       src={item.thumbnail_url}
@@ -41,12 +40,14 @@
         </span>
       {/snippet}
     </Artwork>
-    <span
-      aria-hidden="true"
-      class="absolute bottom-3 left-3 flex size-11 items-center justify-center rounded-full bg-background/80 text-foreground backdrop-blur-sm transition-colors group-hover:bg-foreground group-hover:text-background"
+    </a>
+    <a
+      href={href.watch(item.id)}
+      aria-label={`${resume !== null ? "Resume" : "Play"} ${caption}`}
+      class="press absolute right-3 bottom-3 flex size-12 items-center justify-center rounded-full bg-foreground text-background shadow-lg transition-transform duration-180 hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring motion-reduce:transform-none"
     >
       <PlayIcon class="size-4 fill-current" />
-    </span>
+    </a>
     {#if fraction !== null && !item.completed}
       <ProgressLine value={fraction} class="absolute inset-x-0 bottom-0 h-1 bg-background/60" />
     {/if}
@@ -54,7 +55,7 @@
   <!-- One understated line, "Season 2, Episode 5 - Title" (the card can point
        outside the open season tab, so it names the season); truncation keeps the full text in `title`. -->
   <span class="flex min-w-0 items-baseline justify-between gap-3 text-sm">
-    <span class="truncate text-foreground/85 group-hover:underline" title={caption}>{caption}</span>
+    <a href={href.item(item.id)} class="truncate text-foreground/85 hover:underline" title={caption}>{caption}</a>
     {#if remaining}<span class="shrink-0 text-xs text-muted-foreground tabular-nums">{remaining}</span>{/if}
   </span>
-</a>
+</div>

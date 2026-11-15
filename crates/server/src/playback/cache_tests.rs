@@ -13,6 +13,8 @@ async fn cached_output_is_reused_without_encoder_and_still_checks_access() {
     let reused = start(&a, &h, 3., "transcode").await;
     let cached = reused["id"].as_str().unwrap();
     assert_eq!(reused["cache_hit"], true);
+    assert_eq!(reused["cached_ranges"][0]["start"], 0.);
+    assert!(reused["cached_ranges"][0]["end"].as_f64().unwrap() >= 7.);
     assert_eq!(reused["status"], "ready");
     assert!(reused["start_seconds"].as_f64().unwrap() <= 3.);
     assert!(
@@ -47,6 +49,7 @@ async fn cached_output_is_reused_without_encoder_and_still_checks_access() {
         .unwrap();
     let changed = start(&a, &h, 0., "transcode").await;
     assert_eq!(changed["cache_hit"], false);
+    assert_eq!(changed["cached_ranges"], json!([]));
     stop(
         State(a.clone()),
         h,

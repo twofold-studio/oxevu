@@ -7,6 +7,7 @@
   import VolumeXIcon from "@lucide/svelte/icons/volume-x";
   import MaximizeIcon from "@lucide/svelte/icons/maximize";
   import MinimizeIcon from "@lucide/svelte/icons/minimize";
+  import PictureInPictureIcon from "@lucide/svelte/icons/picture-in-picture-2";
   import type { Snippet } from "svelte";
   import { Button } from "$lib/components/ui/button";
   import { formatClock } from "$lib/media/format";
@@ -17,6 +18,7 @@
     current,
     duration,
     bufferedEnd,
+    readyRanges = [],
     muted,
     volume,
     fullscreen,
@@ -29,11 +31,13 @@
     onmute,
     onvolume,
     onfullscreen,
+    onpicture,
   }: {
     paused: boolean;
     current: number;
     duration: number;
     bufferedEnd: number;
+    readyRanges?: { start: number; end: number }[];
     muted: boolean;
     volume: number;
     fullscreen: boolean;
@@ -47,13 +51,14 @@
     onmute: () => void;
     onvolume: (value: number) => void;
     onfullscreen: () => void;
+    onpicture?: () => void;
   } = $props();
 
   const silent = $derived(muted || volume === 0);
 </script>
 
 <div class="flex flex-col gap-2">
-  <SeekBar {current} {duration} {bufferedEnd} {onseek} disabled={locked} />
+  <SeekBar {current} {duration} {bufferedEnd} {readyRanges} {onseek} disabled={locked} />
   <div class="flex items-center gap-1">
     {#if !locked}
       <Button variant="ghost" size="icon-lg" onclick={ontoggle} aria-label={paused ? "Play (k)" : "Pause (k)"}>
@@ -86,6 +91,11 @@
     </span>
     <span class="flex-1"></span>
     {@render extra?.()}
+    {#if onpicture}
+      <Button variant="ghost" size="icon-lg" onclick={onpicture} aria-label="Picture in picture">
+        <PictureInPictureIcon />
+      </Button>
+    {/if}
     <Button
       variant="ghost"
       size="icon-lg"

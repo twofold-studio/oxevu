@@ -9,6 +9,30 @@ pub(super) struct Hit {
     pub width: Option<u64>,
     pub height: Option<u64>,
 }
+pub(super) async fn ranges(
+    a: &App,
+    path: &std::path::Path,
+    method: &str,
+    s: &settings::Settings,
+) -> Vec<Value> {
+    if !s.cache_enabled {
+        return Vec::new();
+    }
+    let Some(expected) = key(a, path, method, s).await else {
+        return Vec::new();
+    };
+    let Some(root) = root(a, false).await else {
+        return Vec::new();
+    };
+    let _guard = a.playback.cache_jobs.lock().await;
+    cache_index::records(&root, (s.cache_limit_gb * 1024. * 1024. * 1024.) as u64)
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|(_, record, _)| record.key == expected)
+        .map(|(_, record, _)| json!({"start":record.start,"end":record.end}))
+        .collect()
+}
 async fn root(a: &App, create: bool) -> Option<PathBuf> {
     let path = a.playback.scratch.parent()?.join("oxevu-cache");
     if create {

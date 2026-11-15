@@ -13,6 +13,7 @@ export interface PlaybackSessionRequest {
 }
 
 export interface PlaybackSession {
+  cached_ranges?: { start: number; end: number }[];
   cache_hit?: boolean;
   cache_end_seconds?: number | null;
   max_height?: number;

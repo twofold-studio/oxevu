@@ -9,6 +9,18 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Season cover links open dedicated season views with provider descriptions and
+  ratings after identification. Episode rows include descriptions, finish times,
+  watched toggles and per-user favorites. TMDB episode scores no longer inherit
+  the series score.
+- Bottom-toolbar picture-in-picture control and a controls-visible vignette.
+
+- Player timeline displays separate ready ranges from the browser buffer and
+  compatible conversion-cache entries when a session opens.
+
+- Separate Resume/Play and episode-information links on the next-up card, with
+  a larger play target and reduced-motion-aware hover feedback.
+
 - Configurable arrow-key and skip-button interval in Account settings, defaulting
   to five seconds. Arrow seeking also works when the seek bar or a button has focus.
 

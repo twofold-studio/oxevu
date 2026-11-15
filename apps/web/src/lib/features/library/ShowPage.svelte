@@ -8,13 +8,12 @@
   import DetailLayout from "$lib/components/DetailLayout.svelte";
   import { catalog } from "$lib/state/catalog.svelte";
   import { href, router } from "$lib/state/router.svelte";
-  import { episodeName, initialSeason, seasonLabel } from "$lib/media/grouping";
+  import { episodeName, seasonKey, seasonLabel } from "$lib/media/grouping";
   import { plural } from "$lib/media/format";
   import { resumePosition } from "$lib/media/progress";
   import { artworkSrc } from "$lib/api/artwork";
   import EpisodeList from "./EpisodeList.svelte";
   import NextUpCard from "./NextUpCard.svelte";
-  import SeasonPicker from "./SeasonPicker.svelte";
   import IdentifyButton from "./IdentifyButton.svelte";
   import MetadataDetails from "./MetadataDetails.svelte";
   import PosterArt from "./PosterArt.svelte";
@@ -23,6 +22,7 @@
   let { showRef, season }: { showRef: string; season?: string } = $props();
 
   const show = $derived(catalog.findShow(showRef));
+  const selectedSeason = $derived(show?.seasons.find((entry) => seasonKey(entry) === season));
 
   // Legacy key links (and hand-typed titles) settle on the canonical slug URL
   // without adding a history entry.
@@ -31,17 +31,16 @@
   });
 
   // What "Play" means for a series: the episode in progress, else the next unwatched.
-  const target = $derived(show ? (show.inProgress[0] ?? show.next) : undefined);
+  const target = $derived(selectedSeason
+    ? (selectedSeason.episodes.find((entry) => entry.position_seconds > 0 && !entry.completed) ?? selectedSeason.episodes.find((entry) => !entry.completed) ?? selectedSeason.episodes[0])
+    : show ? (show.inProgress[0] ?? show.next) : undefined);
   const resuming = $derived(target ? resumePosition(target) !== null : false);
   const watched = $derived(show ? show.seasons.reduce((n, s) => n + s.episodes.filter((e) => e.completed).length, 0) : 0);
 
   // The selected season lives in the URL (replaced, not pushed), so leaving
   // for an episode and pressing Back reopens the same tab. Without one, open
   // on the season holding the target episode.
-  const activeSeason = $derived(show ? initialSeason(show, season, target) : "");
-  function chooseSeason(value: string) {
-    if (show && value !== activeSeason) router.go(href.show(show.slug, value), true);
-  }
+  const poster = $derived(selectedSeason?.posterUrl ?? show?.posterUrl);
 </script>
 
 <CatalogGate>
@@ -62,12 +61,12 @@
     <NotFound title="Series not found" description="It may have been removed by a rescan." />
   {:else}
     {#snippet posterArt()}
-      <PosterArt src={show.posterUrl} title={show.title} />
+      <PosterArt src={poster} title={show.title} />
     {/snippet}
     <DetailLayout
       backdrop={show.backdropUrl}
-      poster={show.posterUrl}
-      art={artworkSrc(show.posterUrl) ? posterArt : undefined}
+      {poster}
+      art={artworkSrc(poster) ? posterArt : undefined}
     >
 
       <header class="flex flex-col gap-5">
@@ -77,9 +76,13 @@
           >
             {show.title}
           </h1>
+          {#if selectedSeason}
+            <a href={href.show(show.slug)} class="text-sm text-muted-foreground hover:underline">Back to series</a>
+            <h2 class="text-xl font-medium">{seasonLabel(selectedSeason.number)}</h2>
+          {/if}
           <p class="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-            <span>{plural(show.seasons.length, "season")}</span>
-            <span>{plural(show.episodeCount, "episode")}</span>
+            {#if !selectedSeason}<span>{plural(show.seasons.length, "season")}</span>{/if}
+            <span>{plural(selectedSeason?.episodes.length ?? show.episodeCount, "episode")}</span>
             {#if watched > 0}
               <span>{watched === show.episodeCount ? "All watched" : `${watched} watched`}</span>
             {/if}
@@ -87,7 +90,7 @@
         </div>
         {#if target}
           <div class="flex flex-wrap gap-2">
-            <Button href={href.watch(target.id)} size="lg" class="self-start">
+            <Button href={href.watch(target.id)} size="lg" class="h-auto max-w-full self-start py-3 whitespace-normal">
               <PlayIcon data-icon="inline-start" />
               {resuming ? "Resume" : "Play"}
               {episodeName(target)}
@@ -98,8 +101,13 @@
       </header>
 
       {#if target}<MetadataDetails item={target} series />{/if}
+      {#if selectedSeason}
+        {@const metadata = selectedSeason.episodes[0]}
+        {#if metadata?.season_overview}<p class="text-sm text-muted-foreground">{metadata.season_overview}</p>{/if}
+        {#if metadata?.season_rating}<p class="text-sm text-muted-foreground">TMDB {metadata.season_rating.toFixed(1)}/10</p>{/if}
+      {/if}
 
-      {#if target}
+      {#if target && !selectedSeason}
         <section aria-labelledby="next-up" class="flex flex-col gap-3">
           <h2 id="next-up" class="text-base font-medium">{resuming ? "Continue watching" : "Next up"}</h2>
           <NextUpCard item={target} />
@@ -108,16 +116,25 @@
 
       <section aria-labelledby="episodes" class="flex flex-col gap-4">
         <h2 id="episodes" class="text-base font-medium">
-          {show.seasons.length === 1 ? seasonLabel(show.seasons[0].number) : "Seasons"}
+          {selectedSeason ? "Episodes" : show.seasons.length === 1 ? seasonLabel(show.seasons[0].number) : "Seasons"}
         </h2>
-        {#if show.seasons.length === 1}
+        {#if selectedSeason}
+          <EpisodeList episodes={selectedSeason.episodes} label={seasonLabel(selectedSeason.number)} upNextId={target?.id} />
+        {:else if show.seasons.length === 1}
           <EpisodeList
             episodes={show.seasons[0].episodes}
             label={seasonLabel(show.seasons[0].number)}
             upNextId={target?.id}
           />
         {:else}
-          <SeasonPicker seasons={show.seasons} value={activeSeason} onValueChange={chooseSeason} upNextId={target?.id} />
+          <div class="grid grid-cols-2 gap-5 sm:grid-cols-[repeat(auto-fill,12.5rem)]">
+            {#each show.seasons as entry (seasonKey(entry))}
+              <a href={href.show(show.slug, seasonKey(entry))} class="lift press flex flex-col gap-2 text-center">
+                <PosterArt src={entry.posterUrl} title={seasonLabel(entry.number)} />
+                <span>{seasonLabel(entry.number)}</span>
+              </a>
+            {/each}
+          </div>
         {/if}
       </section>
     </DetailLayout>

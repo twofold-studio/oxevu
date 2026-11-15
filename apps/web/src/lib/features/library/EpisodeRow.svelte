@@ -10,6 +10,7 @@
   import { resumePosition, watchedFraction } from "$lib/media/progress";
   import Artwork from "$lib/components/Artwork.svelte";
   import ProgressLine from "./ProgressLine.svelte";
+  import ItemActions from "./ItemActions.svelte";
 
   let {
     item,
@@ -45,7 +46,7 @@
      motion and colour turned off and is spoken as part of the link. -->
 <li
   class={[
-    "relative flex items-center gap-3 px-3 py-3 transition-colors duration-(--motion-control) ease-settle hover:bg-accent/40 has-[a:active]:bg-accent/60 sm:gap-4 sm:px-4",
+    "relative flex flex-wrap items-center gap-3 px-3 py-3 transition-colors duration-(--motion-control) ease-settle hover:bg-accent/40 has-[a:active]:bg-accent/60 sm:flex-nowrap sm:gap-4 sm:px-4",
     upNext && "bg-accent/25 before:absolute before:inset-y-0 before:left-0 before:w-0.5 before:bg-brand",
   ]}
 >
@@ -69,6 +70,11 @@
       </span>
     {/if}
     <span class="line-clamp-2 font-medium break-words sm:line-clamp-1">{name}</span>
+    <span class="flex flex-wrap gap-3 text-xs text-muted-foreground">
+      {#if item.rating}<span>{item.rating_source ?? "Rating"} {item.rating.toFixed(1)}/10</span>{/if}
+      {#if item.duration_seconds}<span>Ends at {new Date(Date.now() + Math.max(0, item.duration_seconds - (resume ?? 0)) * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>{/if}
+    </span>
+    {#if item.overview}<span class="line-clamp-2 text-sm text-muted-foreground">{item.overview}</span>{/if}
     <!-- Phones hide the status column; keep watched/remaining visible here. -->
     {#if status}
       <span class="flex items-center gap-1 text-xs text-muted-foreground sm:hidden">
@@ -82,6 +88,7 @@
     {status ?? formatRuntime(item.duration_seconds) ?? ""}
   </span>
   <!-- Sits above the row link overlay so it stays independently clickable. -->
+  <ItemActions {item} />
   <Button
     href={href.watch(item.id)}
     variant="ghost"

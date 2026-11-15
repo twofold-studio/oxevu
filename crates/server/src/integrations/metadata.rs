@@ -199,6 +199,7 @@ async fn apply_inner(a: App, h: HeaderMap, id: String, m: Match) -> Result<Json<
         return Err(bad("series metadata limit is 100 episodes per match"));
     }
     let mut updates = Vec::new();
+    let mut seasons = std::collections::HashMap::<u64, Value>::new();
     for row in rows {
         let source: Value =
             serde_json::from_str(row.get("data")).map_err(|_| bad("invalid item metadata"))?;
@@ -218,6 +219,13 @@ async fn apply_inner(a: App, h: HeaderMap, id: String, m: Match) -> Result<Json<
                     source["episode_number"].as_u64(),
                 )
             {
+                if let std::collections::hash_map::Entry::Vacant(entry) = seasons.entry(season) {
+                    entry.insert(tmdb(&c, &format!("tv/{}/season/{season}", m.id), &[]).await?);
+                }
+                if let Some(details) = seasons.get(&season) {
+                    data["season_overview"] = details["overview"].clone();
+                    data["season_rating"] = details["vote_average"].clone();
+                }
                 let episode = tmdb(
                     &c,
                     &format!("tv/{}/season/{season}/episode/{episode}", m.id),
@@ -226,6 +234,8 @@ async fn apply_inner(a: App, h: HeaderMap, id: String, m: Match) -> Result<Json<
                 .await?;
                 data["title"] = episode["name"].clone();
                 data["overview"] = episode["overview"].clone();
+                data["rating"] = episode["vote_average"].clone();
+                data["rating_source"] = json!("TMDB");
                 data["metadata_thumbnail"] = json!(image(&episode["still_path"]));
             }
         }
