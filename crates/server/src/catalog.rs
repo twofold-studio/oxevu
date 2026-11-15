@@ -39,7 +39,18 @@ pub(crate) async fn catalog(a: &App, h: &HeaderMap) -> Result<Vec<Value>> {
                 .and_then(Value::as_object)
                 && let Some(object) = v.as_object_mut()
             {
+                let local_poster = object
+                    .get("poster_url")
+                    .filter(|value| {
+                        value
+                            .as_str()
+                            .is_some_and(|url| url.contains("/artwork/poster"))
+                    })
+                    .cloned();
                 object.extend(enriched.clone());
+                if let Some(poster) = local_poster {
+                    object.insert("poster_url".into(), poster);
+                }
             }
             for kind in ["poster", "thumbnail", "backdrop"] {
                 v.as_object_mut()

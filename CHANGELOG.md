@@ -9,6 +9,9 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Metadata refresh preserves local season posters instead of replacing them with
+  the series-level provider poster.
+
 - Season cover links open dedicated season views with provider descriptions and
   ratings after identification. Episode rows include descriptions, finish times,
   watched toggles and per-user favorites. TMDB episode scores no longer inherit
