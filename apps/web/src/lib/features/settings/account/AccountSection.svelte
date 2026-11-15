@@ -4,6 +4,7 @@
   import { session } from "$lib/state/session.svelte";
   import SettingsSection from "../SettingsSection.svelte";
   import PasswordForm from "./PasswordForm.svelte";
+  import SeekPreference from "./SeekPreference.svelte";
 
   const user = $derived(session.user);
   const rows = $derived(
@@ -22,6 +23,9 @@
 </script>
 
 <div class="flex flex-col gap-4">
+  <SettingsSection icon={UserIcon} title="Player controls" description="Preferences for this browser.">
+    <SeekPreference />
+  </SettingsSection>
   <SettingsSection
     icon={UserIcon}
     title="Your account"

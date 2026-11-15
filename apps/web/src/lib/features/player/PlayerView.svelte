@@ -17,6 +17,7 @@
   import { ProgressReporter } from "./progress-reporter";
   import { createIdle } from "./idle.svelte";
   import { playerShortcut } from "./shortcuts";
+  import { readSeekSeconds } from "$lib/playback/seek-preference";
 
   /** User-initiated changes, reported so a watch-party host can broadcast them. */
   export type PlayerIntent = { type: "play" | "pause" } | { type: "seek"; position: number };
@@ -51,6 +52,7 @@
   } = $props();
 
   const item = $derived(engine.item);
+  const seekSeconds = readSeekSeconds();
   let stage = $state<HTMLDivElement | null>(null);
   let video = $state<HTMLVideoElement | null>(null);
   let mediaDuration = $state(Number.NaN);
@@ -169,7 +171,7 @@
 
   function onKeydown(event: KeyboardEvent) {
     if (!video || engine.problem) return;
-    const action = playerShortcut(event);
+    const action = playerShortcut(event, seekSeconds);
     if (!action) return;
     if (locked && (action.type === "toggle" || action.type === "skip")) return;
     event.preventDefault();
@@ -303,6 +305,7 @@
           ontoggle={toggle}
           onseek={seek}
           onskip={(delta) => seek(current + delta)}
+          {seekSeconds}
           onmute={() => video && (video.muted = !video.muted)}
           onvolume={setVolume}
           onfullscreen={toggleFullscreen}

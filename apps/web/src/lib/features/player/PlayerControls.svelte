@@ -21,6 +21,7 @@
     volume,
     fullscreen,
     locked = false,
+    seekSeconds = 5,
     extra,
     ontoggle,
     onseek,
@@ -38,6 +39,7 @@
     fullscreen: boolean;
     /** Watch-party guests follow the host: no play, pause or seek. */
     locked?: boolean;
+    seekSeconds?: number;
     extra?: Snippet;
     ontoggle: () => void;
     onseek: (time: number) => void;
@@ -57,10 +59,10 @@
       <Button variant="ghost" size="icon-lg" onclick={ontoggle} aria-label={paused ? "Play (k)" : "Pause (k)"}>
         {#if paused}<PlayIcon />{:else}<PauseIcon />{/if}
       </Button>
-      <Button variant="ghost" size="icon-lg" onclick={() => onskip(-10)} aria-label="Back 10 seconds (←)">
+      <Button variant="ghost" size="icon-lg" onclick={() => onskip(-seekSeconds)} aria-label={`Back ${seekSeconds} seconds (←)`}>
         <RotateCcwIcon />
       </Button>
-      <Button variant="ghost" size="icon-lg" onclick={() => onskip(10)} aria-label="Forward 10 seconds (→)">
+      <Button variant="ghost" size="icon-lg" onclick={() => onskip(seekSeconds)} aria-label={`Forward ${seekSeconds} seconds (→)`}>
         <RotateCwIcon />
       </Button>
     {/if}

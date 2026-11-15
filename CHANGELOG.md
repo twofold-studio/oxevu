@@ -9,6 +9,9 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Configurable arrow-key and skip-button interval in Account settings, defaulting
+  to five seconds. Arrow seeking also works when the seek bar or a button has focus.
+
 - Bounded persistent conversion cache with partial-range reuse and automatic
   continuation, configurable in Playback settings (5 GB by default).
 - Subtitle-track search for lists longer than eight tracks, with player menus

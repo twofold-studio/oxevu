@@ -6,13 +6,18 @@ export type PlayerAction =
   | { type: "fullscreen" };
 
 /**
- * Maps keys to player actions. Space and arrows are left alone while a
- * control has focus so buttons and sliders keep their native behaviour.
+ * Seek arrows work across playback controls; text entry, menus and volume
+ * sliders retain their native keyboard behaviour.
  */
-export function playerShortcut(event: KeyboardEvent): PlayerAction | null {
+export function playerShortcut(event: KeyboardEvent, seekSeconds = 5): PlayerAction | null {
   if (event.metaKey || event.ctrlKey || event.altKey) return null;
   const target = event.target as HTMLElement | null;
+  if (target?.closest("textarea, select, [contenteditable=true], [role=menu], [role=dialog]"))
+    return null;
+  if (target?.closest("input:not([type=range])")) return null;
   const onControl = target?.closest("button, input, a, [role=slider]") !== null && target !== null;
+  const seekControl = target?.getAttribute("aria-label") === "Seek";
+  const otherSlider = !seekControl && target?.closest("input[type=range], [role=slider]");
 
   switch (event.key) {
     case "k":
@@ -21,9 +26,9 @@ export function playerShortcut(event: KeyboardEvent): PlayerAction | null {
     case " ":
       return onControl ? null : { type: "toggle" };
     case "ArrowLeft":
-      return onControl ? null : { type: "skip", seconds: -10 };
+      return otherSlider ? null : { type: "skip", seconds: -seekSeconds };
     case "ArrowRight":
-      return onControl ? null : { type: "skip", seconds: 10 };
+      return otherSlider ? null : { type: "skip", seconds: seekSeconds };
     case "j":
     case "J":
       return { type: "skip", seconds: -10 };
