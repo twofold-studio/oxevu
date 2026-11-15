@@ -4,8 +4,12 @@
 // HLS); native HLS is the fallback for browsers without MSE, such as older
 // iPhone Safari. hls.js loads on demand.
 
+import type { MediaRange } from "./timeline";
+import { transferMbps } from "./quality";
+
 export interface AttachedStream {
   detach(): void;
+  producedRange?(): MediaRange | null;
 }
 
 export interface StreamFailure {
@@ -77,6 +81,9 @@ export function attachStream(
     // live edge to chase.
     startPosition: 0,
     backBufferLength: 60,
+    maxBufferLength: 90,
+    maxMaxBufferLength: 120,
+    maxBufferSize: 128 * 1024 * 1024,
   });
   let recovered = false;
   player.on(Hls.Events.ERROR, (_event, data) => {
@@ -95,12 +102,20 @@ export function attachStream(
         : `The stream failed: ${data.details}.`,
     });
   });
-  player.on(Hls.Events.FRAG_LOADED, () => {
-    onBandwidth?.(player.bandwidthEstimate / 1_000_000);
+  player.on(Hls.Events.FRAG_LOADED, (_event, data) => {
+    const stats = data.part?.stats ?? data.frag.stats;
+    const mbps = transferMbps(stats.loaded, stats.loading.first, stats.loading.end);
+    if (mbps !== null) onBandwidth?.(mbps);
   });
   player.loadSource(url);
   player.attachMedia(video);
   return {
+    producedRange() {
+      const details = player.latestLevelDetails;
+      return details && details.fragments.length
+        ? { start: details.fragmentStart, end: details.fragmentEnd }
+        : null;
+    },
     detach() {
       player.destroy();
       video.removeAttribute("src");

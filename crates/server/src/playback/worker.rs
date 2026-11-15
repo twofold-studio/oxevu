@@ -1,50 +1,5 @@
 use super::*;
-use std::process::Stdio;
-use tokio::{io::AsyncReadExt, process::Command, sync::watch};
-
-async fn metadata(
-    path: &std::path::Path,
-    mut cancel: watch::Receiver<bool>,
-) -> std::result::Result<Value, String> {
-    let mut command = Command::new("ffprobe");
-    command
-        .args([
-            "-v",
-            "error",
-            "-protocol_whitelist",
-            "file,pipe",
-            "-show_entries",
-            "stream=codec_type,codec_name,height,color_transfer,pix_fmt:stream_side_data=side_data_type:format=bit_rate",
-            "-of",
-            "json",
-        ])
-        .arg(path)
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::null())
-        .kill_on_drop(true);
-    runtime::parent_death(&mut command);
-    let mut child = command
-        .spawn()
-        .map_err(|_| "ffprobe unavailable".to_string())?;
-    let stdout = child.stdout.take().ok_or("ffprobe stdout unavailable")?;
-    let mut bytes = Vec::new();
-    let result = tokio::select! { result=tokio::time::timeout(std::time::Duration::from_secs(15), async {
-        stdout.take(1024 * 1024).read_to_end(&mut bytes).await?;
-        child.wait().await
-    })
-    => result, _=cancel.changed()=> { let _=child.kill().await;let _=child.wait().await;return Err("Playback stopped".into()) } };
-    match result {
-        Ok(Ok(s)) if s.success() => {
-            serde_json::from_slice(&bytes).map_err(|_| "Invalid source metadata".into())
-        }
-        _ => {
-            let _ = child.kill().await;
-            let _ = child.wait().await;
-            Err("Source probe failed".into())
-        }
-    }
-}
+use tokio::{process::Command, sync::watch};
 pub(super) fn command(
     a: &App,
     path: &std::path::Path,
@@ -105,9 +60,12 @@ pub(super) fn command(
             },
         ]);
         if method == "nvenc" {
-            cmd.arg("-gpu")
-                .arg(s.gpu_index.to_string())
-                .args(["-preset", "p4"]);
+            cmd.arg("-gpu").arg(s.gpu_index.to_string()).args([
+                "-preset",
+                "p4",
+                "-forced-idr",
+                "1",
+            ]);
         } else {
             cmd.args(["-preset", "veryfast", "-crf"])
                 .arg(s.cpu_crf.to_string());
@@ -166,6 +124,13 @@ pub async fn run(
     done: watch::Sender<bool>,
 ) {
     let dir = a.playback.scratch.join(&id);
+    let requested_method = method.clone();
+    let cache_key = if s.cache_enabled {
+        super::cache::key(&a, &path, &requested_method, &s).await
+    } else {
+        None
+    };
+    let mut output = json!({});
     let result = async {
         tokio::fs::create_dir(&dir)
             .await
@@ -173,7 +138,7 @@ pub async fn run(
         if *cancel.borrow() {
             return Err("Playback stopped".into());
         }
-        let meta = metadata(&path, cancel.clone()).await?;
+        let meta = super::source_probe::metadata(&a, &path, cancel.clone()).await?;
         let streams = meta["streams"].as_array().ok_or("Source has no streams")?;
         if streams.iter().any(|v| {
             matches!(
@@ -222,6 +187,16 @@ pub async fn run(
                 )
         });
         let decode = s.hardware_decoding && method != "remux" && supported_decode;
+        let video = streams.iter().find(|v|v["codec_type"]=="video");
+        let dimensions = video.and_then(|v|Some((v["width"].as_u64()?,v["height"].as_u64()?)));
+        let dimensions = dimensions.filter(|(_,h)|*h>0).map(|(w,h)| {
+            if method=="remux" {(w,h)} else {
+                let height=h.min(u64::from(s.max_height))/2*2;
+                let width=((w as f64*height as f64/h as f64)/2.).round() as u64*2;
+                (width,height)
+            }
+        });
+        output=json!({"method":method,"decoder":if method=="remux"{"copy"}else if decode{"cuda"}else{"cpu"},"width":dimensions.map(|d|d.0),"height":dimensions.map(|d|d.1)});
         if s.hardware_decoding && method != "remux" && !supported_decode && !s.allow_cpu_fallback {
             return Err("Source codec is unsupported by CUDA decoding".into());
         }
@@ -234,6 +209,7 @@ pub async fn run(
             return Err("Scratch storage limit reached".into());
         }
         if let Some(e) = a.playback.sessions.lock().await.get_mut(&id) {
+            e.value["width"]=output["width"].clone(); e.value["height"]=output["height"].clone();
             e.value["method"] = json!(method);
             e.value["decoder"] = json!(if method == "remux" {
                 "copy"
@@ -271,6 +247,7 @@ pub async fn run(
                 .await
                 .map_err(|_| "Cannot reset playback scratch")?;
             method = "cpu".into();
+            output["method"]=json!("cpu"); output["decoder"]=json!("cpu");
             if let Some(e) = a.playback.sessions.lock().await.get_mut(&id) {
                 e.value["method"] = json!(method);
                 e.value["status"] = json!("starting");
@@ -315,6 +292,23 @@ pub async fn run(
                 e.value["stream_url"] = Value::Null;
             }
         }
+    }
+    if result.is_ok()
+        || result
+            .as_ref()
+            .is_err_and(|error| error == "Playback stopped")
+    {
+        super::cache::store(
+            &a,
+            &id,
+            &path,
+            start,
+            &requested_method,
+            &s,
+            &output,
+            cache_key.as_deref(),
+        )
+        .await;
     }
     if result.is_err() {
         let _ = tokio::fs::remove_dir_all(&dir).await;

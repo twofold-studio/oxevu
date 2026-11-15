@@ -9,6 +9,14 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Bounded persistent conversion cache with partial-range reuse and automatic
+  continuation, configurable in Playback settings (5 GB by default).
+- Subtitle-track search for lists longer than eight tracks, with player menus
+  kept visible while open.
+
+- Administrator folder-path suggestions while typing library locations, with
+  directory-only results and bounded filesystem lookups.
+
 - Playback quality presets and conservative automatic quality reductions for
   limited connections, with server-enforced bitrate and resolution limits.
 - Embedded and sidecar text subtitle selection, offset-aware browser captions,
@@ -58,6 +66,14 @@ as available; planned features belong in GOAL.md.
 - Python in the development shell for the changelog helper.
 
 ### Fixed
+
+- Auto quality starts at server limits instead of trusting coarse browser
+  bandwidth hints. The menu shows the effective quality and pixel resolution.
+- NVIDIA forced IDR keyframes produce actual two-second chunks. Playback also
+  reuses produced ranges and buffers toward 90 seconds ahead for quicker seeks.
+
+- Shared segmented controls now clearly distinguish the selected option,
+  including library contents and hardware acceleration.
 
 - Provider HTTP requests follow bounded redirects on the original origin, so
   OpenSubtitles search canonicalization works without forwarding credentials

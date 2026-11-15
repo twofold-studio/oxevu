@@ -14,6 +14,8 @@ const defaults: Settings = {
   max_height: 1080,
   cpu_crf: 23,
   scratch_limit_gb: 10,
+  cache_enabled: true,
+  cache_limit_gb: 5,
   session_idle_seconds: 120,
   resume_min_percent: 5,
   resume_max_percent: 90,

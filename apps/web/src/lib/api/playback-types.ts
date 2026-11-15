@@ -13,6 +13,8 @@ export interface PlaybackSessionRequest {
 }
 
 export interface PlaybackSession {
+  cache_hit?: boolean;
+  cache_end_seconds?: number | null;
   max_height?: number;
   video_bitrate_mbps?: number;
   decoder?: "cuda" | "cpu" | "copy";

@@ -18,7 +18,7 @@ import { mediaOffset, clampTarget, planSeek, seekableRange, toAbsolute, toMedia 
 export type EnginePhase = "idle" | "starting" | "ready" | "failed";
 
 /** Seeks that need a new server session wait this long for the next seek. */
-const SESSION_SEEK_DEBOUNCE_MS = 250;
+const SESSION_SEEK_DEBOUNCE_MS = 150;
 
 const FALLBACK_NOTICE =
   "This browser couldn't play the original file, so Oxevu switched to a converted stream.";
@@ -47,6 +47,8 @@ export class PlaybackEngine {
   autoplayBlocked = $state(false);
   /** Media-element time, kept current by the player's timeupdate handler. */
   mediaTime = $state(0);
+  videoWidth = $state(0);
+  videoHeight = $state(0);
 
   readonly absolute = $derived(
     this.pendingTarget ?? (this.session ? toAbsolute(this.session, this.mediaTime) : 0),
@@ -150,6 +152,8 @@ export class PlaybackEngine {
     const target = toMedia(session, absolute);
     if (target > 0.25) video.currentTime = target;
     this.mediaTime = video.currentTime;
+    this.videoWidth = video.videoWidth;
+    this.videoHeight = video.videoHeight;
     this.pendingTarget = null;
     this.phase = "ready";
     this.subtitles.attach(video, mediaOffset(session));
@@ -198,7 +202,10 @@ export class PlaybackEngine {
     }
     // Some native HLS players report no seekable range for a growing
     // playlist; buffered media is still seekable.
-    const range = seekableRange(video.seekable) ?? seekableRange(video.buffered);
+    const range =
+      this.stream?.producedRange?.() ??
+      seekableRange(video.seekable) ??
+      seekableRange(video.buffered);
     const plan = planSeek(this.session, target, range, this.duration);
     if (plan.kind === "media") {
       clearTimeout(this.seekTimer);
@@ -254,6 +261,14 @@ export class PlaybackEngine {
 
   retry() {
     void this.load(this.absolute);
+  }
+
+  /** A cached partial playlist ends before the item; continue from its boundary. */
+  continueAfterCache(): boolean {
+    const end = this.session?.cache_end_seconds;
+    if (end == null || !this.duration || end >= this.duration - 1) return false;
+    void this.load(end, this.wantPlaying);
+    return true;
   }
 
   /** Called from the <video> error event. */

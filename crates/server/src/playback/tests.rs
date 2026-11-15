@@ -121,7 +121,13 @@ async fn readable(a: &App, h: &HeaderMap, id: &str) {
         .await
         .unwrap();
     let playlist = std::str::from_utf8(&body).unwrap();
-    assert!(playlist.contains("#EXT-X-PLAYLIST-TYPE:EVENT"));
+    let session = authorize(a, h, id, true).await.unwrap();
+    if session["cache_hit"] == true {
+        assert!(playlist.contains("#EXT-X-PLAYLIST-TYPE:VOD"));
+        assert!(playlist.contains("#EXT-X-ENDLIST"));
+    } else {
+        assert!(playlist.contains("#EXT-X-PLAYLIST-TYPE:EVENT"));
+    }
     assert!(playlist.contains("#EXT-X-START:TIME-OFFSET=0,PRECISE=YES"));
 
     let output = tokio::process::Command::new("ffprobe")
@@ -456,3 +462,9 @@ async fn stopping_active_encoder_kills_and_reaps_child() {
 
 #[path = "hardware_tests.rs"]
 mod hardware_tests;
+
+#[path = "seek_benchmark.rs"]
+mod seek_benchmark;
+
+#[path = "cache_tests.rs"]
+mod cache_tests;

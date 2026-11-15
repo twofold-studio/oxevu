@@ -22,6 +22,7 @@ export const RANGES: Record<NumericKey, Range> = {
   max_height: { min: 144, max: 4320, integer: true },
   cpu_crf: { min: 0, max: 51, integer: true },
   scratch_limit_gb: { min: 0.1, max: 1024 },
+  cache_limit_gb: { min: 0.1, max: 100 },
   session_idle_seconds: { min: 30, max: 3600, integer: true },
   resume_min_percent: { min: 0, max: 100, below: true },
   resume_max_percent: { min: 1, max: 100 },

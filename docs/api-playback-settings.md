@@ -36,7 +36,9 @@ must reconcile enabled roots while keeping offline roots safe. Preserve IDs and
 progress for files that remain. Catalog grouping merges same named show across
 roots of ONE library. Multiple library definitions remain distinct.
 Validate canonical roots, reject overlaps and source/runtime/cache roots that
-violate data separation. Read-only scanning; no arbitrary folder browsing endpoint.
+violate data separation. Read-only scanning. Admin-only POST
+`/libraries/paths/suggest` accepts `{path}` and returns `{paths,truncated}` with
+directory suggestions (maximum 20); virtual/system roots are excluded.
 Manual scan now; file watching and scheduled scans may follow (do not show fake toggles).
 
 ## Server settings
@@ -51,13 +53,15 @@ Settings = {
  allow_cpu_fallback:boolean, max_concurrent_transcodes:number,
  max_video_bitrate_mbps:number, max_height:number, cpu_crf:number,
  scratch_limit_gb:number, session_idle_seconds:number,
+ cache_enabled:boolean, cache_limit_gb:number,
  resume_min_percent:number, resume_max_percent:number,
  resume_min_duration_seconds:number
 }.
 
 Initial defaults: enabled true, nvenc, hardware encoding true, hardware decoding
 false, gpu 0, CPU fallback true, max jobs 2, 8 Mbps, height1080, CRF23,
-scratch10GB, idle120s, resume5%/90%/300s. Ranges validated server side; settings
+scratch10GB, cache enabled/5GB, idle120s, resume5%/90%/300s. Cache range is
+0.1–100GB. Ranges validated server side; settings
 apply to new sessions, active sessions retain their plan. Recheck permissions live.
 FFmpeg executable and scratch path are server env config (`OXEVU_FFMPEG`,
 `OXEVU_TRANSCODE_DIR`), shown read-only in capabilities; scratch must remain outside
@@ -82,7 +86,8 @@ Permissions prohibit transcoding/remux if user lacks can_transcode.
 PlaybackSession = {id,item_id,method:"direct"|"remux"|"cpu"|"nvenc",
 status:"starting"|"ready"|"failed",stream_url:string|null,
 start_seconds:number,duration_seconds:number|null,reason:string|null,
-error:string|null,decoder?:"cuda"|"cpu"|"copy"}.
+error:string|null,decoder?:"cuda"|"cpu"|"copy",
+width:number|null,height:number|null,cache_hit:boolean,cache_end_seconds:number|null}.
 GET `/playback/sessions/{id}` -> same envelope; owners only (admin may inspect).
 POST `/playback/sessions/{id}/heartbeat` -> 204, renew idle lease.
 POST `/playback/sessions/{id}/stop` -> 204; kill/reap children and clean scratch.
@@ -95,6 +100,8 @@ Client custom timeline uses full item duration; recreate session at requested
 absolute time when seeking outside available HLS window. Progress records absolute
 position. Use hls.js where native HLS absent; clean up session on leave/unload,
 heartbeat while active, no overlapping leaked sessions during rapid seeks.
+Cached partial sessions end at `cache_end_seconds`; clients continue with a new
+session there when the title continues. See [conversion cache](playback-cache.md).
 Monitor global job/disk limits, timeout failed startup, cap stderr, clean idle and
 shutdown. If GPU fails and fallback allowed retry CPU once and report actual method.
 

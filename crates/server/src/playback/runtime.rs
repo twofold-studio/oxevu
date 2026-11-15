@@ -10,6 +10,8 @@ pub(crate) struct Runtime {
     lock: tokio::fs::File,
     pub shutting_down: std::sync::atomic::AtomicBool,
     pub probe_cache: Mutex<Option<(u32, std::time::Instant, Value)>>,
+    pub source_metadata: Mutex<super::source_probe::Cache>,
+    pub cache_jobs: Mutex<()>,
     pub ffmpeg: String,
     pub scratch: PathBuf,
     pub sessions: Mutex<std::collections::HashMap<String, Entry>>,
@@ -73,6 +75,8 @@ impl Runtime {
         Ok(Arc::new(Self {
             lock,
             probe_cache: Mutex::new(None),
+            source_metadata: Mutex::new(Default::default()),
+            cache_jobs: Mutex::new(()),
             shutting_down: std::sync::atomic::AtomicBool::new(false),
             ffmpeg: std::env::var("OXEVU_FFMPEG").unwrap_or_else(|_| "ffmpeg".into()),
             scratch,

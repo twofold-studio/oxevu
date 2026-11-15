@@ -3,6 +3,7 @@
   import type { Settings } from "$lib/api/admin-types";
   import type { SettingsErrors } from "./settings-form";
   import NumberField from "./NumberField.svelte";
+  import SwitchField from "./SwitchField.svelte";
 
   let { draft = $bindable(), errors }: { draft: Settings; errors: SettingsErrors } = $props();
 </script>
@@ -67,4 +68,11 @@
     min={30}
     max={3600}
   />
+  <SwitchField id="conversion-cache" label="Cache converted video"
+    description="Reuse previously converted segments. Older entries are evicted when the cache fills."
+    bind:checked={draft.cache_enabled} />
+  <NumberField id="conversion-cache-limit" label="Conversion cache limit"
+    description="Persistent cache outside media folders; separate from active scratch space."
+    unit="GB" step={0.5} min={0.1} max={100}
+    disabled={!draft.cache_enabled} bind:value={draft.cache_limit_gb} error={errors.cache_limit_gb} />
 </Field.Group>

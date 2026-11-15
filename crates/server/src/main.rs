@@ -17,6 +17,7 @@ mod catalog;
 mod episode_title;
 mod integrations;
 mod libraries;
+mod library_paths;
 mod parties;
 mod playback;
 mod scan;
@@ -121,6 +122,7 @@ async fn main() -> anyhow::Result<()> {
         .route("/users/{id}", put(users::update))
         .route("/auth/password", put(auth::password))
         .route("/libraries/{id}", put(libraries::update))
+        .route("/libraries/paths/suggest", post(library_paths::suggest))
         .route("/libraries/{id}/remove", post(libraries::remove))
         .route("/settings", get(settings::get).put(settings::put))
         .route(

@@ -17,10 +17,20 @@ pub struct Settings {
     pub max_height: u32,
     pub cpu_crf: u32,
     pub scratch_limit_gb: f64,
+    #[serde(default = "default_cache_enabled")]
+    pub cache_enabled: bool,
+    #[serde(default = "default_cache_limit")]
+    pub cache_limit_gb: f64,
     pub session_idle_seconds: u32,
     pub resume_min_percent: f64,
     pub resume_max_percent: f64,
     pub resume_min_duration_seconds: u32,
+}
+fn default_cache_enabled() -> bool {
+    true
+}
+fn default_cache_limit() -> f64 {
+    5.
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -36,6 +46,8 @@ impl Default for Settings {
             max_height: 1080,
             cpu_crf: 23,
             scratch_limit_gb: 10.,
+            cache_enabled: default_cache_enabled(),
+            cache_limit_gb: default_cache_limit(),
             session_idle_seconds: 120,
             resume_min_percent: 5.,
             resume_max_percent: 90.,
@@ -54,6 +66,8 @@ impl Settings {
             || self.cpu_crf > 51
             || !self.scratch_limit_gb.is_finite()
             || !(0.1..=1024.).contains(&self.scratch_limit_gb)
+            || !self.cache_limit_gb.is_finite()
+            || !(0.1..=100.).contains(&self.cache_limit_gb)
             || !(30..=3600).contains(&self.session_idle_seconds)
             || !self.resume_min_percent.is_finite()
             || !self.resume_max_percent.is_finite()

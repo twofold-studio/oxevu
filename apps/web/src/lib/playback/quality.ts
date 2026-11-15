@@ -17,14 +17,27 @@ export function networkQuality(mbps: number): QualityLimit | undefined {
   );
 }
 
-export function initialNetworkQuality(): QualityLimit | undefined {
-  const connection = (
-    navigator as Navigator & {
-      connection?: { downlink?: number; saveData?: boolean };
-    }
-  ).connection;
+export function initialNetworkQuality(
+  connection: { downlink?: number; saveData?: boolean } | undefined = typeof navigator ===
+  "undefined"
+    ? undefined
+    : (
+        navigator as Navigator & {
+          connection?: { downlink?: number; saveData?: boolean };
+        }
+      ).connection,
+): QualityLimit | undefined {
   if (connection?.saveData) return networkQuality(1.5);
-  return connection?.downlink ? networkQuality(connection.downlink) : undefined;
+  // Browser downlink hints are coarse/capped, even on a fast local connection.
+  // Start at server limits; reduce only from actual segment transfer samples.
+  return undefined;
+}
+
+export function transferMbps(bytes: number, firstByteMs: number, endMs: number): number | null {
+  const elapsed = endMs - firstByteMs;
+  // Tiny cached/local transfers are too short for a meaningful speed estimate.
+  if (bytes <= 0 || elapsed < 20 || !Number.isFinite(elapsed)) return null;
+  return (bytes * 8) / elapsed / 1000;
 }
 
 /** Automatic only steps down: three weak samples and a 30-second cooldown. */

@@ -1,7 +1,10 @@
 use crate::*;
 use axum::http::header;
+mod cache;
+mod cache_index;
 mod quality;
 pub(crate) mod runtime;
+mod source_probe;
 mod worker;
 pub(crate) use runtime::Runtime;
 use tokio::sync::watch;
@@ -68,24 +71,49 @@ pub(crate) async fn create(
         }
     };
     let id = uuid::Uuid::new_v4().to_string();
+    let cached = if direct {
+        None
+    } else {
+        cache::restore(&a, &id, &path, start, method, &settings, duration).await
+    };
     let (cancel, rx) = watch::channel(false);
-    let (done, done_rx) = watch::channel(direct);
-    let value = json!({"id":id,"item_id":item,"method":method,"status":if direct{"ready"}else{"starting"},"stream_url":if direct{format!("/api/v1/items/{item}/stream")}else{format!("/api/v1/playback/sessions/{id}/hls/index.m3u8")},"start_seconds":start,"duration_seconds":duration,"reason":if direct{"Native playback requested"}else{"H264/AAC HLS delivery"},"error":null,"max_height":settings.max_height,"video_bitrate_mbps":settings.max_video_bitrate_mbps});
+    let (done, done_rx) = watch::channel(direct || cached.is_some());
+    let mut value = json!({"id":id,"item_id":item,"method":method,"status":if direct{"ready"}else{"starting"},"stream_url":if direct{format!("/api/v1/items/{item}/stream")}else{format!("/api/v1/playback/sessions/{id}/hls/index.m3u8")},"start_seconds":start,"duration_seconds":duration,"reason":if direct{"Native playback requested"}else{"H264/AAC HLS delivery"},"error":null,"max_height":settings.max_height,"video_bitrate_mbps":settings.max_video_bitrate_mbps,"cache_hit":false});
+    if let Some(hit) = &cached {
+        value["status"] = json!("ready");
+        value["cache_hit"] = json!(true);
+        value["start_seconds"] = json!(hit.start);
+        value["cache_end_seconds"] = json!(hit.end);
+        value["method"] = json!(hit.method);
+        value["decoder"] = json!(hit.decoder);
+        value["width"] = json!(hit.width);
+        value["height"] = json!(hit.height);
+        value["reason"] = json!("Reusing finalized transcoded segments");
+    }
     let mut sessions = a.playback.sessions.lock().await;
     if a.playback
         .shutting_down
         .load(std::sync::atomic::Ordering::SeqCst)
     {
+        drop(sessions);
+        if cached.is_some() {
+            let _ = tokio::fs::remove_dir_all(a.playback.scratch.join(&id)).await;
+        }
         return Err(bad("server shutting down"));
     }
     if sessions.len() >= 128
         || (!direct
+            && cached.is_none()
             && sessions
                 .values()
                 .filter(|e| e.transcode && !*e.done.borrow())
                 .count()
                 >= settings.max_concurrent_transcodes as usize)
     {
+        drop(sessions);
+        if cached.is_some() {
+            let _ = tokio::fs::remove_dir_all(a.playback.scratch.join(&id)).await;
+        }
         return Err((
             StatusCode::TOO_MANY_REQUESTS,
             Json(json!({"error":"playback session limit reached"})),
@@ -100,13 +128,13 @@ pub(crate) async fn create(
             value: value.clone(),
             touched: std::time::Instant::now(),
             idle: settings.session_idle_seconds,
-            transcode: !direct,
+            transcode: !direct && cached.is_none(),
             cancel,
             done: done_rx,
         },
     );
     drop(sessions);
-    if !direct {
+    if !direct && cached.is_none() {
         let a = a.clone();
         let id = id.clone();
         let method = method.to_owned();

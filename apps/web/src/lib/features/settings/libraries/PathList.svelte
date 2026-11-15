@@ -2,7 +2,7 @@
   import PlusIcon from "@lucide/svelte/icons/plus";
   import XIcon from "@lucide/svelte/icons/x";
   import * as Field from "$lib/components/ui/field";
-  import { Input } from "$lib/components/ui/input";
+  import PathInput from "./PathInput.svelte";
   import { Button } from "$lib/components/ui/button";
 
   /** Editable list of library roots; at most `max` rows. */
@@ -31,14 +31,10 @@
     {#each paths as _, index (index)}
       <Field.Field data-invalid={errors[index] ? true : undefined}>
         <div class="flex gap-2">
-          <Input
+          <PathInput
             bind:value={paths[index]}
-            placeholder="/srv/media/movies"
-            class="font-mono"
-            spellcheck={false}
-            autocapitalize="none"
-            aria-label={`Folder ${index + 1}`}
-            aria-invalid={errors[index] ? true : undefined}
+            label={`Folder ${index + 1}`}
+            invalid={Boolean(errors[index])}
           />
           <Button
             variant="ghost"

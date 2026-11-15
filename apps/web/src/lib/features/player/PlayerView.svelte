@@ -62,6 +62,8 @@
   let started = $state(false);
   let fullscreen = $state(false);
   let saveFailed = $state(false);
+  let subtitlesOpen = $state(false);
+  let deliveryOpen = $state(false);
 
   const idle = createIdle(2500);
   const offset = $derived(engine.session ? mediaOffset(engine.session) : 0);
@@ -76,7 +78,7 @@
     return range ? offset + range.end : 0;
   });
   const settled = $derived(engine.phase === "ready" && engine.pendingTarget === null);
-  const controlsVisible = $derived(!idle.idle || paused || engine.problem !== null || engine.subtitles.searchOpen);
+  const controlsVisible = $derived(!idle.idle || paused || engine.problem !== null || engine.subtitles.searchOpen || subtitlesOpen || deliveryOpen);
   const subtitle = $derived(
     item.kind === "episode"
       ? [item.show_title, episodeNumberLabel(item)].filter(Boolean).join(" · ")
@@ -160,6 +162,8 @@
   function onTimeUpdate() {
     if (!video) return;
     engine.mediaTime = video.currentTime;
+    engine.videoWidth = video.videoWidth;
+    engine.videoHeight = video.videoHeight;
     if (!paused && settled) reporter.tick(engine.absolute, duration || null);
   }
 
@@ -217,7 +221,7 @@
       if (video) engine.mediaTime = video.currentTime;
       if (started && settled) reporter.save(engine.absolute, duration || null);
     }}
-    onended={() => reporter.save(engine.absolute, duration || null, true)}
+    onended={() => { if (!engine.continueAfterCache()) reporter.save(engine.absolute, duration || null, true); }}
     onerror={() => void engine.handleMediaError()}
     onclick={toggle}
     ondblclick={toggleFullscreen}
@@ -304,8 +308,8 @@
           onfullscreen={toggleFullscreen}
         >
           {#snippet extra()}
-            <SubtitleMenu subtitles={engine.subtitles} itemId={item.id} canDownload={canTranscode} />
-            <DeliveryMenu {engine} {canTranscode} />
+            <SubtitleMenu subtitles={engine.subtitles} itemId={item.id} canDownload={canTranscode} bind:open={subtitlesOpen} />
+            <DeliveryMenu {engine} {canTranscode} bind:open={deliveryOpen} />
           {/snippet}
         </PlayerControls>
       </div>

@@ -49,6 +49,11 @@ export const authApi = {
 };
 
 export const librariesApi = {
+  suggestPaths: (path: string) =>
+    request<{ paths: { name: string; path: string }[]; truncated: boolean }>(
+      "/libraries/paths/suggest",
+      { method: "POST", body: { path } },
+    ),
   list: () => request<{ libraries: Library[] }>("/libraries"),
   create: (body: LibraryInput) =>
     request<{ library: Library }>("/libraries", { method: "POST", body }),

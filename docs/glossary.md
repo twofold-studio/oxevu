@@ -42,3 +42,6 @@ Radarr (movies), Sonarr (series), Prowlarr (indexers), qBittorrent (BitTorrent).
 - **WebVTT:** timed text captions browsers can display separately from video.
 - **Quality preset:** a per-stream resolution and bitrate ceiling, bounded by
   the administrator's server limits.
+- **Conversion cache:** finalized video segments kept outside media folders for
+  reuse under a compatible source and conversion plan, with a storage limit and
+  eviction of older entries.

@@ -16,7 +16,7 @@ export interface SessionTiming {
 }
 
 export const defaultTiming: SessionTiming = {
-  pollMs: 500,
+  pollMs: 150,
   heartbeatMs: 15_000,
   startTimeoutMs: 90_000,
 };

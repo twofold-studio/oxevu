@@ -33,6 +33,8 @@ export interface Settings {
   max_height: number;
   cpu_crf: number;
   scratch_limit_gb: number;
+  cache_enabled: boolean;
+  cache_limit_gb: number;
   session_idle_seconds: number;
   resume_min_percent: number;
   resume_max_percent: number;
