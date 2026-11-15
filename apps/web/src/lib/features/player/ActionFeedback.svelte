@@ -3,17 +3,50 @@
   import FastForwardIcon from "@lucide/svelte/icons/fast-forward";
   import Volume2Icon from "@lucide/svelte/icons/volume-2";
   import VolumeXIcon from "@lucide/svelte/icons/volume-x";
-  let { action }: { action: { kind: "back" | "forward" | "volume" | "mute"; label: string } | null } = $props();
+  let { action }: { action: { id: number; kind: "back" | "forward" | "volume" | "mute"; label: string } | null } = $props();
 </script>
 
 {#if action}
-  <div class="pointer-events-none absolute inset-0 grid place-items-center" role="status" aria-live="polite" aria-atomic="true">
-    <div class="animate-fade flex min-w-32 flex-col items-center gap-2 rounded-2xl bg-black/45 px-6 py-5 text-white/85 backdrop-blur-sm">
+  <div class="pointer-events-none absolute inset-0 overflow-hidden" role="status" aria-live="polite" aria-atomic="true">
+    {#key action.id}
+    <div class="feedback absolute -translate-x-1/2 -translate-y-1/2"
+      style:left={action.kind === "back" ? "24%" : "76%"}
+      style:top={action.kind === "volume" || action.kind === "mute" ? "34%" : "50%"}
+      style:--travel={action.kind === "back" ? "-8px" : action.kind === "forward" ? "8px" : "0px"}>
+    <div class="pulse relative flex min-w-28 flex-col items-center gap-2 rounded-full bg-black/35 px-4 py-5 text-white/85 backdrop-blur-sm sm:min-w-32 sm:px-6">
+      <span class="ripple absolute inset-0 rounded-full border border-white/20" aria-hidden="true"></span>
+      <span class="symbol" aria-hidden="true">
       {#if action.kind === "back"}<RewindIcon class="size-8" />
       {:else if action.kind === "forward"}<FastForwardIcon class="size-8" />
       {:else if action.kind === "mute"}<VolumeXIcon class="size-8" />
       {:else}<Volume2Icon class="size-8" />{/if}
+      </span>
       <span class="text-sm font-medium tabular-nums">{action.label}</span>
     </div>
+    </div>
+    {/key}
   </div>
 {/if}
+
+<style>
+  .pulse { animation: feedback-pulse 850ms ease-out both; }
+  .ripple { animation: feedback-ripple 650ms ease-out both; }
+  .symbol { animation: feedback-direction 400ms ease-out both; }
+  @keyframes feedback-pulse {
+    0% { opacity: 0; transform: scale(0.85); }
+    15%, 65% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.06); }
+  }
+  @keyframes feedback-ripple {
+    from { opacity: 0.7; transform: scale(0.8); }
+    to { opacity: 0; transform: scale(1.35); }
+  }
+  @keyframes feedback-direction {
+    from { transform: translateX(calc(var(--travel) * -1)); }
+    to { transform: translateX(var(--travel)); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pulse, .ripple, .symbol { animation: none; }
+    .ripple { display: none; }
+  }
+</style>

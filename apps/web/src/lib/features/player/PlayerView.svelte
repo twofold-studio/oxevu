@@ -68,12 +68,13 @@
   let saveFailed = $state(false);
   let subtitlesOpen = $state(false);
   let deliveryOpen = $state(false);
-  let feedback = $state<{ kind: "back" | "forward" | "volume" | "mute"; label: string } | null>(null);
+  let feedback = $state<{ id: number; kind: "back" | "forward" | "volume" | "mute"; label: string } | null>(null);
+  let feedbackId = 0;
   let feedbackTimer: ReturnType<typeof setTimeout>;
   onMount(() => () => clearTimeout(feedbackTimer));
 
   function announce(kind: "back" | "forward" | "volume" | "mute", label: string) {
-    feedback = { kind, label };
+    feedback = { id: ++feedbackId, kind, label };
     clearTimeout(feedbackTimer);
     feedbackTimer = setTimeout(() => (feedback = null), 850);
   }

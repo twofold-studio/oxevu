@@ -9,6 +9,9 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Directional seek feedback near the video edges, off-center volume feedback,
+  and per-press pulse/ripple animations with a static reduced-motion alternative.
+
 - Simplified player track to elapsed progress and a uniform merged ready-range
   fill; keyboard focus highlights the thumb. Episode navigation sits beside Play.
 
