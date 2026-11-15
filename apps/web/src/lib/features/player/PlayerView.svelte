@@ -326,7 +326,6 @@
       <div
         class="pointer-events-auto bg-linear-to-t from-black/85 to-transparent px-4 pt-12 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6"
       >
-        {#if item.kind === "episode" && !locked && !onintent}<EpisodeNavigation {item} />{/if}
         <PlayerControls
           {paused}
           {current}
@@ -349,6 +348,9 @@
           onfullscreen={toggleFullscreen}
           onpicture={typeof document !== "undefined" && document.pictureInPictureEnabled ? togglePicture : undefined}
         >
+          {#snippet navigation()}
+            {#if item.kind === "episode" && !locked && !onintent}<EpisodeNavigation {item} />{/if}
+          {/snippet}
           {#snippet extra()}
             <SubtitleMenu subtitles={engine.subtitles} itemId={item.id} canDownload={canTranscode} bind:open={subtitlesOpen} />
             <DeliveryMenu {engine} {canTranscode} bind:open={deliveryOpen} />

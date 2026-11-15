@@ -9,6 +9,9 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Simplified player track to elapsed progress and a uniform merged ready-range
+  fill; keyboard focus highlights the thumb. Episode navigation sits beside Play.
+
 - Shared overlay rules and centered user-management modals. Task dialogs now
   use common widths, viewport gutters and scrolling on desktop and phones.
 

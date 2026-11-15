@@ -15,13 +15,13 @@
   const next = $derived(index >= 0 ? episodes[index + 1] : undefined);
 </script>
 
-<div class="mb-1 flex items-center justify-between gap-3" aria-label="Episode navigation">
-  <Button variant="ghost" size="sm" href={previous ? href.watch(previous.id) : undefined} disabled={!previous}
+<div class="flex items-center" aria-label="Episode navigation">
+  <Button variant="ghost" size="icon-lg" href={previous ? href.watch(previous.id) : undefined} disabled={!previous}
     aria-label="Previous episode" title={previous ? episodeCaption(previous) : "First episode"}>
-    <SkipBackIcon /> <span class="text-xs">Previous episode</span>
+    <SkipBackIcon />
   </Button>
-  <Button variant="ghost" size="sm" href={next ? href.watch(next.id) : undefined} disabled={!next}
+  <Button variant="ghost" size="icon-lg" href={next ? href.watch(next.id) : undefined} disabled={!next}
     aria-label="Next episode" title={next ? episodeCaption(next) : "Last episode"}>
-    <span class="text-xs">Next episode</span> <SkipForwardIcon />
+    <SkipForwardIcon />
   </Button>
 </div>

@@ -25,6 +25,7 @@
     locked = false,
     seekSeconds = 5,
     extra,
+    navigation,
     ontoggle,
     onseek,
     onskip,
@@ -45,6 +46,7 @@
     locked?: boolean;
     seekSeconds?: number;
     extra?: Snippet;
+    navigation?: Snippet;
     ontoggle: () => void;
     onseek: (time: number) => void;
     onskip: (delta: number) => void;
@@ -59,11 +61,12 @@
 
 <div class="flex flex-col gap-2">
   <SeekBar {current} {duration} {bufferedEnd} {readyRanges} {onseek} disabled={locked} />
-  <div class="flex items-center gap-1">
+  <div class="flex flex-wrap items-center gap-1">
     {#if !locked}
       <Button variant="ghost" size="icon-lg" onclick={ontoggle} aria-label={paused ? "Play (k)" : "Pause (k)"}>
         {#if paused}<PlayIcon />{:else}<PauseIcon />{/if}
       </Button>
+      {@render navigation?.()}
       <Button variant="ghost" size="icon-lg" onclick={() => onskip(-seekSeconds)} aria-label={`Back ${seekSeconds} seconds (←)`}>
         <RotateCcwIcon />
       </Button>

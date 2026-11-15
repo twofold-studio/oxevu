@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatClock } from "$lib/media/format";
+  import { mergeReadyRanges } from "$lib/playback/ready-ranges";
 
   // Scrubbing updates a local value and seeks once on release, so dragging
   // doesn't fire a byte-range request for every pixel.
@@ -21,12 +22,13 @@
 
   let scrub = $state<number | null>(null);
   const shown = $derived(scrub ?? current);
+  const merged = $derived(mergeReadyRanges(readyRanges, duration));
   const pct = (value: number) => (duration > 0 ? Math.min(Math.max(value / duration, 0), 1) * 100 : 0);
 </script>
 
 <div class="group/seek relative flex h-5 items-center">
   <div class="pointer-events-none absolute inset-x-0 h-1 overflow-hidden rounded-full bg-white/20 transition-[height] group-hover/seek:h-1.5">
-    {#each readyRanges as range (range)}
+    {#each merged as range (range)}
       <div class="absolute inset-y-0 bg-white/40" style:left="{pct(range.start)}%" style:width="{Math.max(0, pct(range.end) - pct(range.start))}%"></div>
     {/each}
     <div class="absolute inset-y-0 left-0 bg-brand" style:width="{pct(shown)}%"></div>
@@ -83,8 +85,12 @@
     opacity: 1;
   }
   .seek:focus-visible {
-    outline: 2px solid var(--ring);
-    outline-offset: 2px;
-    border-radius: 9999px;
+    outline: none;
+  }
+  .seek:focus-visible::-webkit-slider-thumb {
+    box-shadow: 0 0 0 3px var(--background), 0 0 0 5px var(--ring);
+  }
+  .seek:focus-visible::-moz-range-thumb {
+    box-shadow: 0 0 0 3px var(--background), 0 0 0 5px var(--ring);
   }
 </style>
