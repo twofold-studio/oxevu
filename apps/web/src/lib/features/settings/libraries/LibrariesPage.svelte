@@ -9,7 +9,7 @@
   import type { Library } from "$lib/api/types";
   import { catalog } from "$lib/state/catalog.svelte";
   import ResourceGate from "../ResourceGate.svelte";
-  import SectionHeading from "../SectionHeading.svelte";
+  import SettingsFrame from "../layout/SettingsFrame.svelte";
   import { createResource } from "../resource.svelte";
   import LibraryRow from "./LibraryRow.svelte";
   import LibraryDialog from "./LibraryDialog.svelte";
@@ -49,22 +49,18 @@
   }
 </script>
 
-<section class="flex flex-col gap-4" aria-labelledby="libraries-heading">
-  <SectionHeading
-    id="libraries-heading"
-    icon={FolderOpenIcon}
-    title="Libraries"
-    description="Movie and TV folders Oxevu scans. It only reads them; it never renames, moves or deletes files. Scans run when you start them."
-  >
-    {#snippet action()}
-      {#if libraries.status === "ready"}
-        <Button size="sm" onclick={() => openEditor(null)}>
-          <PlusIcon data-icon="inline-start" />
-          Add library
-        </Button>
-      {/if}
-    {/snippet}
-  </SectionHeading>
+<SettingsFrame
+  page="media/libraries"
+  description="Movie and TV folders Oxevu scans. It only reads them; it never renames, moves or deletes files. Scans run when you start them."
+>
+  {#snippet actions()}
+    {#if libraries.status === "ready" && (libraries.value ?? []).length > 0}
+      <Button size="sm" onclick={() => openEditor(null)}>
+        <PlusIcon data-icon="inline-start" />
+        Add library
+      </Button>
+    {/if}
+  {/snippet}
 
   <ResourceGate status={libraries.status} error={libraries.error} what="libraries" onretry={libraries.load}>
     {#if (libraries.value ?? []).length === 0}
@@ -97,7 +93,7 @@
       </ul>
     {/if}
   </ResourceGate>
-</section>
+</SettingsFrame>
 
 {#key opening}
   <LibraryDialog bind:open={editorOpen} library={editing} onsaved={saved} />

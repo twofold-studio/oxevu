@@ -36,7 +36,7 @@
   </PageHeader>
   {#if error}<p role="alert" class="mb-4 text-sm text-destructive">{error}</p>{/if}
   <ResourceGate status={resource.status} error={resource.error} what="download activity" onretry={resource.load}>
-    {#if resource.value?.downloads.length === 0}<Empty.Root class="border"><Empty.Header><Empty.Media variant="icon"><DownloadIcon /></Empty.Media><Empty.Title>No transfers</Empty.Title><Empty.Description>Find a release under Wanted, or add a torrent directly. Configure storage and indexers in Acquisition settings.</Empty.Description></Empty.Header><Empty.Content><Button variant="outline" href={href.settings("acquisition")}>Acquisition settings</Button></Empty.Content></Empty.Root>
+    {#if resource.value?.downloads.length === 0}<Empty.Root class="border"><Empty.Header><Empty.Media variant="icon"><DownloadIcon /></Empty.Media><Empty.Title>No transfers</Empty.Title><Empty.Description>Find a release under Wanted, or add a torrent directly. Configure storage and indexers in download settings.</Empty.Description></Empty.Header><Empty.Content><Button variant="outline" href={href.settings("acquisition")}>Download settings</Button></Empty.Content></Empty.Root>
     {:else}
       <ul class="divide-y rounded-xl border bg-card">
         {#each resource.value?.downloads ?? [] as job (job.id)}

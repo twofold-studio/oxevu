@@ -1,14 +1,13 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { toast } from "svelte-sonner";
-  import UsersIcon from "@lucide/svelte/icons/users";
   import UserPlusIcon from "@lucide/svelte/icons/user-plus";
   import { Button } from "$lib/components/ui/button";
   import { librariesApi, usersApi } from "$lib/api/endpoints";
   import type { UserSettings } from "$lib/api/admin-types";
   import { session } from "$lib/state/session.svelte";
   import ResourceGate from "../ResourceGate.svelte";
-  import SectionHeading from "../SectionHeading.svelte";
+  import SettingsFrame from "../layout/SettingsFrame.svelte";
   import { createResource } from "../resource.svelte";
   import UserRow from "./UserRow.svelte";
   import UserDialog from "./UserDialog.svelte";
@@ -44,22 +43,18 @@
   }
 </script>
 
-<section class="flex flex-col gap-4" aria-labelledby="users-heading">
-  <SectionHeading
-    id="users-heading"
-    icon={UsersIcon}
-    title="Users"
-    description="Accounts that can sign in, what they may watch, and whether they can use conversion and watch parties."
-  >
-    {#snippet action()}
-      {#if data.status === "ready"}
-        <Button size="sm" onclick={() => openEditor(null)}>
-          <UserPlusIcon data-icon="inline-start" />
-          Add user
-        </Button>
-      {/if}
-    {/snippet}
-  </SectionHeading>
+<SettingsFrame
+  page="people/users"
+  description="Accounts that can sign in, what they may watch, and whether they can use conversion and watch parties. Request permissions are under Request access."
+>
+  {#snippet actions()}
+    {#if data.status === "ready"}
+      <Button size="sm" onclick={() => openEditor(null)}>
+        <UserPlusIcon data-icon="inline-start" />
+        Add user
+      </Button>
+    {/if}
+  {/snippet}
 
   <ResourceGate status={data.status} error={data.error} what="users" onretry={data.load}>
     {#if data.value}
@@ -75,7 +70,7 @@
       </ul>
     {/if}
   </ResourceGate>
-</section>
+</SettingsFrame>
 
 {#key opening}
   {#if data.value}

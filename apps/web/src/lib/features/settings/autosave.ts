@@ -11,6 +11,11 @@ export class Autosave<T> {
     private readonly delay = 500,
   ) {}
 
+  /** An edit is waiting for the debounce or for the current write. */
+  get queued() {
+    return this.pending !== null;
+  }
+
   reset(value: T) {
     this.saved = JSON.stringify(value);
   }

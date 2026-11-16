@@ -1,6 +1,7 @@
 # Integrations
 
-Settings → Integrations is administrator-only. Fields save when editing ends;
+Settings → Media → Metadata (TMDB, OMDb, studio images) and Subtitles
+(OpenSubtitles) are administrator-only. Fields save when editing ends;
 blank secret fields preserve existing credentials. Remove credentials clears them.
 Credentials live in `integrations.json` under the server data directory with mode
 0600. API responses contain configuration flags, never passwords or API keys.

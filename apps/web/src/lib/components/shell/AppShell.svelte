@@ -3,8 +3,14 @@
   import AppHeader from "./AppHeader.svelte";
   import NavRail from "./NavRail.svelte";
   import MobileNav from "./MobileNav.svelte";
+  import SettingsNav from "$lib/features/settings/navigation/SettingsNav.svelte";
+  import { router } from "$lib/state/router.svelte";
+  import { cn } from "$lib/utils";
 
   let { children }: { children: Snippet } = $props();
+
+  // Settings swap the application navigation for their own; leaving restores it.
+  const inSettings = $derived(router.route.name === "settings");
 </script>
 
 <a
@@ -19,10 +25,10 @@
 <div class="flex min-h-dvh flex-col">
   <AppHeader />
   <div class="flex flex-1">
-    <NavRail />
-    <main id="main" tabindex="-1" class="min-w-0 flex-1 pb-20 outline-none md:pb-0">
+    {#if inSettings}<SettingsNav />{:else}<NavRail />{/if}
+    <main id="main" tabindex="-1" class={cn("min-w-0 flex-1 outline-none md:pb-0", !inSettings && "pb-20")}>
       {@render children()}
     </main>
   </div>
-  <MobileNav />
+  {#if !inSettings}<MobileNav />{/if}
 </div>

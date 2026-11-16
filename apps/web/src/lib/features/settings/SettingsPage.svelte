@@ -1,77 +1,68 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { MediaQuery } from "svelte/reactivity";
+  import ArrowLeftIcon from "@lucide/svelte/icons/arrow-left";
+  import ChevronLeftIcon from "@lucide/svelte/icons/chevron-left";
   import Page from "$lib/components/Page.svelte";
-  import PageHeader from "$lib/components/PageHeader.svelte";
-  import { session } from "$lib/state/session.svelte";
-  import { href, type SettingsSection } from "$lib/state/router.svelte";
-  import { settingsSectionsFor } from "$lib/state/access";
   import { cn } from "$lib/utils";
-  import LibrariesSection from "./libraries/LibrariesSection.svelte";
-  import PlaybackSection from "./playback/PlaybackSection.svelte";
-  import UsersSection from "./users/UsersSection.svelte";
-  import AccountSection from "./account/AccountSection.svelte";
-  import IntegrationsSection from "./integrations/IntegrationsSection.svelte";
-  import ResourceGate from "./ResourceGate.svelte";
+  import { session } from "$lib/state/session.svelte";
+  import { href, router } from "$lib/state/router.svelte";
+  import { resolveSettings, type SettingsTarget } from "$lib/state/settings-pages";
+  import SettingsNavList from "./navigation/SettingsNavList.svelte";
+  import SettingsForbidden from "./navigation/SettingsForbidden.svelte";
+  import SettingsPageView from "./navigation/SettingsPageView.svelte";
 
-  let { section }: { section: SettingsSection | null } = $props();
+  let { target }: { target: SettingsTarget } = $props();
 
-  const labels: Record<SettingsSection, string> = {
-    libraries: "Libraries",
-    playback: "Playback",
-    integrations: "Integrations",
-    acquisition: "Acquisition",
-    users: "Users",
-    account: "Account",
-  };
+  // Same breakpoint as the settings aside (Tailwind `md`).
+  const wide = new MediaQuery("min-width: 48rem");
+  const resolution = $derived(resolveSettings(target, session.user));
+  /** Where the URL should point instead, if anywhere. Replacing keeps Back meaningful. */
+  const redirect = $derived(
+    resolution.kind === "redirect"
+      ? resolution.page
+      : resolution.kind === "index" && wide.current
+        ? resolution.first
+        : null,
+  );
 
-  const allowed = $derived(settingsSectionsFor(session.user));
-  const active = $derived(section ?? allowed[0]);
+  // Navigation is the side effect here: it rewrites the URL, then the router
+  // re-parses it into a concrete page.
+  $effect(() => {
+    if (redirect) router.go(href.settings(redirect), true);
+  });
 
   onMount(() => {
+    // Permissions may have changed since sign-in; navigation follows them.
     void session.refresh();
   });
+
+  const mobileLink =
+    "inline-flex h-10 items-center gap-1.5 rounded-lg pr-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none";
 </script>
 
-<Page class="max-w-5xl">
-  <PageHeader title="Settings" description="Server configuration and your account." />
-
-  <nav aria-label="Settings sections" class="mb-6 border-b">
-    <ul class="-mb-px flex gap-1 overflow-x-auto">
-      {#each allowed as key (key)}
-        <li>
-          <a
-            href={href.settings(key)}
-            aria-current={active === key ? "page" : undefined}
-            class={cn(
-              "inline-flex h-10 items-center border-b-2 border-transparent px-3 text-sm text-muted-foreground transition-colors hover:text-foreground",
-              active === key && "border-foreground font-medium text-foreground",
-            )}>{labels[key]}</a
-          >
-        </li>
-      {/each}
-    </ul>
-  </nav>
-
-  {#key active}
-    <div class="animate-rise">
-      {#if !allowed.includes(active)}
-        <!-- Admin-only section opened by a viewer: same explanation as a server 403. -->
-        <ResourceGate status="forbidden" error={null} what={labels[active].toLowerCase()} onretry={() => undefined}>
-          {""}
-        </ResourceGate>
-      {:else if active === "libraries"}
-        <LibrariesSection />
-      {:else if active === "playback"}
-        <PlaybackSection />
-      {:else if active === "integrations"}
-        <IntegrationsSection />
-      {:else if active === "acquisition"}
-        {#await import("$lib/features/acquisition/settings/AcquisitionSection.svelte") then section}<section.default />{/await}
-      {:else if active === "users"}
-        <UsersSection />
-      {:else}
-        <AccountSection />
-      {/if}
+<Page class="max-w-4xl">
+  {#if resolution.kind === "index" && !redirect}
+    <!-- Phones: settings open on this list; each page links back to it. -->
+    <div class="flex flex-col gap-6">
+      <a href={router.returnTo} class={mobileLink}><ArrowLeftIcon class="size-4" />Back to library</a>
+      <h1 class="text-xl font-semibold tracking-tight">Settings</h1>
+      <nav aria-label="Settings">
+        <SettingsNavList variant="list" />
+      </nav>
     </div>
-  {/key}
+  {:else if resolution.kind === "page" || resolution.kind === "forbidden"}
+    <div class="flex flex-col gap-4">
+      <a href={href.settings()} class={cn(mobileLink, "-mt-2 md:hidden")}><ChevronLeftIcon class="size-4" />All settings</a>
+      {#key resolution.page}
+        <div class="animate-rise">
+          {#if resolution.kind === "page"}
+            <SettingsPageView page={resolution.page} />
+          {:else}
+            <SettingsForbidden page={resolution.page} />
+          {/if}
+        </div>
+      {/key}
+    </div>
+  {/if}
 </Page>

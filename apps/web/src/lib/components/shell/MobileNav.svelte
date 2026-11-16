@@ -2,11 +2,12 @@
   import { router } from "$lib/state/router.svelte";
   import { session } from "$lib/state/session.svelte";
   import { cn } from "$lib/utils";
-  import { browseNav, manageNav } from "./nav";
+  import { browseNav } from "./nav";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import EllipsisIcon from "@lucide/svelte/icons/ellipsis";
 
-  const items = $derived([...browseNav(session.user), ...manageNav]);
+  // Settings live in the account menu in the header.
+  const items = $derived(browseNav(session.user));
   const primary = $derived(items.filter((item) => ["Home", "Discover", "Requests", "Activity"].includes(item.label)));
   const more = $derived(items.filter((item) => !primary.includes(item)));
   const moreActive = $derived(more.some((item) => item.active(router.route)));

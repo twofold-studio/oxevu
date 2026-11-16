@@ -77,10 +77,19 @@ For frontend development run the backend with
 `OXEVU_ORIGIN=http://localhost:5173`, then `pnpm dev` in apps/web. The proxy
 forwards `/api` to port 3000. See crates/server/README.md for server configuration.
 
-Settings are available under `#/settings/libraries`, `#/settings/playback`,
-`#/settings/users` and `#/settings/account`. Only administrators manage server
-settings, libraries and users. Existing accounts migrate to administrators.
+Settings open from the account menu at `#/settings/<group>/<page>`, for example
+`#/settings/media/libraries` or `#/settings/playback/resume`. The page catalog,
+legacy aliases (`#/settings/playback`, `#/settings/acquisition`, …) and role
+rules live in `apps/web/src/lib/state/settings-pages.ts`. Only administrators
+manage server settings, libraries and users; delegated indexer managers get
+Sources → Indexers. Existing accounts migrate to administrators.
 Create individual non-admin users with explicit library/playback permissions.
+
+New settings belong on a focused page with at most three related control groups.
+Register its route, label and role in `settings-pages.ts`; use the shared settings
+frame and rows. Keep navigation in the settings sidebar (phone: settings index),
+not nested tabs. For whole-record APIs, use `SettingsDocument` and declare only
+the fields the page owns so edits on another page survive autosave.
 
 The player selects original, remux or H264/AAC HLS delivery. Automatic conversion
 uses NVIDIA encoding when configured, with an optional CPU fallback. Settings
@@ -125,11 +134,11 @@ Season URLs accept `?season=N`; returning from an episode restores that season.
 
 Settings edits save automatically after a short pause. Invalid values are not sent.
 Creating users/libraries, changing passwords and removing libraries remain explicit
-actions. Enable Hardware decoding under Settings → Playback to use CUDA decoding
+actions. Enable Hardware decoding under Settings → Playback → Conversion to use CUDA decoding
 for new converted streams; the player delivery menu reports the actual decoder.
 
 Acquisition is under `#/discover`, `#/requests`, `#/wanted`, `#/activity` and
-`#/settings/acquisition`. See [setup, migration and rollback](acquisition.md).
+the Downloads and Sources settings groups. See [setup, migration and rollback](acquisition.md).
 Keep downloads/imports disabled until storage and title ownership are configured.
 The acquisition test suite uses disposable generated media and loopback peers;
 it does not use the household's indexers or download real releases.

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vite-plus/test";
 import { href, parseRoute } from "./routes";
+import { settingsPageIds } from "./settings-pages";
 
 describe("show routes", () => {
   test("links use the readable slug", () => {
@@ -39,17 +40,32 @@ describe("show routes", () => {
 });
 
 describe("settings and party routes", () => {
-  test("settings sections round-trip", () => {
-    expect(parseRoute(href.settings("users"))).toEqual({ name: "settings", section: "users" });
-    expect(parseRoute(href.settings())).toEqual({ name: "settings", section: null });
+  test("every settings page round-trips", () => {
+    for (const page of settingsPageIds) {
+      expect(href.settings(page)).toBe(`#/settings/${page}`);
+      expect(parseRoute(href.settings(page))).toEqual({ name: "settings", target: page });
+    }
+    expect(parseRoute(href.settings())).toEqual({ name: "settings", target: null });
   });
 
-  test("old library links open the libraries section", () => {
-    expect(parseRoute("#/libraries")).toEqual({ name: "settings", section: "libraries" });
+  test("groups and old tab links parse as aliases", () => {
+    const aliases = ["libraries", "playback", "integrations", "acquisition", "users", "account"];
+    for (const alias of [...aliases, "downloads", "sources"])
+      expect(parseRoute(`#/settings/${alias}`)).toEqual({ name: "settings", target: alias });
+    expect(parseRoute("#/libraries")).toEqual({ name: "settings", target: "libraries" });
+    expect(href.libraries()).toBe("#/settings/media/libraries");
   });
 
-  test("unknown sections are not found", () => {
+  test("unknown or malformed settings paths are not found", () => {
     expect(parseRoute("#/settings/billing")).toEqual({ name: "not-found" });
+    expect(parseRoute("#/settings/playback/billing")).toEqual({ name: "not-found" });
+    expect(parseRoute("#/settings/media/libraries/extra")).toEqual({ name: "not-found" });
+    // A page id is not an alias, and an alias is not a group of a page.
+    expect(parseRoute("#/settings/libraries/media")).toEqual({ name: "not-found" });
+    expect(parseRoute("#/settings/media%2Flibraries")).toEqual({ name: "not-found" });
+    expect(parseRoute("#/settings/%E0%A4")).toEqual({ name: "not-found" });
+    expect(parseRoute("#/settings/constructor")).toEqual({ name: "not-found" });
+    expect(parseRoute("#/libraries/x")).toEqual({ name: "not-found" });
   });
 
   test("party links carry the party id", () => {

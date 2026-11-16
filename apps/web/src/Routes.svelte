@@ -30,7 +30,7 @@
 {:else if route.name === "search"}
   <SearchPage query={route.query} />
 {:else if route.name === "settings"}
-  <SettingsPage section={route.section} />
+  <SettingsPage target={route.target} />
 {:else if route.name === "parties"}
   <PartiesPage />
 {:else if route.name === "discover"}

@@ -2,7 +2,6 @@ import HouseIcon from "@lucide/svelte/icons/house";
 import FilmIcon from "@lucide/svelte/icons/film";
 import TvIcon from "@lucide/svelte/icons/tv";
 import UsersRoundIcon from "@lucide/svelte/icons/users-round";
-import SettingsIcon from "@lucide/svelte/icons/settings";
 import CompassIcon from "@lucide/svelte/icons/compass";
 import InboxIcon from "@lucide/svelte/icons/inbox";
 import ListChecksIcon from "@lucide/svelte/icons/list-checks";
@@ -43,13 +42,6 @@ const parties: NavItem = {
   icon: UsersRoundIcon,
   active: (r) => r.name === "parties" || r.name === "party",
 };
-const settings: NavItem = {
-  label: "Settings",
-  href: href.settings(),
-  icon: SettingsIcon,
-  active: (r) => r.name === "settings",
-};
-
 /** Role-aware hints; the server still authorizes every page's requests. */
 export function browseNav(user: User | null): NavItem[] {
   const items = [home, movies, shows];
@@ -82,5 +74,4 @@ export function browseNav(user: User | null): NavItem[] {
   if (canJoinParties(user)) items.push(parties);
   return items;
 }
-
-export const manageNav: NavItem[] = [settings];
+// Settings are opened from the account menu and bring their own navigation.

@@ -3,6 +3,14 @@
 // a show slug; nothing here knows about the catalog, so links are built from
 // values the caller already has. Kept free of runes so it can be unit tested.
 
+import {
+  isSettingsAlias,
+  isSettingsPage,
+  type SettingsAlias,
+  type SettingsPageId,
+  type SettingsTarget,
+} from "./settings-pages";
+
 export type Route =
   | { name: "home" }
   | { name: "movies" }
@@ -12,7 +20,8 @@ export type Route =
   | { name: "item"; id: string }
   | { name: "watch"; id: string; fromStart: boolean }
   | { name: "search"; query: string }
-  | { name: "settings"; section: SettingsSection | null }
+  /** `target` is a page, an alias that opens the first permitted page, or the index. */
+  | { name: "settings"; target: SettingsTarget }
   | { name: "parties" }
   | { name: "party"; id: string }
   | { name: "discover"; query: string; kind: "movie" | "tv"; page: number }
@@ -22,18 +31,15 @@ export type Route =
   | { name: "activity" }
   | { name: "not-found" };
 
-export const settingsSections = [
-  "libraries",
-  "playback",
-  "integrations",
-  "acquisition",
-  "users",
-  "account",
-] as const;
-export type SettingsSection = (typeof settingsSections)[number];
-
-function isSection(value: string | null): value is SettingsSection {
-  return settingsSections.some((section) => section === value);
+/** Parses `#/settings/<group>/<page>` and the shorter aliases in settings-pages. */
+function parseSettings(parts: string[]): Route {
+  if (parts.length === 1) return { name: "settings", target: null };
+  const decoded = parts.slice(1).map(decode);
+  if (decoded.some((part) => part === null)) return { name: "not-found" };
+  const path = decoded.join("/");
+  if (parts.length === 2 && isSettingsAlias(path)) return { name: "settings", target: path };
+  if (parts.length === 3 && isSettingsPage(path)) return { name: "settings", target: path };
+  return { name: "not-found" };
 }
 
 export const href = {
@@ -47,9 +53,9 @@ export const href = {
   watch: (id: string, fromStart = false) =>
     `#/watch/${encodeURIComponent(id)}${fromStart ? "?start=0" : ""}`,
   search: (query: string) => `#/search?q=${encodeURIComponent(query)}`,
-  /** Without a section the settings page picks the first one the user may open. */
-  settings: (section?: SettingsSection) => `#/settings${section ? `/${section}` : ""}`,
-  libraries: () => "#/settings/libraries",
+  /** Without a page the settings area picks the first one the user may open. */
+  settings: (target?: SettingsPageId | SettingsAlias) => `#/settings${target ? `/${target}` : ""}`,
+  libraries: () => "#/settings/media/libraries",
   parties: () => "#/parties",
   party: (id: string) => `#/parties/${encodeURIComponent(id)}`,
   discover: (query = "", kind: "movie" | "tv" = "movie", page = 1) =>
@@ -96,12 +102,9 @@ export function parseRoute(hash: string): Route {
       return { name: "search", query: query.get("q") ?? "" };
     case "libraries":
       // Links from before the settings area.
-      return { name: "settings", section: "libraries" };
+      return parts.length === 1 ? { name: "settings", target: "libraries" } : { name: "not-found" };
     case "settings":
-      if (parts.length === 1) return { name: "settings", section: null };
-      return parts.length === 2 && isSection(param)
-        ? { name: "settings", section: param }
-        : { name: "not-found" };
+      return parseSettings(parts);
     case "parties":
       if (parts.length === 1) return { name: "parties" };
       return param && parts.length === 2 ? { name: "party", id: param } : { name: "not-found" };

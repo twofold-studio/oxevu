@@ -8,12 +8,13 @@ still be needed for sources that do not expose that protocol themselves.
 
 ## Start here
 
-1. Configure TMDB in **Settings → Integrations**. Discover uses Oxevu's own
+1. Configure TMDB in **Settings → Media → Metadata**. Discover uses Oxevu's own
    credentials, independently of Jellyfin.
 2. Add movie/TV libraries with their root folders. Grant viewers access to the
    destination library; downloading something does not grant permission to play it.
-3. Open **Settings → Acquisition**. Choose a separate download folder and test
-   a Torznab endpoint. Configure acquisition profiles and limits.
+3. Open **Settings → Downloads → Engine and storage** and choose a separate
+   download folder. Add and test a Torznab endpoint under **Sources → Indexers**,
+   then review **Sources → Release profiles** and the other Downloads pages.
 4. Enable downloads. Library imports have a separate switch. Both start off.
 5. Find a title in **Discover**, then request a movie, whole show, existing/future
    episodes, selected seasons or individual episodes. Each requester keeps their
@@ -98,7 +99,7 @@ its permissions are 0600. Protect the whole data directory and backups.
 
 ## Migrate alongside the old services
 
-**Settings → Acquisition → Migration** accepts JSON API exports:
+**Settings → Sources → Migration** accepts JSON API exports:
 
 - Radarr `/api/v3/movie` arrays.
 - Sonarr `/api/v3/series` arrays. Records without TMDB IDs require an explicit

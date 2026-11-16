@@ -1,5 +1,6 @@
 import type { Route } from "$lib/state/router.svelte";
 import { href } from "$lib/state/router.svelte";
+import { isSettingsPage, settingsPageLabel } from "$lib/state/settings-pages";
 import type { Item } from "$lib/api/types";
 import { seasonKeyOf, type Show } from "$lib/media/grouping";
 
@@ -45,7 +46,12 @@ export function breadcrumbs(route: Route, catalog: Lookup): Crumb[] {
     case "search":
       return [{ label: "Search" }];
     case "settings":
-      return [{ label: "Settings" }];
+      return route.target && isSettingsPage(route.target)
+        ? [
+            { label: "Settings", href: href.settings() },
+            { label: settingsPageLabel(route.target).page },
+          ]
+        : [{ label: "Settings" }];
     case "parties":
       return [{ label: "Watch parties" }];
     case "discover":

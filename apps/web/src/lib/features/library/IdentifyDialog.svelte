@@ -85,7 +85,7 @@
             <ToggleGroup.Item value="tmdb">TMDB</ToggleGroup.Item>
             <ToggleGroup.Item value="omdb">OMDb</ToggleGroup.Item>
           </ToggleGroup.Root>
-          <Field.Description>Configure provider credentials in <a class="underline" href={href.settings("integrations")}>Settings → Integrations</a>.</Field.Description>
+          <Field.Description>Configure provider credentials in <a class="underline" href={href.settings("media/metadata")}>Settings → Metadata</a>.</Field.Description>
         </Field.Field>
       </Field.Group>
     </form>

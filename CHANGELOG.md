@@ -15,6 +15,18 @@ as available; planned features belong in GOAL.md.
 - Proposed a phased requests, movie/series management and embedded BitTorrent
   replacement plan, with engine/network validation and staged migration gates.
 
+### Changed
+
+- Settings open from the account menu and replace the application rail with a
+  grouped settings navigation (Media, Playback, Downloads, Sources, People, Your
+  account) and Back to library. Each former tab is split into focused,
+  deep-linkable pages such as `#/settings/downloads/network`; old tab links
+  redirect to the first page the user may open. Viewers see only their account,
+  delegated indexer managers see Indexers and their account, and direct links to
+  other pages explain the missing permission. Phones get a settings index page
+  instead of the bottom navigation. Pages editing the same playback or download
+  settings record save only their own fields through one ordered queue.
+
 ### Added
 
 - Series overviews place Continue watching and season covers beside the title

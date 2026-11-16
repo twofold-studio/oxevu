@@ -8,7 +8,7 @@ not yet downloaded to the browser. Native HLS buffering remains browser-managed.
 Converted chunks persist outside media folders in `transcodes/oxevu-cache`
 under the data directory, or beside active scratch under `OXEVU_TRANSCODE_DIR`.
 The default cache limit is 5 GB; administrators can change it or disable reuse
-in Settings → Playback. Old entries are evicted by last access. Active sessions
+in Settings → Playback → Scratch and cache. Old entries are evicted by last access. Active sessions
 retain their own hardlinks, bounded separately by the scratch limit.
 
 Only finalized segments are cached. Source identity, FFmpeg identity, pipeline

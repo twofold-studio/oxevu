@@ -7,7 +7,7 @@
   let { draft = $bindable(), errors }: { draft: Settings; errors: SettingsErrors } = $props();
 </script>
 
-<Field.Group class="grid gap-6 sm:grid-cols-2">
+<Field.Group>
   <NumberField
     id="resume-min"
     label="Minimum resume percentage"
