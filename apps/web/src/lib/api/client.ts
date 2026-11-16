@@ -37,6 +37,7 @@ interface RequestOptions {
   /** Auth endpoints report bad credentials as 401 without ending a session. */
   ignoreUnauthorized?: boolean;
   headers?: Record<string, string>;
+  signal?: AbortSignal;
 }
 
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -51,8 +52,10 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
       keepalive,
       headers,
       body: body === undefined ? undefined : JSON.stringify(body),
+      signal: options.signal,
     });
-  } catch {
+  } catch (error) {
+    if (options.signal?.aborted) throw error;
     throw new ApiError(0, "Oxevu server is unreachable. Check that it is running.");
   }
 

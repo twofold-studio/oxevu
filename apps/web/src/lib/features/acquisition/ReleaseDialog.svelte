@@ -1,53 +1,78 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import DownloadIcon from "@lucide/svelte/icons/download";
+  import { onMount, onDestroy } from "svelte";
   import * as Dialog from "$lib/components/ui/dialog";
   import * as Field from "$lib/components/ui/field";
   import * as Select from "$lib/components/ui/select";
   import { Button } from "$lib/components/ui/button";
-  import { Checkbox } from "$lib/components/ui/checkbox";
-  import { Badge } from "$lib/components/ui/badge";
-  import { Spinner } from "$lib/components/ui/spinner";
+  import { Skeleton } from "$lib/components/ui/skeleton";
   import { acquisitionApi } from "$lib/api/acquisition";
-  import type { DiscoverTitle, ProfileRecord, Release } from "$lib/api/acquisition-types";
+  import type { DiscoverTitle, ProfileRecord, ReleaseSource } from "$lib/api/acquisition-types";
   import { errorMessage } from "$lib/api/client";
-  import { bytes } from "./format";
   import { href } from "$lib/state/router.svelte";
+  import { ReleaseSearch } from "./release-search.svelte";
+  import ReleaseSearchStatus from "./ReleaseSearchStatus.svelte";
+  import IndexerStatusList from "./IndexerStatusList.svelte";
+  import ReleaseRow from "./ReleaseRow.svelte";
+
   let { open = $bindable(), title, season, episode, profileId = "default" }: { open: boolean; title: DiscoverTitle; season?: number; episode?: number; profileId?: string } = $props();
-  let releases = $state<Release[]>([]);let profiles = $state<ProfileRecord[]>([]);let profile = $state("default");
-  let loading = $state(false);let pending = $state<string | null>(null);let error = $state<string | null>(null);let warnings = $state<string[]>([]);let selected = $state<string | null>(null);let override = $state(false);let queued = $state(false);
-  const options = $derived(profiles.map((p) => ({ value: p.id, label: p.profile.name })));
-  onMount(async () => { profile = profileId; try { profiles = (await acquisitionApi.profiles()).profiles; } catch (e) { error = errorMessage(e); } });
-  async function search() {
-    loading = true;error = null;selected = null;override = false;
-    try { const result = await acquisitionApi.releases(title.id, { season, episode, profile_id: profile }); releases = result.releases; warnings = result.errors.map((e) => e.error); }
-    catch (e) { error = errorMessage(e); } finally { loading = false; }
-  }
-  async function download(release: Release) {
-    pending = release.id;error = null;
-    try { await acquisitionApi.download({ release_id: release.id, profile_id: profile, override_profile: override, only_wanted: false }); queued = true; }
-    catch (e) { error = errorMessage(e); } finally { pending = null; }
-  }
+  let profiles = $state<ProfileRecord[]>([]);
+  let sources = $state<ReleaseSource[]>([]);
+  // svelte-ignore state_referenced_locally
+  let profile = $state(profileId);
+  let loadError = $state<string | null>(null);
+  let loadingOptions = $state(true);
+  // svelte-ignore state_referenced_locally
+  const searcher = new ReleaseSearch((profile, signal) => acquisitionApi.releases(title.id, { season, episode, profile_id: profile }, signal));
+  const searchState = $derived(searcher.state);
+  const completed = $derived(searchState.kind === "results" || searchState.kind === "empty" ? searchState : searchState.kind === "searching" ? searchState.previous : null);
+  const result = $derived(completed?.result ?? (searchState.kind === "failed" ? searchState.result : undefined));
+  const stale = $derived(Boolean(completed && completed.profile !== profile));
+  const busy = $derived(searchState.kind === "searching");
+  const accepted = $derived(result?.releases.filter((release) => release.accepted).length ?? 0);
+  const options = $derived(profiles.map((record) => ({ value: record.id, label: record.profile.name })));
+
+  onMount(() => {
+    void Promise.all([acquisitionApi.profiles(), acquisitionApi.releaseSources()])
+      .then(([p,s]) => { profiles = p.profiles; sources = s.sources; })
+      .catch((error) => loadError = errorMessage(error)).finally(() => loadingOptions = false);
+  });
+  onDestroy(() => searcher.cancel());
+  function search() { if (!busy) void searcher.search(profile, sources.length); }
+  function changeOpen(value: boolean) { if (!value) searcher.cancel(); open = value; }
 </script>
-<Dialog.Root bind:open><Dialog.Content size="wide">
-  <Dialog.Header><Dialog.Title>Find a release · {title.title}</Dialog.Title><Dialog.Description>Review the source, size and profile checks before starting a transfer. Automatic upgrades are off.</Dialog.Description></Dialog.Header>
-  {#if queued}<p role="status">Download queued.</p><Dialog.Footer><Button href={href.activity()}>Open activity</Button></Dialog.Footer>
-  {:else}
-    <div class="flex flex-wrap items-end gap-3"><Field.Field class="min-w-40 flex-1"><Field.Label for="release-profile">Acquisition profile</Field.Label><Select.Root type="single" items={options} bind:value={profile}><Select.Trigger id="release-profile" class="w-full"><Select.Value placeholder="Choose profile" /></Select.Trigger><Select.Content><Select.Group>{#each options as option (option.value)}<Select.Item value={option.value}>{option.label}</Select.Item>{/each}</Select.Group></Select.Content></Select.Root></Field.Field><Button onclick={search} disabled={loading}>{#if loading}<Spinner data-icon="inline-start" />{/if}Search indexers</Button></div>
-    {#if error}<p role="alert" class="text-sm text-destructive">{error}</p>{/if}
-    {#each warnings as warning, index (`${index}:${warning}`)}<p class="text-sm text-muted-foreground">{warning}</p>{/each}
-    {#if releases.length}
-      <ul class="divide-y rounded-lg border">
-        {#each releases as release (release.id)}
-          <li class="flex flex-col gap-2 p-3">
-            <div class="flex flex-wrap items-start justify-between gap-3"><div class="min-w-0 flex-1"><p class="text-sm font-medium break-words">{release.title}</p><p class="mt-1 text-xs text-muted-foreground">{release.indexer_name} · {bytes(release.size)} · {release.seeders ?? "Unknown"} seeders · {release.height ? `${release.height}p` : "Resolution unknown"} · {release.codec ?? "Codec unknown"}</p></div><Badge variant={release.accepted ? "secondary" : "outline"}>{release.accepted ? "Meets profile" : "Review"}</Badge></div>
-            {#if !release.identity_match}<p class="text-xs text-muted-foreground">Title identity needs your review.</p>{/if}
-            {#if release.reasons.length}<p class="text-xs text-muted-foreground">{release.reasons.join(" · ")}</p>{/if}
-            {#if selected === release.id && !release.accepted}<Field.Field orientation="horizontal"><Checkbox id="release-override" bind:checked={override} /><Field.Label for="release-override">Use this release despite the profile warnings</Field.Label></Field.Field>{/if}
-            <div class="flex justify-end"><Button size="sm" variant="outline" disabled={pending !== null} onclick={() => { if (!release.accepted && selected !== release.id) { selected = release.id; override = false; } else if (release.accepted || override) void download(release); }}><DownloadIcon data-icon="inline-start" />{pending === release.id ? "Queuing…" : selected === release.id && !release.accepted ? "Confirm download" : "Download"}</Button></div>
-          </li>
-        {/each}
-      </ul>
-    {:else if !loading}<p class="text-sm text-muted-foreground">Choose a profile, then search your configured indexers.</p>{/if}
+
+<Dialog.Root {open} onOpenChange={changeOpen}><Dialog.Content size="wide">
+  <Dialog.Header><Dialog.Title>Find a release · {title.title}</Dialog.Title><Dialog.Description>Review source, size and profile checks before starting a transfer. Automatic upgrades are off.</Dialog.Description></Dialog.Header>
+  <div class="flex flex-wrap items-end gap-3">
+    <Field.Field class="min-w-40 flex-1"><Field.Label for="release-profile">Acquisition profile</Field.Label>
+      <Select.Root type="single" items={options} bind:value={profile} disabled={busy}><Select.Trigger id="release-profile" class="w-full"><Select.Value placeholder="Choose profile" /></Select.Trigger><Select.Content><Select.Group>{#each options as option (option.value)}<Select.Item value={option.value}>{option.label}</Select.Item>{/each}</Select.Group></Select.Content></Select.Root>
+    </Field.Field>
+    <Button onclick={search} disabled={busy || !profiles.length || !sources.length}>Search indexers</Button>
+  </div>
+  {#if loadError}<p role="alert" class="text-sm text-destructive">{loadError}</p>{/if}
+  {#if !loadingOptions && !loadError && sources.length === 0}<p class="text-sm text-muted-foreground">No enabled indexers. <a class="underline" href={href.settings("sources/indexers")}>Configure sources</a> before searching.</p>{/if}
+  <ReleaseSearchStatus {searchState} oncancel={() => searcher.cancel()} onretry={search} />
+  {#if result}<IndexerStatusList {result} disabled={busy} onretry={search} />{/if}
+  {#if stale}<p role="status" class="text-sm text-muted-foreground">Profile changed — search again.</p>{/if}
+  {#if busy && !result}
+    <div class="flex flex-col gap-3" aria-hidden="true">{#each [1,2,3] as row (row)}<Skeleton class="h-24 w-full rounded-lg" />{/each}</div>
+  {:else if searchState.kind === "idle"}
+    <p class="text-sm text-muted-foreground">Choose a profile, then search your configured indexers.</p>
+  {/if}
+  {#if completed && !busy && accepted === 0}
+    <div class="flex flex-col gap-3 rounded-lg border p-4">
+      <p class="text-sm">{result?.releases.length ? "No releases matched this profile. Review the alternatives below." : "No releases found for this title and profile."}</p>
+      <div class="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onclick={search}>Search again</Button>
+        <Button size="sm" variant="ghost" onclick={() => document.getElementById("release-profile")?.focus()}>Change profile</Button>
+        <Button size="sm" variant="ghost" href={href.settings("sources/indexers")}>Open indexer settings</Button>
+      </div>
+    </div>
+  {/if}
+  {#if result?.releases.length}
+    <p class="text-xs text-muted-foreground">{accepted} meet profile · {result.releases.length - accepted} need review</p>
+    <ul class={["divide-y rounded-lg border transition-opacity", (busy || stale) && "opacity-50"]} aria-busy={busy}>
+      {#each result.releases as release (release.id)}<ReleaseRow {release} {profile} disabled={busy || stale} />{/each}
+    </ul>
   {/if}
 </Dialog.Content></Dialog.Root>

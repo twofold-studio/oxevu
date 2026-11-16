@@ -114,6 +114,30 @@ export interface Release {
   reasons: string[];
   identity_match: boolean;
   blocked?: boolean;
+  infohash?: string;
+  also_on?: ReleaseSource[];
+}
+export interface ReleaseSource {
+  indexer_id: string;
+  indexer_name: string;
+  hits?: number;
+}
+export interface IndexerError extends ReleaseSource {
+  error: string;
+  retryable: boolean;
+}
+export interface Searched {
+  indexers: number;
+  failed: number;
+  took_ms: number;
+  hits: number;
+  sources: ReleaseSource[];
+}
+export interface ReleaseResults {
+  releases: Release[];
+  errors: IndexerError[];
+  searched: Searched;
+  offset: number;
 }
 export interface WantedUnit {
   season: number | null;
@@ -172,6 +196,10 @@ export interface Download {
   created_at: number;
   import_warning?: string | null;
   queue_reason?: string | null;
+  release_title?: string | null;
+  indexer_name?: string | null;
+  release_size?: number | null;
+  imported?: boolean;
 }
 export interface DownloadInput {
   paused?: boolean;

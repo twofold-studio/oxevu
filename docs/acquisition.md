@@ -32,6 +32,24 @@ mounts, failed-release blocks and backoff. Catalog units are reserved atomically
 so overlapping requests/packs share demand while seeding an old episode does not
 block acquiring the next one. There are no automatic quality upgrades.
 
+## Release search and transfers
+
+Release search keeps previous results visible during a refresh and can be
+cancelled. Source chips show hit counts or named failures; expanding a failed
+source shows its error and retry guidance. The summary distinguishes unique
+torrents from source hits. Matching infohashes are grouped with “Also on”.
+Changing profile requires another search before downloading from the old list.
+Review releases show their reasons and require explicit confirmation.
+
+Download outcomes stay beside each release, including immediate worker failures.
+Activity keeps the release name, indexer, job ID and import status. Completed
+transfers stay outside the library while automatic imports are off; administrators
+can review an import explicitly. Download completion alone is not library availability.
+
+Profile minimum/maximum sizes display in GiB; the API retains its historical
+`*_size_mb` names, measured in MiB. Zero maximum means unlimited and does not
+disable the minimum. No existing profile is changed by this upgrade.
+
 ## Storage and writes
 
 Default downloads are `<data>/acquisition/downloads/<job-id>/`. Keep this tree

@@ -17,6 +17,13 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Release search has cancellation, elapsed time, partial/empty/failure states,
+  profile-change warnings, stable result keys and inline download outcomes.
+- Activity identifies transfers by release and indexer, shows ETA and job IDs,
+  explains provider errors and makes disabled/pending imports visible.
+- Profile size controls display GiB, including an unlimited maximum; existing
+  profile values and the built-in default are preserved.
+
 - Release search preserves XML entities and full magnet IDs, groups the same
   torrent across sources, and reports named source failures with retry guidance.
   Full indexer pages return bounded results instead of failing.

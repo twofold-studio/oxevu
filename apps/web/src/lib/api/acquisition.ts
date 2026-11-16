@@ -46,14 +46,24 @@ export const acquisitionApi = {
     }),
   releases: (
     id: string,
-    options: { season?: number; episode?: number; profile_id?: string; offset?: number },
+    options: {
+      season?: number;
+      episode?: number;
+      profile_id?: string;
+      offset?: number;
+      indexer_ids?: string[];
+    },
+    signal?: AbortSignal,
   ) =>
-    post<{ releases: A.Release[]; errors: { indexer_id: string; error: string }[] }>(
-      `/titles/${path(id)}/releases`,
-      options,
-    ),
-  downloads: () => get<{ downloads: A.Download[] }>("/downloads"),
+    request<A.ReleaseResults>(`/acquisition/titles/${path(id)}/releases`, {
+      method: "POST",
+      body: options,
+      signal,
+    }),
+  releaseSources: () => get<{ sources: A.ReleaseSource[] }>("/release-sources"),
+  downloads: () => get<{ downloads: A.Download[]; import_enabled: boolean }>("/downloads"),
   download: (input: A.DownloadInput) => post<{ download: A.Download }>("/downloads", input),
+  downloadStatus: (id: string) => get<{ download: A.Download }>(`/downloads/${path(id)}`),
   control: (id: string, action: string, selected_files?: number[]) =>
     put<{ download: A.Download }>(`/downloads/${path(id)}`, { action, selected_files }),
   previewImport: (id: string, body: A.ImportInput) =>

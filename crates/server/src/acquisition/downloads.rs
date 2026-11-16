@@ -180,12 +180,20 @@ pub(super) async fn list(State(a): State<App>, h: HeaderMap) -> Result<Json<Valu
     ))
 }
 pub(super) async fn view(a: &App, id: &str) -> Result<Value> {
-    let r=sqlx::query("SELECT d.*,t.data title FROM acquisition_downloads d LEFT JOIN acquisition_titles t ON t.id=d.title_id WHERE d.id=?").bind(id).fetch_optional(&a.pool).await.map_err(db)?.ok_or_else(||bad("unknown download"))?;
+    let r=sqlx::query("SELECT d.*,t.data title,releases.data cached_release FROM acquisition_downloads d LEFT JOIN acquisition_titles t ON t.id=d.title_id LEFT JOIN acquisition_releases releases ON releases.id=d.release_id WHERE d.id=?").bind(id).fetch_optional(&a.pool).await.map_err(db)?.ok_or_else(||bad("unknown download"))?;
     let data = decode(r.get("data"))?;
+    let release = if data["release"].is_object() {
+        data["release"].clone()
+    } else {
+        r.get::<Option<String>, _>("cached_release")
+            .map(|raw| decode(&raw))
+            .transpose()?
+            .unwrap_or(Value::Null)
+    };
     Ok(
         json!({"id":id,"title_id":r.get::<Option<String>,_>("title_id"),"title":r.get::<Option<String>,_>("title").map(|s|decode(&s)).transpose()?,
         "infohash":r.get::<Option<String>,_>("infohash"),"state":r.get::<String,_>("state"),"error":r.get::<Option<String>,_>("error"),
-        "release_title":data["release"]["title"],"indexer_name":data["release"]["indexer_name"],"release_size":data["release"]["size"],
+        "release_title":release["title"],"indexer_name":release["indexer_name"],"release_size":release["size"],
         "imported":sqlx::query_scalar::<_,bool>("SELECT EXISTS(SELECT 1 FROM acquisition_imports WHERE download_id=? AND state='scanned')").bind(id).fetch_one(&a.pool).await.map_err(db)?,
         "stats":data["stats"],"files":data["files"],"import_warning":data["import_warning"],"queue_reason":data["queue_reason"],"selected_files":data["input"]["selected_files"],"seed_seconds":r.get::<i64,_>("seed_seconds"),"created_at":r.get::<i64,_>("created_at")}),
     )

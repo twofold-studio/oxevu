@@ -25,6 +25,7 @@ Use these terms consistently in code, API fields and documentation.
 | Manager | Movie/series module that tracks wanted media and coordinates acquisition and import. |
 | Indexer | Configured source/API searched for downloadable releases. |
 | Media release | Download candidate returned by an indexer. Distinct from an Oxevu software release. |
+| Source hit | One indexer's release result. Several hits may identify the same torrent and appear as one result with additional sources. |
 | Download job | Durable transfer intent with engine statistics, selected files and independent import/seeding state. |
 | Wanted unit | Movie or numbered episode selected by monitoring or approved requests, independently of whether a file exists. |
 | Acquisition profile | Release acceptance rules for resolution, size, codecs, source, language, HDR and seeders; separate from player quality. |

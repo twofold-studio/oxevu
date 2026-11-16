@@ -88,5 +88,14 @@ async fn redirected_magnet_downloads_legal_fixture_and_snapshots_release_identit
     let listed = downloads::list(State(a.clone()), admin).await.unwrap().0;
     assert_eq!(listed["import_enabled"], false);
     assert_eq!(view["imported"], false);
+    // Pre-upgrade jobs have no snapshot; their retained release row supplies labels.
+    sqlx::query("UPDATE acquisition_downloads SET data=json_remove(data,'$.release') WHERE id=?")
+        .bind(&id)
+        .execute(&a.pool)
+        .await
+        .unwrap();
+    let legacy = downloads::view(a, &id).await.unwrap();
+    assert_eq!(legacy["release_title"], raw[0]["title"]);
+    assert_eq!(legacy["indexer_name"], "Redirect fixture");
     f.close().await;
 }

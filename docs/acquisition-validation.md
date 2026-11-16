@@ -52,3 +52,38 @@ Broader tracker compatibility, sustained transfer/hash/conversion contention, IP
 private tracker rules and real-device checks remain production acceptance work.
 The prototype harness has separate TCP/v1 evidence in [torrent-engine.md](torrent-engine.md).
 Downloads and imports remain opt-in. Existing applications are not retired.
+
+## Release search follow-up · 2026-11-16
+
+The regression search returned 115 distinct release IDs and 115 cache rows,
+with identical results on a repeat. XML tests cover split text/entity fragments,
+numeric references, CDATA, invalid entities, accumulated field limits and full
+100-item pages. Cross-source infohash matches retain an additional-source list.
+
+A generated legal torrent followed HTTP 301 → magnet, discovered metadata from
+a loopback peer and reached seeding. The job retained its release label, source,
+size and cached magnet. Legacy jobs can read labels from their retained release
+row. Redirect tests reject external targets and loops, accept one same-origin
+HTTP redirect, identify HTTP 429, and stop a deliberately stalled request after
+30.01 seconds. No public release was downloaded for this review.
+
+Browser checks used disposable accounts/data and four loopback sources at
+1280×720 and 390px wide. Observed: 115 unique torrents from 116 hits, one named
+rate-limit failure, additional sources, cancellation restoring the prior result,
+separate empty/all-failed screens, and no duplicate-key error. Changing profile
+disabled old results. A 30 GiB release displayed the temporary profile's 10 GiB
+limit and required confirmation. An existing failed job showed its error rather
+than a queue-success message. Activity distinguished two releases of one movie
+and stated that completed files were not imported because imports were off.
+
+The temporary profile saved zero as unlimited through the UI; the default stayed
+at 20480 MiB. Browser views had no sideways overflow. Unit checks covered search
+cancellation, timeout, duplicate IDs, queue errors and ETA. Web checks passed all
+143 tests plus type, lint, format and build. The full Rust suite passed 69 tests
+with four existing hardware checks skipped; strict Clippy and format checks passed.
+The extended timeout and legacy-label regressions were also run separately.
+
+Existing cached releases and job references are preserved; there is no one-off
+cache-deletion migration. Torrent workers, seeding and import publication rules
+remain unchanged. Real-provider availability and long-running transfers still
+depend on those services; the browser review used local fixtures.

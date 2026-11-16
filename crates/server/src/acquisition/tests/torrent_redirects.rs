@@ -37,7 +37,14 @@ async fn magnet_and_one_same_origin_redirect_work_without_following_external_loc
                     (StatusCode::PERMANENT_REDIRECT, [("location", "/loop")]).into_response()
                 }),
             )
-            .route("/rate", get(|| async { StatusCode::TOO_MANY_REQUESTS }));
+            .route("/rate", get(|| async { StatusCode::TOO_MANY_REQUESTS }))
+            .route(
+                "/slow",
+                get(|| async {
+                    tokio::time::sleep(std::time::Duration::from_secs(60)).await;
+                    "late"
+                }),
+            );
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let endpoint = format!("http://{}/api", listener.local_addr().unwrap());
     let task = tokio::spawn(async move {
@@ -67,6 +74,13 @@ async fn magnet_and_one_same_origin_redirect_work_without_following_external_loc
         .unwrap();
     assert!(error.1.0["error"].as_str().unwrap().contains("429"));
     assert_eq!(error.1.0["retryable"], true);
+    let started = std::time::Instant::now();
+    let error = indexers::fetch_torrent(&indexer, "/slow")
+        .await
+        .err()
+        .unwrap();
+    assert!(error.1.0["error"].as_str().unwrap().contains("timed out"));
+    assert!((29.0..35.0).contains(&started.elapsed().as_secs_f64()));
     task.abort();
     let _ = task.await;
 }

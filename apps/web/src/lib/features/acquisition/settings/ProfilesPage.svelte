@@ -30,7 +30,7 @@
   function summary(profile: AcquisitionProfile) {
     const parts = [
       `${profile.min_height}–${profile.max_height}p`,
-      `up to ${Math.round(profile.max_size_mb / 1024)} GiB`,
+      profile.max_size_mb === 0 ? "No maximum size" : `up to ${Number((profile.max_size_mb / 1024).toFixed(2))} GiB`,
       `${profile.min_seeders}+ seeders`,
     ];
     if (profile.codecs.length) parts.push(profile.codecs.join("/"));
