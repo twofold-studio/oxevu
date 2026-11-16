@@ -127,6 +127,7 @@ pub(crate) async fn scan_library(a: App, id: String) -> Result<Json<Value>> {
                 .and_then(|t| t.iter().find(|v| v["codec_type"] == "video"))
                 .and_then(|v| v["color_transfer"].as_str());
             data["color_transfer"] = json!(transfer);
+            media_probe::attach_facts(&mut data, &meta);
             data["hdr"] = json!(tracks.is_some_and(|t| t.iter().any(|v| {
                 matches!(
                     v["color_transfer"].as_str(),

@@ -17,6 +17,12 @@ API base `/api/v1`. Public health GET `/healthz`.
 - PUT `/items/{id}/progress` body `{position_seconds:number,completed:boolean}` -> 204
 
 Item fields: `id:string,library_id:string,title:string,kind:"movie"|"episode",show_title:string|null,season_number:number|null,episode_number:number|null,duration_seconds:number|null,container:string|null,video_codec:string|null,audio_codec:string|null,position_seconds:number,completed:boolean`.
+
+Scans also populate optional nullable technical fields: `size_bytes`, `bitrate`
+(overall bits/second), `video_width`, `video_height`, `video_bitrate`,
+`audio_bitrate`, `audio_channels` and `audio_channel_layout`. Older records omit
+them until rescanned; unavailable probe values are null. No source paths or
+unfiltered probe tags are exposed by these fields.
 List items are playable movies/episodes. Frontend groups episodes into shows/seasons.
 No artwork provider this phase; use honest artwork-free presentation, never fake catalog data.
 No transcode this phase; clearly report browser playback failures and original delivery.

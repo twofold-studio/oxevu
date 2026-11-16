@@ -74,6 +74,14 @@ export interface Item extends MetadataFields {
   container: string | null;
   video_codec: string | null;
   audio_codec: string | null;
+  size_bytes?: number | null;
+  bitrate?: number | null;
+  video_width?: number | null;
+  video_height?: number | null;
+  video_bitrate?: number | null;
+  audio_bitrate?: number | null;
+  audio_channels?: number | null;
+  audio_channel_layout?: string | null;
   position_seconds: number;
   completed: boolean;
   /**

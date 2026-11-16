@@ -42,6 +42,12 @@ Read [goal](GOAL.md), [architecture](docs/architecture.md),
 
 ## Checks
 
+For routine fixes, the owner prefers targeted checks over full validation suites,
+and no post-deployment live UI/playback checks unless requested. Run the minimum
+compilation or focused checks warranted by the change, confirm service/deployment
+status, and report what actually ran. Track elapsed time from inspection through
+deployment confirmation, with diagnosis, implementation, checks and delivery phases.
+
 Enter `nix develop` or use direnv. Run checks for what changed:
 
 ```sh

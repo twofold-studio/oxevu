@@ -84,10 +84,15 @@ pub(super) fn summary(kind: &str, id: u64, data: &Value) -> Result<Value> {
         .and_then(|path| path.strip_prefix('/'))
         .filter(|path| valid_image(path))
         .map(|path| format!("/api/v1/acquisition/artwork/{path}"));
+    let backdrop = data["backdrop_path"]
+        .as_str()
+        .and_then(|path| path.strip_prefix('/'))
+        .filter(|path| valid_image(path))
+        .map(|path| format!("/api/v1/acquisition/artwork/{path}"));
     Ok(
         json!({"id":key,"provider":"tmdb","provider_id":id,"kind":kind,"title":name,
         "year":date.as_str().and_then(|s|s.get(..4)),"overview":data["overview"],
-        "poster_url":poster,"rating":data["vote_average"],"genres":data["genres"],
+        "poster_url":poster,"backdrop_url":backdrop,"rating":data["vote_average"],"genres":data["genres"],
         "release_date":date,"seasons":data["seasons"],"status":data["status"]}),
     )
 }
@@ -226,7 +231,7 @@ pub(super) async fn availability(a: &App, title: &Value, local: &[Value]) -> Res
     )
 }
 
-fn valid_image(file: &str) -> bool {
+pub(super) fn valid_image(file: &str) -> bool {
     file.len() <= 150
         && file.ends_with(".jpg")
         && file

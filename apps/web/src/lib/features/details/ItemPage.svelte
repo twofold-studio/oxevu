@@ -171,9 +171,7 @@
 
         <MetadataDetails {item} />
 
-        <div class="max-w-2xl">
-          <PlaybackNotice {item} />
-        </div>
+        <PlaybackNotice {item} />
 
         {#if error && !error.missing}
           <Alert.Root>

@@ -7,6 +7,18 @@ as available; planned features belong in GOAL.md.
 
 ## Unreleased
 
+### Fixed
+
+- Imported titles keep their catalog cover, genres, provider link and rating. Existing imports receive missing cover metadata without replacing owner matches.
+
+### Added
+
+- Item pages tuck file size, format, resolution, bitrate, codecs and audio channels into a collapsed Stats for nerds section. New scans record these technical facts; older items can be rescanned.
+
+### Removed
+
+- Routine browser codec/conversion notices from the item detail page.
+
 ### Decisions
 
 - Direct torrent traffic is permitted; a VPN is optional. Pin librqbit 9.1.0 for
