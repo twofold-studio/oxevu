@@ -17,6 +17,15 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Release search preserves XML entities and full magnet IDs, groups the same
+  torrent across sources, and reports named source failures with retry guidance.
+  Full indexer pages return bounded results instead of failing.
+- Torrent retrieval accepts validated magnet redirects and one same-origin HTTP
+  redirect, retains host restrictions, and caches resolved magnets for retry.
+- Download responses retain release labels and expose import status. Profile
+  evaluation supports an unlimited maximum and reports actual sizes and limits;
+  existing profiles and the built-in default are preserved.
+
 - Watch parties can start as empty lobbies and stay joined while browsing.
   Any member can start a title, pause or seek for everyone. Volume, subtitles and
   stream quality remain personal; Back leaves the player without leaving the party.

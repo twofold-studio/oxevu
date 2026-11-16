@@ -17,9 +17,11 @@ are separate from library/playback access.
 | `PUT /requests/{id}` | Owner cancellation or approver decision `{status,note}` |
 | `GET /monitored` | Request/download managers; wanted units, dates, availability and destination rules |
 | `PUT /monitored/{title-id}` | Admin; monitor scope, destination, profile and automation |
-| `POST /titles/{title-id}/releases` | Download manager; `{season?,episode?,profile_id?,offset?}` |
+| `GET /release-sources` | Download manager; enabled source IDs/names, without configuration or secrets |
+| `POST /titles/{title-id}/releases` | Download manager; `{season?,episode?,profile_id?,offset?,indexer_ids?}` |
 | `GET /downloads` | Download manager; durable queue, sanitized statistics/files/errors |
 | `POST /downloads` | Download manager; one `release_id`, `magnet`, or `torrent_base64` |
+| `GET /downloads/{id}` | Download manager; current job outcome, including asynchronous startup failure |
 | `PUT /downloads/{id}` | Download manager; `{action,selected_files?}` |
 | `POST /downloads/{id}/imports/preview` | Download manager; inspect mapped destinations |
 | `POST /downloads/{id}/imports` | Admin; confirm exact import plan token |
@@ -57,6 +59,22 @@ Actions are `pause`, `resume`, `retry`, `select`, `remove`. Selection pauses the
 job; resume is explicit. Retry initializes/rechecks the torrent afresh. Remove
 detaches the job without deleting data. A paused uploaded `.torrent` can adopt
 existing files before it ever contacts peers.
+
+Release search returns `{releases,errors,searched,offset}`. Errors include source
+ID/name and `retryable`. `searched` includes hit count, elapsed milliseconds and
+per-source counts. Each result has a stable per-source ID; matching infohashes
+are grouped with `also_on` source IDs/names. Raw source URLs/credentials stay on
+the server. Existing cached release rows and download references are retained;
+new searches use the corrected identity rules without a one-off cache purge.
+
+Searches use at most 20 sources and three concurrent source HTTP requests.
+Each source search has a 70-second deadline; torrent retrieval has one 30-second
+deadline across semaphore wait and redirects. Torrent retrieval accepts validated
+v1/hybrid magnets or one same-origin HTTP redirect, preserving host restrictions.
+
+Download list responses include `import_enabled`. Jobs expose snapshotted
+`release_title`, `indexer_name`, `release_size`, and whether any file was imported.
+Profile `min_size_mb`/`max_size_mb` remain MiB; zero maximum means unlimited.
 
 Import input contains `library_id`, configured `root`, and `mappings`, for example
 `[{"file_index":0,"episodes":[{"season":1,"episode":1}]}]`. Movie mappings have

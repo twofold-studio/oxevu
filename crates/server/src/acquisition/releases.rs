@@ -1,12 +1,13 @@
 use super::*;
 
-#[derive(Deserialize, Default)]
+#[derive(Clone, Deserialize, Default)]
 #[serde(default, deny_unknown_fields)]
 pub(super) struct Search {
     pub season: Option<u32>,
     pub episode: Option<u32>,
     pub profile_id: Option<String>,
     pub offset: u32,
+    pub indexer_ids: Option<Vec<String>>,
 }
 pub(super) async fn search(
     State(a): State<App>,
@@ -29,24 +30,53 @@ pub(super) async fn search_for(a: &App, id: &str, q: &Search) -> Result<Value> {
     let title = decode(&raw.ok_or_else(|| bad("unknown title"))?)?;
     let profile = profiles::load(a, q.profile_id.as_deref().unwrap_or("default")).await?;
     let ids:Vec<String>=sqlx::query_scalar("SELECT id FROM acquisition_indexers WHERE json_extract(data,'$.enabled')=1 ORDER BY name LIMIT 20").fetch_all(&a.pool).await.map_err(db)?;
+    if q.indexer_ids.as_ref().is_some_and(|selected| {
+        selected.is_empty() || selected.len() > 20 || selected.iter().any(|id| !ids.contains(id))
+    }) {
+        return Err(bad("select enabled indexers"));
+    }
+    let started = std::time::Instant::now();
     let mut releases = Vec::new();
     let mut errors = Vec::new();
+    let mut sources = Vec::new();
+    let mut tasks = tokio::task::JoinSet::new();
     for indexer_id in ids {
+        if q.indexer_ids
+            .as_ref()
+            .is_some_and(|selected| !selected.contains(&indexer_id))
+        {
+            continue;
+        }
         let indexer = indexers::load(a, &indexer_id).await?;
-        match search_indexer(a, &indexer_id, &indexer, &title, q, &profile).await {
+        let (app, title, query, profile) = (a.clone(), title.clone(), q.clone(), profile.clone());
+        tasks.spawn(async move {
+            let result = tokio::time::timeout(
+                std::time::Duration::from_secs(70),
+                search_indexer(&app, &indexer_id, &indexer, &title, &query, &profile),
+            )
+            .await
+            .unwrap_or_else(|_| Err(indexers::failure("indexer search timed out", true)));
+            (indexer_id, indexer.name, result)
+        });
+    }
+    while let Some(result) = tasks.join_next().await {
+        let (indexer_id, indexer_name, result) =
+            result.map_err(|_| bad("indexer search interrupted"))?;
+        let hits = result.as_ref().map_or(0, Vec::len);
+        sources.push(json!({"indexer_id":indexer_id,"indexer_name":indexer_name,"hits":hits}));
+        match result {
             Ok(mut found) => releases.append(&mut found),
-            Err(e) => errors.push(json!({"indexer_id":indexer_id,"error":e.1.0["error"]})),
+            Err(error) => errors.push(json!({"indexer_id":indexer_id,"indexer_name":indexer_name,"error":error.1.0["error"],"retryable":error.1.0["retryable"].as_bool().unwrap_or(false)})),
         }
     }
-    releases.sort_by(|a, b| {
-        b["accepted"]
-            .as_bool()
-            .cmp(&a["accepted"].as_bool())
-            .then_with(|| b["seeders"].as_u64().cmp(&a["seeders"].as_u64()))
-    });
+    sources.sort_by(|a, b| a["indexer_name"].as_str().cmp(&b["indexer_name"].as_str()));
+    let hits = releases.len();
+    let releases = release_identity::group(releases);
     // Releases not associated with jobs expire. Credentials stay server-side.
     sqlx::query("DELETE FROM acquisition_releases WHERE created_at<unixepoch()-604800 AND id NOT IN (SELECT release_id FROM acquisition_downloads WHERE release_id IS NOT NULL)").execute(&a.pool).await.map_err(db)?;
-    Ok(json!({"releases":releases,"errors":errors,"offset":q.offset}))
+    Ok(
+        json!({"releases":releases,"errors":errors,"offset":q.offset,"searched":{"indexers":sources.len(),"failed":errors.len(),"hits":hits,"took_ms":started.elapsed().as_millis(),"sources":sources}}),
+    )
 }
 
 async fn search_indexer(
@@ -153,9 +183,10 @@ pub(super) async fn store_results(
         r["identity_match"] = json!(release_facts::identity_matches(title, &r)?);
         r["indexer_id"] = json!(indexer_id);
         r["indexer_name"] = json!(i.name);
-        let fingerprint = format!("{indexer_id}\0{}", r["guid"].as_str().unwrap_or(name));
-        use sha2::{Digest, Sha256};
-        let key = format!("{:x}", Sha256::digest(fingerprint.as_bytes()));
+        if let Some(hash) = release_identity::infohash(&r) {
+            r["infohash"] = json!(hash);
+        }
+        let key = release_identity::key(indexer_id, &r);
         r["id"] = json!(key);
         sqlx::query("INSERT INTO acquisition_releases(id,title_id,indexer_id,data) VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,created_at=unixepoch()")
             .bind(&key).bind(title["id"].as_str()).bind(indexer_id).bind(r.to_string()).execute(&a.pool).await.map_err(db)?;

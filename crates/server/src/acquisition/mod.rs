@@ -19,6 +19,7 @@ mod migration;
 mod monitoring;
 mod profiles;
 mod release_facts;
+mod release_identity;
 mod releases;
 mod request_status;
 mod requests;
@@ -28,6 +29,7 @@ mod storage;
 mod torrent_files;
 mod torznab;
 mod transfer;
+mod transfer_source;
 mod wanted;
 pub(crate) use access::permissions;
 pub(crate) use auto_import::run as import_worker;
@@ -37,6 +39,11 @@ pub(crate) use runtime::Runtime;
 
 pub(crate) fn routes() -> Router<App> {
     Router::new()
+        .route("/acquisition/release-sources", get(indexers::sources))
+        .route(
+            "/acquisition/downloads/{id}",
+            get(downloads::read).put(downloads::control),
+        )
         .route("/acquisition/access", get(access::get))
         .route("/acquisition/migration/preview", post(migration::preview))
         .route("/acquisition/migration", post(migration::apply))
@@ -51,7 +58,6 @@ pub(crate) fn routes() -> Router<App> {
                 axum::extract::DefaultBodyLimit::max(3 * 1024 * 1024 + 65536),
             ),
         )
-        .route("/acquisition/downloads/{id}", put(downloads::control))
         .route(
             "/acquisition/downloads/{id}/adoption/preview",
             post(adoption::preview),

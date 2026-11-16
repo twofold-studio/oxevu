@@ -11,7 +11,7 @@ pub(super) async fn prepare(
 ) -> Result<Option<Arc<ManagedTorrent>>> {
     let mut input: downloads::Input = serde_json::from_value(data["input"].clone())
         .map_err(|_| bad("invalid download intent"))?;
-    let source = source(a, &data, &input).await?;
+    let source = super::transfer_source::source(a, id, &data, &input).await?;
     let listed = tokio::time::timeout(
         std::time::Duration::from_secs(60),
         session.add_torrent(
@@ -266,40 +266,4 @@ fn select_wanted(files: &Value, title: &Value, units: &[Value]) -> Result<Vec<us
         return Err(bad("movie torrent requires manual main-file selection"));
     }
     Ok(selected)
-}
-
-async fn source(a: &App, data: &Value, input: &downloads::Input) -> Result<AddTorrent<'static>> {
-    if let Some(raw) = data["cached_torrent"]
-        .as_str()
-        .or(input.torrent_base64.as_deref())
-    {
-        return Ok(AddTorrent::from_bytes(downloads::decode_torrent(raw)?));
-    }
-    if let Some(magnet) = input.magnet.as_ref() {
-        return Ok(AddTorrent::from_url(magnet.clone()));
-    }
-    let id = input
-        .release_id
-        .as_deref()
-        .ok_or_else(|| bad("download source missing"))?;
-    let row = sqlx::query("SELECT indexer_id,data FROM acquisition_releases WHERE id=?")
-        .bind(id)
-        .fetch_one(&a.pool)
-        .await
-        .map_err(db)?;
-    let release = decode(row.get("data"))?;
-    if let Some(uri) = release["magneturl"].as_str().or_else(|| {
-        release["download_url"]
-            .as_str()
-            .filter(|s| s.starts_with("magnet:?"))
-    }) {
-        return Ok(AddTorrent::from_url(uri.to_owned()));
-    }
-    let indexer = indexers::load(a, row.get("indexer_id")).await?;
-    let uri = release["download_url"]
-        .as_str()
-        .ok_or_else(|| bad("release has no torrent URL"))?;
-    Ok(AddTorrent::from_bytes(
-        indexers::fetch_torrent(&indexer, uri).await?,
-    ))
 }

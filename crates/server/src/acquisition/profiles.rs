@@ -71,7 +71,8 @@ pub(super) async fn put(
         || p.name.len() > 100
         || p.min_height > p.max_height
         || p.max_height > 4320
-        || p.min_size_mb > p.max_size_mb
+        || (p.max_size_mb != 0 && p.min_size_mb > p.max_size_mb)
+        || p.min_size_mb > 1_000_000
         || p.max_size_mb > 1_000_000
         || p.codecs.len() > 10
         || p.sources.len() > 20
@@ -100,8 +101,19 @@ pub(super) fn evaluate(p: &Profile, r: &Value) -> Vec<String> {
     match r["size"].as_u64() {
         Some(n)
             if n >= p.min_size_mb as u64 * 1024 * 1024
-                && n <= p.max_size_mb as u64 * 1024 * 1024 => {}
-        Some(_) => reasons.push("Size outside profile".into()),
+                && (p.max_size_mb == 0 || n <= p.max_size_mb as u64 * 1024 * 1024) => {}
+        Some(n) if p.max_size_mb != 0 && n > p.max_size_mb as u64 * 1024 * 1024 => {
+            reasons.push(format!(
+                "{:.1} GiB exceeds the {:.1} GiB profile limit",
+                n as f64 / 1073741824.,
+                p.max_size_mb as f64 / 1024.
+            ))
+        }
+        Some(n) => reasons.push(format!(
+            "{:.1} GiB is below the {:.1} GiB profile minimum",
+            n as f64 / 1073741824.,
+            p.min_size_mb as f64 / 1024.
+        )),
         None => reasons.push("Size unknown".into()),
     }
     if !r["seeders"]

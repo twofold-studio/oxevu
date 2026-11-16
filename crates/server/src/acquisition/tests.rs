@@ -4,8 +4,11 @@ mod adoption;
 mod automation;
 mod fixture;
 mod flow;
+mod magnet_flow;
 mod publication;
+mod release_search;
 mod series;
+mod torrent_redirects;
 
 pub(super) async fn title(a: &App, kind: &str, id: u64) -> Value {
     let title = json!({"id":format!("tmdb:{kind}:{id}"),"provider_id":id,"kind":kind,"title":"Generated fixture"});

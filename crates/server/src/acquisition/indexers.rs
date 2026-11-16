@@ -73,6 +73,14 @@ pub(super) async fn list(State(a): State<App>, h: HeaderMap) -> Result<Json<Valu
     }
     Ok(Json(json!({"indexers":indexers})))
 }
+// Download managers need search names/counts, not endpoint configuration or keys.
+pub(super) async fn sources(State(a): State<App>, h: HeaderMap) -> Result<Json<Value>> {
+    access::require(&a, &h, "downloads").await?;
+    let rows = sqlx::query("SELECT id,name FROM acquisition_indexers WHERE json_extract(data,'$.enabled')=1 ORDER BY name LIMIT 20").fetch_all(&a.pool).await.map_err(db)?;
+    Ok(Json(
+        json!({"sources":rows.into_iter().map(|row| json!({"indexer_id":row.get::<String,_>("id"),"indexer_name":row.get::<String,_>("name")})).collect::<Vec<_>>()}),
+    ))
+}
 pub(super) async fn put(
     State(a): State<App>,
     h: HeaderMap,
@@ -115,8 +123,9 @@ pub(super) async fn capabilities(i: &Indexer) -> Result<Value> {
 }
 pub(super) async fn request(i: &Indexer, params: &[(&str, String)]) -> Result<Vec<u8>> {
     let _permit = HTTP_JOBS
-        .try_acquire()
-        .map_err(|_| bad("indexer request limit reached"))?;
+        .acquire()
+        .await
+        .map_err(|_| failure("indexer requests unavailable", true))?;
     let mut url = endpoint(&i.endpoint)?;
     {
         let mut query = url.query_pairs_mut();
@@ -129,39 +138,113 @@ pub(super) async fn request(i: &Indexer, params: &[(&str, String)]) -> Result<Ve
         .get(url)
         .send()
         .await
-        .map_err(|_| bad("indexer unavailable"))?;
+        .map_err(|_| failure("indexer unavailable or request timed out", true))?;
+    response_bytes(response).await
+}
+
+pub(super) fn failure(message: &str, retryable: bool) -> Error {
+    (
+        StatusCode::BAD_REQUEST,
+        Json(json!({"error":message,"retryable":retryable})),
+    )
+}
+pub(super) async fn response_bytes(response: reqwest::Response) -> Result<Vec<u8>> {
+    let status = response.status();
+    if status.is_redirection() {
+        return Err(failure(
+            "indexer returned a redirect to an unsupported location",
+            false,
+        ));
+    }
+    if status.as_u16() == 429 {
+        return Err(failure("indexer is rate limiting (HTTP 429)", true));
+    }
+    if !status.is_success() {
+        return Err(failure(
+            &format!("indexer returned HTTP {}", status.as_u16()),
+            status.is_server_error(),
+        ));
+    }
     integrations::bytes(response, 2 * 1024 * 1024).await
 }
-pub(super) async fn fetch_torrent(i: &Indexer, raw: &str) -> Result<Vec<u8>> {
+pub(super) enum TorrentSource {
+    Bytes(Vec<u8>),
+    Magnet(String),
+}
+pub(super) async fn fetch_torrent(i: &Indexer, raw: &str) -> Result<TorrentSource> {
+    tokio::time::timeout(std::time::Duration::from_secs(30), fetch_source(i, raw))
+        .await
+        .map_err(|_| failure("torrent retrieval timed out", true))?
+}
+async fn fetch_source(i: &Indexer, raw: &str) -> Result<TorrentSource> {
     let _permit = HTTP_JOBS
-        .try_acquire()
-        .map_err(|_| bad("indexer request limit reached"))?;
+        .acquire()
+        .await
+        .map_err(|_| failure("indexer requests unavailable", true))?;
     let base = endpoint(&i.endpoint)?;
-    let url = base
+    let mut url = base
         .join(raw)
         .map_err(|_| bad("invalid torrent download URL"))?;
     endpoint(url.as_str())?;
-    let same_origin = base.origin() == url.origin();
-    if !same_origin
-        && (!i
-            .download_hosts
-            .iter()
-            .any(|h| Some(h.as_str()) == url.host_str())
-            || url.scheme() != "https")
+    if base.origin() != url.origin()
+        && (url.scheme() != "https"
+            || !i
+                .download_hosts
+                .iter()
+                .any(|host| Some(host.as_str()) == url.host_str()))
     {
         return Err(bad(
             "torrent host is not allowed by this indexer configuration",
         ));
     }
+    let origin = url.origin();
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(30))
         .redirect(reqwest::redirect::Policy::none())
         .build()
         .map_err(|_| bad("HTTP unavailable"))?;
-    let response = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|_| bad("torrent retrieval failed"))?;
-    integrations::bytes(response, 2 * 1024 * 1024).await
+    for hop in 0..=1 {
+        let response = client
+            .get(url.clone())
+            .send()
+            .await
+            .map_err(|_| failure("torrent retrieval failed or timed out", true))?;
+        if matches!(response.status().as_u16(), 301 | 302 | 307 | 308) {
+            let location = response
+                .headers()
+                .get(reqwest::header::LOCATION)
+                .and_then(|value| value.to_str().ok())
+                .ok_or_else(|| {
+                    failure(
+                        "indexer returned a redirect to an unsupported location",
+                        false,
+                    )
+                })?;
+            if location.starts_with("magnet:?") {
+                if location.len() > 16384
+                    || librqbit::Magnet::parse(location)
+                        .ok()
+                        .and_then(|magnet| magnet.as_id20())
+                        .is_none()
+                {
+                    return Err(bad("invalid or unsupported magnet redirect"));
+                }
+                return Ok(TorrentSource::Magnet(location.to_owned()));
+            }
+            let target = url
+                .join(location)
+                .map_err(|_| bad("invalid torrent redirect"))?;
+            endpoint(target.as_str())?;
+            if hop != 0 || target.origin() != origin {
+                return Err(failure(
+                    "indexer returned a redirect to an unsupported location",
+                    false,
+                ));
+            }
+            url = target;
+            continue;
+        }
+        return Ok(TorrentSource::Bytes(response_bytes(response).await?));
+    }
+    Err(failure("indexer redirect limit reached", false))
 }

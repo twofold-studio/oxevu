@@ -49,9 +49,11 @@ pub(super) async fn enqueue(a: &App, mut v: Input) -> Result<String> {
     }
     let mut hash = None;
     let mut metadata_files = json!([]);
+    let mut release_snapshot = Value::Null;
     if let Some(id) = v.release_id.as_deref() {
         let r=sqlx::query("SELECT title_id,data,blocked_until>unixepoch() blocked FROM acquisition_releases WHERE id=?").bind(id).fetch_optional(&a.pool).await.map_err(db)?.ok_or_else(||bad("unknown release"))?;
         let release = decode(r.get("data"))?;
+        release_snapshot = json!({"title":release["title"],"indexer_name":release["indexer_name"],"size":release["size"]});
         let profile = profiles::load(a, v.profile_id.as_deref().unwrap_or("default")).await?;
         if (r.get::<bool, _>("blocked") || !profiles::evaluate(&profile, &release).is_empty())
             && !v.override_profile
@@ -128,7 +130,7 @@ pub(super) async fn enqueue(a: &App, mut v: Input) -> Result<String> {
     .map_err(db)?;
     let id = removed.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     sqlx::query("INSERT INTO acquisition_downloads(id,title_id,release_id,infohash,data,state) VALUES(?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET title_id=excluded.title_id,release_id=excluded.release_id,state=excluded.state,data=excluded.data,error=NULL,attempts=0,retry_at=0,updated_at=unixepoch()")
-        .bind(&id).bind(&v.title_id).bind(&v.release_id).bind(hash).bind(json!({"input":v,"stats":{},"files":metadata_files,"uploaded_base":0,"wanted_coverage":coverage}).to_string()).bind(if v.paused {"paused"} else {"queued"}).execute(&mut *tx).await.map_err(db)?;
+        .bind(&id).bind(&v.title_id).bind(&v.release_id).bind(hash).bind(json!({"input":v,"release":release_snapshot,"stats":{},"files":metadata_files,"uploaded_base":0,"wanted_coverage":coverage}).to_string()).bind(if v.paused {"paused"} else {"queued"}).execute(&mut *tx).await.map_err(db)?;
     for (season, episode) in coverage {
         sqlx::query("INSERT INTO acquisition_claims VALUES(?,?,?,?)")
             .bind(&v.title_id)
@@ -173,7 +175,9 @@ pub(super) async fn list(State(a): State<App>, h: HeaderMap) -> Result<Json<Valu
     for id in ids {
         jobs.push(view(&a, &id).await?);
     }
-    Ok(Json(json!({"downloads":jobs})))
+    Ok(Json(
+        json!({"downloads":jobs,"import_enabled":config::load(&a).await?.import_enabled}),
+    ))
 }
 pub(super) async fn view(a: &App, id: &str) -> Result<Value> {
     let r=sqlx::query("SELECT d.*,t.data title FROM acquisition_downloads d LEFT JOIN acquisition_titles t ON t.id=d.title_id WHERE d.id=?").bind(id).fetch_optional(&a.pool).await.map_err(db)?.ok_or_else(||bad("unknown download"))?;
@@ -181,8 +185,18 @@ pub(super) async fn view(a: &App, id: &str) -> Result<Value> {
     Ok(
         json!({"id":id,"title_id":r.get::<Option<String>,_>("title_id"),"title":r.get::<Option<String>,_>("title").map(|s|decode(&s)).transpose()?,
         "infohash":r.get::<Option<String>,_>("infohash"),"state":r.get::<String,_>("state"),"error":r.get::<Option<String>,_>("error"),
+        "release_title":data["release"]["title"],"indexer_name":data["release"]["indexer_name"],"release_size":data["release"]["size"],
+        "imported":sqlx::query_scalar::<_,bool>("SELECT EXISTS(SELECT 1 FROM acquisition_imports WHERE download_id=? AND state='scanned')").bind(id).fetch_one(&a.pool).await.map_err(db)?,
         "stats":data["stats"],"files":data["files"],"import_warning":data["import_warning"],"queue_reason":data["queue_reason"],"selected_files":data["input"]["selected_files"],"seed_seconds":r.get::<i64,_>("seed_seconds"),"created_at":r.get::<i64,_>("created_at")}),
     )
+}
+pub(super) async fn read(
+    State(a): State<App>,
+    h: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<Value>> {
+    access::require(&a, &h, "downloads").await?;
+    Ok(Json(json!({"download":view(&a,&id).await?})))
 }
 
 #[derive(Deserialize)]

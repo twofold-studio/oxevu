@@ -199,6 +199,7 @@ async fn search_missing(a: &App, r: &sqlx::sqlite::SqliteRow) -> Result<()> {
         return Ok(());
     };
     let q = releases::Search {
+        indexer_ids: None,
         season: unit["season"].as_u64().map(|n| n as u32),
         episode: unit["episode"].as_u64().map(|n| n as u32),
         profile_id: r.get("profile_id"),

@@ -10,6 +10,7 @@ struct Feed {
     bytes: Arc<Vec<u8>>,
     port: u16,
     size: u64,
+    magnet: String,
 }
 pub(super) struct Fixture {
     pub a: App,
@@ -127,6 +128,12 @@ impl Fixture {
         .await
         .unwrap();
         let feed = Feed {
+            magnet: format!(
+                "magnet:?xt=urn:btih:{}&tr={endpoint}/announce",
+                torrent_files::validate(&torrent, 1024 * 1024 * 1024)
+                    .unwrap()
+                    .0
+            ),
             bytes: Arc::new(torrent),
             port: seed.listen_addr().unwrap().port(),
             size: tokio::fs::metadata(source.join("Fixture Film (2026).mp4"))
@@ -137,6 +144,12 @@ impl Fixture {
         let router = Router::new()
             .route("/api", http_get(api))
             .route("/torrent", http_get(torrent_file))
+            .route(
+                "/magnet",
+                http_get(|HttpState(feed): HttpState<Feed>| async move {
+                    (StatusCode::MOVED_PERMANENTLY, [("location", feed.magnet)])
+                }),
+            )
             .route("/announce", http_get(announce))
             .with_state(feed);
         let tracker = tokio::spawn(async move {

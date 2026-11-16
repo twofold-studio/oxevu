@@ -7,10 +7,11 @@ pub(super) fn parse(xml: &[u8], caps: bool) -> Result<Value> {
     }
     let xml = std::str::from_utf8(xml).map_err(|_| bad("indexer XML is not UTF-8"))?;
     let mut reader = Reader::from_str(xml);
-    reader.config_mut().trim_text(true);
+    reader.config_mut().trim_text(false);
     let mut result = Vec::new();
     let mut item: Option<Value> = None;
     let mut field = String::new();
+    let mut text_buffer = String::new();
     let mut capabilities = json!({"search":false,"tv-search":false,"movie-search":false,"max_limit":100,"categories":[]});
     loop {
         match reader
@@ -78,50 +79,79 @@ pub(super) fn parse(xml: &[u8], caps: bool) -> Result<Value> {
                         }
                     } else {
                         field = name;
+                        text_buffer.clear();
                     }
                 }
             }
             Event::Text(ref text) => {
-                if let Some(ref mut value) = item
+                if item.is_some()
                     && matches!(
                         field.as_str(),
                         "title" | "guid" | "link" | "size" | "pubDate"
                     )
                 {
                     let decoded = text.decode().map_err(|_| bad("invalid XML text"))?;
-                    let decoded = quick_xml::escape::unescape(&decoded)
-                        .map_err(|_| bad("invalid XML entity"))?;
-                    if decoded.len() > 8192 {
-                        return Err(bad("indexer field too large"));
-                    }
-                    if field == "size" {
-                        value["size"] = json!(decoded.parse::<u64>().ok());
-                    } else {
-                        value[&field] = json!(decoded);
-                    }
+                    append(&mut text_buffer, &decoded)?;
                 }
             }
             Event::CData(ref text) => {
-                if let Some(ref mut value) = item
-                    && matches!(field.as_str(), "title" | "guid" | "link")
+                if item.is_some()
+                    && matches!(
+                        field.as_str(),
+                        "title" | "guid" | "link" | "size" | "pubDate"
+                    )
                 {
                     let text = std::str::from_utf8(text).map_err(|_| bad("invalid XML text"))?;
-                    if text.len() > 8192 {
-                        return Err(bad("indexer field too large"));
+                    append(&mut text_buffer, text)?;
+                }
+            }
+            Event::GeneralRef(ref entity) => {
+                let resolved = match entity
+                    .resolve_char_ref()
+                    .map_err(|_| bad("invalid XML entity"))?
+                {
+                    Some(character) => character.to_string(),
+                    None => match &entity[..] {
+                        b"amp" => "&",
+                        b"lt" => "<",
+                        b"gt" => ">",
+                        b"quot" => "\"",
+                        b"apos" => "'",
+                        _ => return Err(bad("invalid XML entity")),
                     }
-                    value[&field] = json!(text);
+                    .to_owned(),
+                };
+                if item.is_some()
+                    && matches!(
+                        field.as_str(),
+                        "title" | "guid" | "link" | "size" | "pubDate"
+                    )
+                {
+                    append(&mut text_buffer, &resolved)?;
                 }
             }
             Event::End(ref e) => {
+                if e.local_name().as_ref() == field.as_bytes()
+                    && matches!(
+                        field.as_str(),
+                        "title" | "guid" | "link" | "size" | "pubDate"
+                    )
+                    && let Some(ref mut value) = item
+                {
+                    value[&field] = if field == "size" {
+                        json!(text_buffer.trim().parse::<u64>().ok())
+                    } else {
+                        json!(text_buffer.trim())
+                    };
+                }
                 if e.local_name().as_ref() == b"item"
                     && let Some(value) = item.take()
+                    && result.len() < 100
                 {
-                    if result.len() >= 100 {
-                        return Err(bad("indexer page exceeds 100 results"));
-                    }
                     result.push(value);
                 }
                 field.clear();
+                text_buffer.clear();
             }
             Event::Eof => break,
             _ => {}
@@ -138,4 +168,12 @@ pub(super) fn parse(xml: &[u8], caps: bool) -> Result<Value> {
     } else {
         Ok(json!(result))
     }
+}
+
+fn append(buffer: &mut String, text: &str) -> Result<()> {
+    if buffer.len().saturating_add(text.len()) > 8192 {
+        return Err(bad("indexer field too large"));
+    }
+    buffer.push_str(text);
+    Ok(())
 }
