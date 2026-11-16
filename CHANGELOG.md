@@ -135,6 +135,9 @@ as available; planned features belong in GOAL.md.
 
 ### Fixed
 
+- Reject new requests already satisfied by the viewer's accessible library,
+  while keeping retries of an existing request idempotent.
+
 - Auto quality starts at server limits instead of trusting coarse browser
   bandwidth hints. The menu shows the effective quality and pixel resolution.
 - NVIDIA forced IDR keyframes produce actual two-second chunks. Playback also

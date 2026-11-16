@@ -45,11 +45,15 @@ pub(super) async fn create_for(
         return Err(users::forbidden());
     }
     let raw = serde_json::to_string(&scope).map_err(bad)?;
+    let already_available = wanted::complete_for(a, title, &scope, u).await?;
     let mut tx = a.pool.begin_with("BEGIN IMMEDIATE").await.map_err(db)?;
     let existing: Option<String>=sqlx::query_scalar("SELECT id FROM acquisition_requests WHERE title_id=? AND user_id=? AND scope=? AND status IN ('pending','approved','fulfilled')")
         .bind(title_id).bind(uid).bind(&raw).fetch_optional(&mut *tx).await.map_err(db)?;
     if let Some(id) = existing {
         return Ok(id);
+    }
+    if already_available {
+        return Err(bad("requested media is already available in your library"));
     }
     let count: i64=sqlx::query_scalar("SELECT count(*) FROM acquisition_requests WHERE user_id=? AND status IN ('pending','approved')")
         .bind(uid).fetch_one(&mut *tx).await.map_err(db)?;

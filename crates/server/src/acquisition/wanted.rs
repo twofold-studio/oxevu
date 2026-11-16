@@ -74,6 +74,53 @@ pub(super) async fn units(a: &App, title: &Value, items: &[Value]) -> Result<Vec
     Ok(units)
 }
 
+pub(super) async fn complete_for(a: &App, title: &Value, scope: &Scope, u: &Value) -> Result<bool> {
+    let items: Vec<Value> = inventory(a, title)
+        .await?
+        .into_iter()
+        .filter(|i| {
+            u["disabled"] != true
+                && (u["is_admin"] == true
+                    || u["all_libraries"] == true
+                    || u["library_ids"]
+                        .as_array()
+                        .is_some_and(|v| v.contains(&i["library_id"])))
+        })
+        .collect();
+    let complete = if title["kind"] == "movie" {
+        items.iter().any(|i| i["online"] == true)
+    } else {
+        let rows = sqlx::query(
+            "SELECT season,episode,air_date FROM acquisition_episodes WHERE title_id=?",
+        )
+        .bind(title["id"].as_str())
+        .fetch_all(&a.pool)
+        .await
+        .map_err(db)?;
+        let selected: Vec<Episode> = rows
+            .iter()
+            .filter(|r| {
+                scope.covers(
+                    r.get::<i64, _>("season") as u32,
+                    r.get::<i64, _>("episode") as u32,
+                    r.get::<Option<String>, _>("air_date").as_deref(),
+                )
+            })
+            .map(|r| Episode {
+                season: r.get::<i64, _>("season") as u32,
+                episode: r.get::<i64, _>("episode") as u32,
+            })
+            .collect();
+        !selected.is_empty()
+            && selected.iter().all(|e| {
+                items
+                    .iter()
+                    .any(|i| i["online"] == true && covers(i, e.season, e.episode))
+            })
+    };
+    Ok(complete)
+}
+
 pub(super) async fn fulfill(a: &App) -> Result<()> {
     let rows=sqlx::query("SELECT r.id,r.user_id,r.status,r.scope,t.data title FROM acquisition_requests r JOIN acquisition_titles t ON t.id=r.title_id WHERE r.status IN ('approved','fulfilled') LIMIT 1000").fetch_all(&a.pool).await.map_err(db)?;
     for r in rows {
@@ -81,49 +128,7 @@ pub(super) async fn fulfill(a: &App) -> Result<()> {
         let scope: Scope =
             serde_json::from_str(r.get("scope")).map_err(|_| bad("invalid request scope"))?;
         let u = users::profile(a, r.get("user_id")).await?;
-        let items: Vec<Value> = inventory(a, &title)
-            .await?
-            .into_iter()
-            .filter(|i| {
-                u["disabled"] != true
-                    && (u["is_admin"] == true
-                        || u["all_libraries"] == true
-                        || u["library_ids"]
-                            .as_array()
-                            .is_some_and(|v| v.contains(&i["library_id"])))
-            })
-            .collect();
-        let complete = if title["kind"] == "movie" {
-            items.iter().any(|i| i["online"] == true)
-        } else {
-            let rows = sqlx::query(
-                "SELECT season,episode,air_date FROM acquisition_episodes WHERE title_id=?",
-            )
-            .bind(title["id"].as_str())
-            .fetch_all(&a.pool)
-            .await
-            .map_err(db)?;
-            let selected: Vec<Episode> = rows
-                .iter()
-                .filter(|r| {
-                    scope.covers(
-                        r.get::<i64, _>("season") as u32,
-                        r.get::<i64, _>("episode") as u32,
-                        r.get::<Option<String>, _>("air_date").as_deref(),
-                    )
-                })
-                .map(|r| Episode {
-                    season: r.get::<i64, _>("season") as u32,
-                    episode: r.get::<i64, _>("episode") as u32,
-                })
-                .collect();
-            !selected.is_empty()
-                && selected.iter().all(|e| {
-                    items
-                        .iter()
-                        .any(|i| i["online"] == true && covers(i, e.season, e.episode))
-                })
-        };
+        let complete = complete_for(a, &title, &scope, &u).await?;
         let status = if complete { "fulfilled" } else { "approved" };
         if r.get::<String, _>("status") != status {
             sqlx::query("UPDATE acquisition_requests SET status=?,updated_at=unixepoch() WHERE id=? AND status IN ('approved','fulfilled')")

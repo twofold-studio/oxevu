@@ -119,6 +119,37 @@ async fn approved_movie_reaches_playable_library_without_moving_seed_source() {
     .await
     .unwrap();
     let row=sqlx::query("SELECT destination,item_id FROM acquisition_imports WHERE download_id=? AND state='scanned'").bind(&id).fetch_one(&a.pool).await.unwrap();
+    assert_eq!(
+        requests::create_for(
+            a,
+            &user(a, &viewer).await.unwrap(),
+            &f.title,
+            scope::Scope::default()
+        )
+        .await
+        .unwrap(),
+        request
+    );
+    let other = crate::tests::account(a, "other", false).await;
+    sqlx::query("INSERT INTO library_grants VALUES('other','fixture-library')")
+        .execute(&a.pool)
+        .await
+        .unwrap();
+    assert!(
+        requests::create_for(
+            a,
+            &user(a, &other).await.unwrap(),
+            &f.title,
+            scope::Scope::default()
+        )
+        .await
+        .unwrap_err()
+        .1
+        .0["error"]
+            .as_str()
+            .unwrap()
+            .contains("already available")
+    );
     let target: String = row.get("destination");
     let item: String = row.get("item_id");
     assert_eq!(
