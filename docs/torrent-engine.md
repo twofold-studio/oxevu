@@ -7,7 +7,8 @@ example. The application now embeds the same pinned engine through the native
 [acquisition adapter](acquisition.md), with authenticated routes and a queue.
 
 The harness evidence below covers milestone 0. Native application checks are
-described in the acquisition guide. Neither authorizes retiring qBittorrent.
+described in the acquisition guide and [acceptance record](acquisition-validation.md),
+including a public Ubuntu TCP/uTP transfer. Neither authorizes retiring qBittorrent.
 Direct traffic is permitted by the owner; no VPN is required.
 
 ## Repeat the checks

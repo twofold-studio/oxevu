@@ -50,9 +50,9 @@ runtime dependencies of the completed replacement.
 Exit: recorded engine/version decision and repeatable transfer, restart and
 network-isolation acceptance. No real queue import or automatic downloads yet.
 
-The initial loopback TCP/v1 checks pass. Real tracker compatibility, public
-discovery paths, crash recovery and playback/resource coexistence remain gates;
-see the engine report before treating milestone 0 as complete.
+Loopback TCP/v1 and a capped Ubuntu public-transfer smoke test pass, including
+restart recovery and short playback coexistence. Broad tracker compatibility and
+sustained resource acceptance remain gates; see the [acceptance record](acquisition-validation.md).
 
 ### 1. Requests, wanted titles and permissions
 
