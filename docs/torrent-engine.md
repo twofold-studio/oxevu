@@ -3,10 +3,12 @@
 Use **librqbit 9.1.0** for the initial embedded-engine prototype. It is pinned
 exactly, with default features off and Rust TLS enabled. Its standalone HTTP API
 and web UI are not enabled. The `torrent-spike` Cargo feature builds a development
-example; the application has no torrent routes, background transfers or new UI.
+example. The application now embeds the same pinned engine through the native
+[acquisition adapter](acquisition.md), with authenticated routes and a queue.
 
-This is the first part of acquisition milestone 0, not approval to retire
-qBittorrent. Direct traffic is permitted by the owner; no VPN is required.
+The harness evidence below covers milestone 0. Native application checks are
+described in the acquisition guide. Neither authorizes retiring qBittorrent.
+Direct traffic is permitted by the owner; no VPN is required.
 
 ## Repeat the checks
 

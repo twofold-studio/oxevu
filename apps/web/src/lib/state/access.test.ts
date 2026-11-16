@@ -7,6 +7,7 @@ describe("access hints", () => {
       "libraries",
       "playback",
       "integrations",
+      "acquisition",
       "users",
       "account",
     ]);

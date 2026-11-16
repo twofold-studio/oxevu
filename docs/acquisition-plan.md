@@ -1,9 +1,10 @@
 # Acquisition replacement plan
 
-Status: implementation started, 2026-11-16. The development-only
-[torrent acceptance harness](torrent-engine.md) pins librqbit 9.1.0; requests,
-indexers, queue administration and imports remain planned. Keep existing services running until
-their replacement passes acceptance and the owner authorizes retirement.
+Status: native implementation added, 2026-11-16. The [acquisition guide](acquisition.md)
+covers requests, wanted units, Torznab, queue administration, imports, automation
+and reviewed migration. The [torrent acceptance harness](torrent-engine.md)
+pins librqbit 9.1.0. Keep existing services running until representative production
+acceptance passes and the owner authorizes retirement.
 
 ## Outcome
 

@@ -9,6 +9,9 @@ pub(crate) async fn app() -> App {
     .await
     .unwrap();
     App {
+        acquisition: acquisition::Runtime::new(
+            std::env::temp_dir().join(uuid::Uuid::new_v4().to_string()),
+        ),
         parties: Arc::new(parties::Store::default()),
         playback,
         pool,

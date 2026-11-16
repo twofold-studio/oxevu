@@ -1,4 +1,5 @@
 import type { MetadataFields } from "./metadata";
+import type { AcquisitionPermissions } from "./acquisition-types";
 
 // Mirrors docs/api-phase-one.md and docs/api-playback-settings.md. Field names stay snake_case so values pass
 // through unchanged; replace with generated types once the server publishes
@@ -8,6 +9,7 @@ export type SyncplayAccess = "create_join" | "join" | "disabled";
 
 /** Permission flags the server attaches to the signed-in user. */
 export interface UserAccess {
+  acquisition?: AcquisitionPermissions;
   is_admin: boolean;
   disabled: boolean;
   can_play: boolean;

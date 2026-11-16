@@ -19,6 +19,7 @@
     libraries: "Libraries",
     playback: "Playback",
     integrations: "Integrations",
+    acquisition: "Acquisition",
     users: "Users",
     account: "Account",
   };
@@ -64,6 +65,8 @@
         <PlaybackSection />
       {:else if active === "integrations"}
         <IntegrationsSection />
+      {:else if active === "acquisition"}
+        {#await import("$lib/features/acquisition/settings/AcquisitionSection.svelte") then section}<section.default />{/await}
       {:else if active === "users"}
         <UsersSection />
       {:else}

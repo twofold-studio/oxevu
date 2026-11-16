@@ -15,12 +15,18 @@ export type Route =
   | { name: "settings"; section: SettingsSection | null }
   | { name: "parties" }
   | { name: "party"; id: string }
+  | { name: "discover"; query: string; kind: "movie" | "tv"; page: number }
+  | { name: "discover-title"; kind: "movie" | "tv"; id: number }
+  | { name: "requests" }
+  | { name: "wanted" }
+  | { name: "activity" }
   | { name: "not-found" };
 
 export const settingsSections = [
   "libraries",
   "playback",
   "integrations",
+  "acquisition",
   "users",
   "account",
 ] as const;
@@ -46,6 +52,12 @@ export const href = {
   libraries: () => "#/settings/libraries",
   parties: () => "#/parties",
   party: (id: string) => `#/parties/${encodeURIComponent(id)}`,
+  discover: (query = "", kind: "movie" | "tv" = "movie", page = 1) =>
+    `#/discover?${new URLSearchParams({ q: query, kind, page: String(page) })}`,
+  discoverTitle: (kind: "movie" | "tv", id: number) => `#/discover/${kind}/${id}`,
+  requests: () => "#/requests",
+  wanted: () => "#/wanted",
+  activity: () => "#/activity",
 };
 
 function decode(part: string): string | null {
@@ -93,6 +105,28 @@ export function parseRoute(hash: string): Route {
     case "parties":
       if (parts.length === 1) return { name: "parties" };
       return param && parts.length === 2 ? { name: "party", id: param } : { name: "not-found" };
+    case "discover": {
+      if (parts.length === 1)
+        return {
+          name: "discover",
+          query: query.get("q") ?? "",
+          kind: query.get("kind") === "tv" ? "tv" : "movie",
+          page: Math.min(20, Math.max(1, Number(query.get("page")) || 1)),
+        };
+      const id = Number(parts[2]);
+      return parts.length === 3 &&
+        (param === "movie" || param === "tv") &&
+        Number.isSafeInteger(id) &&
+        id > 0
+        ? { name: "discover-title", kind: param, id }
+        : { name: "not-found" };
+    }
+    case "requests":
+      return parts.length === 1 ? { name: "requests" } : { name: "not-found" };
+    case "wanted":
+      return parts.length === 1 ? { name: "wanted" } : { name: "not-found" };
+    case "activity":
+      return parts.length === 1 ? { name: "activity" } : { name: "not-found" };
     default:
       return { name: "not-found" };
   }

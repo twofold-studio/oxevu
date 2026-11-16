@@ -114,6 +114,12 @@ The [librqbit spike](docs/torrent-engine.md) verifies initial loopback transfers
 and process restart; compatibility and production resource checks remain open.
 Direct torrent traffic is permitted by the owner; no VPN is required.
 
+The native [acquisition workflow](docs/acquisition.md) now implements requests,
+movie/episode monitoring, Torznab search/feeds, embedded transfers, imports and
+reviewed export migration. Automatic downloads and imports start disabled.
+Representative tracker acceptance and an owner-approved cutover remain separate;
+no existing service has been retired.
+
 1. Write the playback specification and define the first end-to-end slice.
 2. Build the shared server foundation and the library/player, initially alongside Jellyfin.
 3. Deliver and test the web interface, then package and test the shared interface on Android and iOS.

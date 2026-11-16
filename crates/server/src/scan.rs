@@ -5,6 +5,10 @@ pub(super) async fn scan(
     Path(id): Path<String>,
 ) -> Result<Json<Value>> {
     users::admin(&a, &h).await?;
+    scan_library(a, id).await
+}
+
+pub(crate) async fn scan_library(a: App, id: String) -> Result<Json<Value>> {
     let _permit = a
         .scan
         .clone()
@@ -65,26 +69,7 @@ pub(super) async fn scan(
             }) {
                 continue;
             }
-            let output = tokio::time::timeout(
-                std::time::Duration::from_secs(30),
-                tokio::process::Command::new("ffprobe")
-                    .args([
-                        "-v",
-                        "error",
-                        "-show_format",
-                        "-show_streams",
-                        "-of",
-                        "json",
-                    ])
-                    .arg(&path)
-                    .kill_on_drop(true)
-                    .output(),
-            )
-            .await;
-            let metadata = match output {
-                Ok(Ok(o)) if o.status.success() => serde_json::from_slice::<Value>(&o.stdout).ok(),
-                _ => None,
-            };
+            let metadata = media_probe::read(&path).await.ok();
             let Some(meta) = metadata else {
                 errors.push(format!(
                     "Could not probe {}",

@@ -95,12 +95,13 @@ play/pause/seeking and title changes; members need their own library permissions
 Parties are in memory and disappear on server restart. Local synchronization tests
 do not establish remote-network or mobile-device behavior.
 
-Rescans retain offline roots safely. File watching and online metadata recognition
-are still deferred. See [validation](playback-validation.md) for evidence and limits.
+Rescans retain offline roots safely. File watching and automatic metadata matching
+during ordinary scans are deferred. Manual provider identification and metadata
+attached by acquisition imports are available. See [validation](playback-validation.md).
 
 Artwork caches currently have no eviction or source-change invalidation. Rescan
-after adding local sidecars. Recognition against an external metadata catalog is
-not implemented yet; copied sample artwork is optional local input.
+after adding local sidecars. Provider artwork is available after identification;
+local sidecars take precedence.
 
 ## Shared interface motion
 
@@ -126,3 +127,9 @@ Settings edits save automatically after a short pause. Invalid values are not se
 Creating users/libraries, changing passwords and removing libraries remain explicit
 actions. Enable Hardware decoding under Settings → Playback to use CUDA decoding
 for new converted streams; the player delivery menu reports the actual decoder.
+
+Acquisition is under `#/discover`, `#/requests`, `#/wanted`, `#/activity` and
+`#/settings/acquisition`. See [setup, migration and rollback](acquisition.md).
+Keep downloads/imports disabled until storage and title ownership are configured.
+The acquisition test suite uses disposable generated media and loopback peers;
+it does not use the household's indexers or download real releases.

@@ -25,7 +25,12 @@ Use these terms consistently in code, API fields and documentation.
 | Manager | Movie/series module that tracks wanted media and coordinates acquisition and import. |
 | Indexer | Configured source/API searched for downloadable releases. |
 | Media release | Download candidate returned by an indexer. Distinct from an Oxevu software release. |
-| Download job | Tracked transfer, later handled by the BitTorrent module. |
+| Download job | Durable transfer intent with engine statistics, selected files and independent import/seeding state. |
+| Wanted unit | Movie or numbered episode selected by monitoring or approved requests, independently of whether a file exists. |
+| Acquisition profile | Release acceptance rules for resolution, size, codecs, source, language, HDR and seeders; separate from player quality. |
+| Coverage claim | Reservation of a wanted movie/episode by one automatic transfer, preventing competing packs from queuing it twice. |
+| Torznab | Indexer protocol for capabilities, search results, feeds and authenticated torrent retrieval. |
+| Adoption | Verified copy of another client's torrent files into managed download storage, followed by piece rechecking. Originals stay separate. |
 | Import | Deliberate placement of completed media into a library root, using configured copy/hardlink rules. |
 | Seeding | Uploading torrent data to peers after or during download; source files may need to remain. |
 | Infohash | Hash identifying torrent metadata; used to deduplicate transfers, independently of media-provider IDs. |

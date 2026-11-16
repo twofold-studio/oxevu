@@ -45,7 +45,12 @@ Create directories when they contain working code. The mobile folder is reserved
 
 ## Boundaries and data
 
-HTTP handlers validate input, authorize the caller and invoke domain operations. Domain modules do not depend on HTTP request types. Storage owns queries; playback owns child processes and temporary files. Future requests, management, indexer and torrent modules call explicit internal interfaces rather than making HTTP calls back into this service.
+HTTP handlers validate input, authorize the caller and invoke domain operations.
+Storage owns queries; playback owns child processes and temporary files.
+`acquisition/` shares durable requests, wanted units, profiles, indexers, transfers
+and import journals. Workers call internal operations rather than HTTP routes.
+SQLite owns transfer intent; engine instances are recreated paused and recheck
+existing pieces. See [acquisition](acquisition.md) for storage and write rules.
 
 Persist users, sessions, library roots, items, media files, tracks, scan jobs and per-user progress. Keep stable item IDs distinct from paths. Probe files with ffprobe. Missing or disconnected roots must not cause a whole library to be treated as deleted. Store database, artwork cache and transcode scratch in separate configured paths.
 

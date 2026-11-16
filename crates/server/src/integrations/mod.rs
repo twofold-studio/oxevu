@@ -2,6 +2,7 @@ use crate::*;
 use serde::{Deserialize, Serialize};
 mod http;
 mod metadata;
+pub(crate) use metadata::tmdb;
 mod opensubtitles;
 mod studios;
 pub(crate) use metadata::{apply, artwork as metadata_artwork, search};
@@ -40,7 +41,7 @@ fn path(a: &App) -> Result<PathBuf> {
         .ok_or_else(|| bad("data directory unavailable"))?
         .join("integrations.json"))
 }
-pub(super) async fn load(a: &App) -> Result<Config> {
+pub(crate) async fn load(a: &App) -> Result<Config> {
     match tokio::fs::read(path(a)?).await {
         Ok(bytes) => {
             serde_json::from_slice(&bytes).map_err(|_| bad("invalid integration configuration"))
@@ -143,10 +144,10 @@ pub(crate) async fn put(
     result?;
     Ok(Json(response(&c)))
 }
-pub(super) fn client() -> Result<reqwest::Client> {
+pub(crate) fn client() -> Result<reqwest::Client> {
     http::client().map_err(|_| bad("HTTP client unavailable"))
 }
-pub(super) async fn bytes(mut response: reqwest::Response, limit: usize) -> Result<Vec<u8>> {
+pub(crate) async fn bytes(mut response: reqwest::Response, limit: usize) -> Result<Vec<u8>> {
     if !response.status().is_success() {
         return Err(bad(format!(
             "provider returned HTTP {}",

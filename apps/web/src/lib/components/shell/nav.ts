@@ -3,6 +3,10 @@ import FilmIcon from "@lucide/svelte/icons/film";
 import TvIcon from "@lucide/svelte/icons/tv";
 import UsersRoundIcon from "@lucide/svelte/icons/users-round";
 import SettingsIcon from "@lucide/svelte/icons/settings";
+import CompassIcon from "@lucide/svelte/icons/compass";
+import InboxIcon from "@lucide/svelte/icons/inbox";
+import ListChecksIcon from "@lucide/svelte/icons/list-checks";
+import DownloadIcon from "@lucide/svelte/icons/download";
 import type { Component } from "svelte";
 import type { User } from "$lib/api/types";
 import { canJoinParties } from "$lib/state/access";
@@ -48,7 +52,35 @@ const settings: NavItem = {
 
 /** Role-aware hints; the server still authorizes every page's requests. */
 export function browseNav(user: User | null): NavItem[] {
-  return canJoinParties(user) ? [home, movies, shows, parties] : [home, movies, shows];
+  const items = [home, movies, shows];
+  items.push({
+    label: "Discover",
+    href: href.discover(),
+    icon: CompassIcon,
+    active: (r) => r.name === "discover" || r.name === "discover-title",
+  });
+  items.push({
+    label: "Requests",
+    href: href.requests(),
+    icon: InboxIcon,
+    active: (r) => r.name === "requests",
+  });
+  if (user?.is_admin || user?.acquisition?.manage_requests || user?.acquisition?.manage_downloads)
+    items.push({
+      label: "Wanted",
+      href: href.wanted(),
+      icon: ListChecksIcon,
+      active: (r) => r.name === "wanted",
+    });
+  if (user?.is_admin || user?.acquisition?.manage_downloads)
+    items.push({
+      label: "Activity",
+      href: href.activity(),
+      icon: DownloadIcon,
+      active: (r) => r.name === "activity",
+    });
+  if (canJoinParties(user)) items.push(parties);
+  return items;
 }
 
 export const manageNav: NavItem[] = [settings];

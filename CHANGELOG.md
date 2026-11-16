@@ -17,10 +17,23 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Native acquisition: TMDB discovery, scoped household requests and approvals,
+  wanted movies/episodes, multi-user quotas/permissions, Torznab search and feeds,
+  acquisition profiles and an embedded BitTorrent queue. Includes selective
+  transfers, pause/retry/restart rechecking, speed/storage/seeding limits and
+  per-episode reservations across overlapping requests and packs.
+- Reviewed and configured automatic library imports with hardlinks or verified
+  cross-filesystem copies, no-overwrite publication and recovery journals.
+  Added Discover, Requests, Wanted, Activity and Acquisition settings screens.
+  Downloads and library writes start disabled; existing services stay in place.
+- Previewed Radarr/Sonarr/Seerr export migration with explicit identity, profile
+  and requester mappings, plus copy-and-recheck adoption of existing torrent
+  data. Originals are retained; imported monitoring starts with automation off.
+
 - Opt-in torrent acceptance harness with generated loopback fixtures: private
   v1 transfer, selective files, pause, persistence across downloader processes,
   seeding accounting, public magnet retrieval, duplicate detection and cleanup.
-  No application download queue yet. Added CMake to the development shell for
+  Added CMake to the development shell for
   the engine's native TLS dependency.
 
 - Directional seek feedback near the video edges, off-center volume feedback,

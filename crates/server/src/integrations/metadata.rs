@@ -5,7 +5,7 @@ pub(crate) struct Search {
     provider: String,
     query: String,
 }
-async fn tmdb(c: &Config, route: &str, query: &[(&str, String)]) -> Result<Value> {
+pub(crate) async fn tmdb(c: &Config, route: &str, query: &[(&str, String)]) -> Result<Value> {
     if !c.tmdb.enabled || c.tmdb.api_key.is_empty() {
         return Err(bad("TMDB requires an enabled application API key"));
     }

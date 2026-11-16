@@ -9,6 +9,7 @@ const ARTWORK_PREFIX = `${API_BASE}/items/`;
  * third party or send the session cookie somewhere unexpected.
  */
 export function artworkSrc(url: string | null | undefined): string | null {
+  if (url && /^\/api\/v1\/acquisition\/artwork\/[a-zA-Z0-9]+\.jpg$/.test(url)) return url;
   if (!url || !url.startsWith(ARTWORK_PREFIX) || !url.includes("/artwork/")) return null;
   return url;
 }

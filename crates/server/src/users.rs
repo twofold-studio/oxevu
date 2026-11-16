@@ -13,8 +13,9 @@ pub(crate) async fn profile(a: &App, id: &str) -> Result<Value> {
             .fetch_all(&a.pool)
             .await
             .map_err(db)?;
+    let acquisition = crate::acquisition::permissions(a, id).await?;
     Ok(
-        json!({"id":id,"username":r.get::<String,_>("username"),"is_admin":r.get::<bool,_>("is_admin"),"disabled":r.get::<bool,_>("disabled"),"can_play":r.get::<bool,_>("can_play"),"can_transcode":r.get::<bool,_>("can_transcode"),"syncplay_access":r.get::<String,_>("syncplay_access"),"all_libraries":r.get::<bool,_>("all_libraries"),"library_ids":grants}),
+        json!({"id":id,"username":r.get::<String,_>("username"),"is_admin":r.get::<bool,_>("is_admin"),"disabled":r.get::<bool,_>("disabled"),"can_play":r.get::<bool,_>("can_play"),"can_transcode":r.get::<bool,_>("can_transcode"),"syncplay_access":r.get::<String,_>("syncplay_access"),"all_libraries":r.get::<bool,_>("all_libraries"),"library_ids":grants,"acquisition":acquisition}),
     )
 }
 pub(crate) async fn admin(a: &App, h: &HeaderMap) -> Result<Value> {

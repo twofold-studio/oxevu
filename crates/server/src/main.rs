@@ -10,6 +10,7 @@ use serde_json::{Value, json};
 use sqlx::{Row, SqlitePool};
 use std::{path::PathBuf, sync::Arc};
 use tokio::sync::Semaphore;
+mod acquisition;
 mod artwork;
 mod assets;
 mod auth;
@@ -18,6 +19,7 @@ mod episode_title;
 mod integrations;
 mod libraries;
 mod library_paths;
+mod media_probe;
 mod parties;
 mod playback;
 mod scan;
@@ -52,6 +54,7 @@ struct App {
     artwork_cache: PathBuf,
     playback: Arc<playback::Runtime>,
     parties: Arc<parties::Store>,
+    acquisition: Arc<acquisition::Runtime>,
 }
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -71,6 +74,12 @@ async fn main() -> anyhow::Result<()> {
         )
         .await?;
     sqlx::migrate!().run(&pool).await?;
+    use std::os::unix::fs::PermissionsExt;
+    tokio::fs::set_permissions(
+        dir.join("oxevu.sqlite"),
+        std::fs::Permissions::from_mode(0o600),
+    )
+    .await?;
     let token = uuid::Uuid::new_v4().to_string();
     use std::os::unix::fs::OpenOptionsExt;
     let mut f = std::fs::OpenOptions::new()
@@ -95,6 +104,7 @@ async fn main() -> anyhow::Result<()> {
         .await
         .map_err(|e| anyhow::anyhow!("{}", e.1.0))?;
     let app = App {
+        acquisition: acquisition::Runtime::new(dir.clone()),
         pool,
         parties: Arc::new(parties::Store::default()),
         playback,
@@ -106,8 +116,13 @@ async fn main() -> anyhow::Result<()> {
     };
     let reaper = tokio::spawn(playback::reap(app.clone()));
     let party_reaper = tokio::spawn(parties::reap(app.clone()));
+    let acquisition_worker = tokio::spawn(acquisition::run(app.clone()));
+    let monitor_worker = tokio::spawn(acquisition::monitor(app.clone()));
+    let import_worker = tokio::spawn(acquisition::import_worker(app.clone()));
     let shutdown_runtime = app.playback.clone();
+    let acquisition_runtime = app.acquisition.clone();
     let api = Router::new()
+        .merge(acquisition::routes())
         .merge(parties::routes())
         .route("/playback/capabilities", get(playback::capabilities))
         .route("/playback/sessions", post(playback::create))
@@ -182,10 +197,17 @@ async fn main() -> anyhow::Result<()> {
             #[cfg(not(unix))]
             let _ = tokio::signal::ctrl_c().await;
             signal_runtime.shutdown().await;
+            acquisition_runtime.shutdown().await;
         })
         .await?;
     reaper.abort();
     party_reaper.abort();
+    acquisition_worker.abort();
+    monitor_worker.abort();
+    import_worker.abort();
+    let _ = import_worker.await;
+    let _ = monitor_worker.await;
+    let _ = acquisition_worker.await;
     shutdown_runtime.shutdown().await;
     Ok(())
 }
