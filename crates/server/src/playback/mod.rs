@@ -41,11 +41,16 @@ pub(crate) async fn create(
         .fetch_one(&a.pool)
         .await
         .map_err(db)?;
+    let data: Value = serde_json::from_str(row.get("data")).map_err(bad)?;
+    if data["file_available"] == false {
+        return Err(bad(
+            "This title has no local media. Find a release to download it again.",
+        ));
+    }
     let path = tokio::fs::canonicalize(row.get::<String, _>("path"))
         .await
         .map_err(|_| bad("source unavailable"))?;
     libraries::item_root(&a, &item, &path).await?;
-    let data: Value = serde_json::from_str(row.get("data")).map_err(bad)?;
     let duration = data["duration_seconds"].as_f64();
     if duration.is_some_and(|d| start >= d) {
         return Err(bad("start offset exceeds duration"));
@@ -96,6 +101,14 @@ pub(crate) async fn create(
         cache::ranges(&a, &path, method, &settings).await
     });
     let mut sessions = a.playback.sessions.lock().await;
+    let present:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM items WHERE id=? AND COALESCE(json_extract(data,'$.file_available'),1)!=0)").bind(&item).fetch_one(&a.pool).await.map_err(db)?;
+    if !present {
+        drop(sessions);
+        if cached.is_some() {
+            let _ = tokio::fs::remove_dir_all(a.playback.scratch.join(&id)).await;
+        }
+        return Err(bad("This title no longer has local media."));
+    }
     if a.playback
         .shutting_down
         .load(std::sync::atomic::Ordering::SeqCst)

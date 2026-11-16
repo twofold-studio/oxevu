@@ -96,7 +96,17 @@ async fn for_download(a: &App, row: &sqlx::sqlite::SqliteRow) -> Result<()> {
             unit["wanted"] = json!(true);
         }
     }
-    let mappings = mappings(&data, &title, &units)?;
+    let mut mappings = mappings(&data, &title, &units)?;
+    if data["reimport_requested"] != true {
+        let imported: Vec<i64> = sqlx::query_scalar(
+            "SELECT file_index FROM acquisition_imports WHERE download_id=? AND state='scanned'",
+        )
+        .bind(row.get::<String, _>("id"))
+        .fetch_all(&a.pool)
+        .await
+        .map_err(db)?;
+        mappings.retain(|m| !imported.contains(&(m.file_index as i64)));
+    }
     if mappings.is_empty() {
         let imported: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM acquisition_imports WHERE download_id=? AND state='scanned')")
             .bind(row.get::<String, _>("id")).fetch_one(&a.pool).await.map_err(db)?;

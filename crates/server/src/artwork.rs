@@ -92,7 +92,6 @@ pub(super) async fn attach(
 async fn generate(a: &App, path: &FilePath, root: &FilePath, id: &str) -> Result<PathBuf> {
     let _permit = a.artwork_jobs.acquire().await.map_err(bad)?;
     let root = tokio::fs::canonicalize(root).await.map_err(bad)?;
-    let source = contained(path, &root).await.ok_or_else(missing)?;
     tokio::fs::create_dir_all(&a.artwork_cache)
         .await
         .map_err(bad)?;
@@ -100,6 +99,7 @@ async fn generate(a: &App, path: &FilePath, root: &FilePath, id: &str) -> Result
     if tokio::fs::try_exists(&destination).await.map_err(bad)? {
         return Ok(destination);
     }
+    let source = contained(path, &root).await.ok_or_else(missing)?;
     let temporary = a
         .artwork_cache
         .join(format!("{}.jpg", uuid::Uuid::new_v4()));
@@ -143,10 +143,24 @@ pub(super) async fn serve(
     if !matches!(kind.as_str(), "poster" | "thumbnail" | "backdrop") {
         return Err(missing());
     }
-    let row = sqlx::query("SELECT items.path,libraries.path root,libraries.kind FROM items JOIN libraries ON library_id=libraries.id WHERE items.id=?")
+    let row = sqlx::query("SELECT items.path,items.library_id,items.data,libraries.path root,libraries.kind FROM items JOIN libraries ON library_id=libraries.id WHERE items.id=?")
         .bind(&id).fetch_optional(&a.pool).await.map_err(db)?.ok_or_else(missing)?;
     let path = PathBuf::from(row.get::<String, _>("path"));
-    let root = libraries::item_root(&a, &id, &path).await?;
+    let data: Value = serde_json::from_str(row.get("data")).map_err(bad)?;
+    let root = if data["file_available"] == false {
+        let mut found = None;
+        for root in libraries::roots(&a, &row.get::<String, _>("library_id")).await? {
+            if let Ok(root) = tokio::fs::canonicalize(root).await {
+                if path.starts_with(&root) {
+                    found = Some(root);
+                    break;
+                }
+            }
+        }
+        found.ok_or_else(missing)?
+    } else {
+        libraries::item_root(&a, &id, &path).await?
+    };
     let image = match discover(&path, &root, row.get::<String, _>("kind") == "tv", &kind).await {
         Some(image) => image,
         None if kind == "thumbnail" => generate(&a, &path, &root, &id).await?,

@@ -66,6 +66,48 @@ export const librariesApi = {
     request<ScanResult>(`/libraries/${id(libraryId)}/scan`, { method: "POST" }),
 };
 
+// --- Media removal types ---------------------------------------------------
+
+export interface RemovalPreviewItem {
+  id: string;
+  title: string;
+  size_bytes: number | null;
+  local_file: boolean;
+  shared_links: number;
+}
+
+export interface RemovalPreview {
+  token: string;
+  count: number;
+  keep_metadata: boolean;
+  bytes_selected: number;
+  shared_files_count: number;
+  items: RemovalPreviewItem[];
+  notice: string;
+}
+
+export interface RemovalResult {
+  deleted_files?: number;
+  removed_ids: string[];
+  kept_metadata: boolean;
+  failures: { id: string; message: string }[];
+  bytes_freed_estimate: number;
+  shared_files_count: number;
+}
+
+export const removalApi = {
+  preview: (item_ids: string[], keep_metadata: boolean) =>
+    request<RemovalPreview>("/library/removals/preview", {
+      method: "POST",
+      body: { item_ids, keep_metadata },
+    }),
+  remove: (item_ids: string[], keep_metadata: boolean, token: string) =>
+    request<RemovalResult>("/library/removals", {
+      method: "POST",
+      body: { item_ids, keep_metadata, token, confirm: true },
+    }),
+};
+
 export const itemsApi = {
   favorite: (itemId: string, favorite: boolean) =>
     request<void>(`/items/${id(itemId)}/favorite`, { method: "PUT", body: { favorite } }),
@@ -75,6 +117,8 @@ export const itemsApi = {
     request<void>(`/items/${id(itemId)}/progress`, { method: "PUT", body, keepalive }),
   /** Byte-range original file. The session cookie authorizes the <video> request. */
   streamUrl: (itemId: string) => `${API_BASE}/items/${id(itemId)}/stream`,
+  reaction: (itemId: string, value: "like" | "dislike" | null) =>
+    request<{ value: "like" | "dislike" | null }>(`/items/${id(itemId)}/reaction`, { method: "PUT", body: { value } }),
 };
 
 export const usersApi = {

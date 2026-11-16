@@ -98,6 +98,11 @@ pub(super) async fn enqueue(a: &App, mut v: Input) -> Result<String> {
     let existing:Option<String>=sqlx::query_scalar("SELECT id FROM acquisition_downloads WHERE (infohash=? OR release_id=?) AND state!='removed' LIMIT 1")
         .bind(&hash).bind(&v.release_id).fetch_optional(&mut *tx).await.map_err(db)?;
     if let Some(id) = existing {
+        if !v.only_wanted {
+            sqlx::query("UPDATE acquisition_downloads SET data=json_set(data,'$.reimport_requested',json('true')) WHERE id=? AND EXISTS(SELECT 1 FROM acquisition_imports WHERE download_id=? AND state='scanned')")
+                .bind(&id).bind(&id).execute(&mut *tx).await.map_err(db)?;
+            tx.commit().await.map_err(db)?;
+        }
         return Ok(id);
     }
     let mut coverage = Vec::new();

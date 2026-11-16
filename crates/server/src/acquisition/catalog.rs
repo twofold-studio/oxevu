@@ -204,7 +204,10 @@ pub(super) fn matches_item(title: &Value, item: &Value) -> bool {
     let id = provider
         .as_u64()
         .or_else(|| provider.as_str()?.parse().ok());
-    kind == title["kind"] && id.is_some() && id == title["provider_id"].as_u64()
+    item["file_available"] != false
+        && kind == title["kind"]
+        && id.is_some()
+        && id == title["provider_id"].as_u64()
 }
 
 pub(super) async fn availability(a: &App, title: &Value, local: &[Value]) -> Result<Value> {

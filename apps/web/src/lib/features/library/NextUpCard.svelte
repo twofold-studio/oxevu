@@ -8,6 +8,7 @@
   import { resumePosition, watchedFraction } from "$lib/media/progress";
   import Artwork from "$lib/components/Artwork.svelte";
   import ProgressLine from "./ProgressLine.svelte";
+  import { fileAvailable } from "$lib/state/catalog.svelte";
 
   // Details and playback have separate links so keyboard users can choose either.
   let { item }: { item: Item } = $props();
@@ -20,6 +21,7 @@
       ? `${formatRuntime(item.duration_seconds - resume) ?? "<1m"} left`
       : formatRuntime(item.duration_seconds),
   );
+  const hasFile = $derived(fileAvailable(item));
 </script>
 
 <div
@@ -41,13 +43,15 @@
       {/snippet}
     </Artwork>
     </a>
-    <a
-      href={href.watch(item.id)}
-      aria-label={`${resume !== null ? "Resume" : "Play"} ${caption}`}
-      class="press absolute right-3 bottom-3 flex size-12 items-center justify-center rounded-full bg-foreground text-background shadow-lg transition-transform duration-180 hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring motion-reduce:transform-none"
-    >
-      <PlayIcon class="size-4 fill-current" />
-    </a>
+    {#if hasFile}
+      <a
+        href={href.watch(item.id)}
+        aria-label={`${resume !== null ? "Resume" : "Play"} ${caption}`}
+        class="press absolute right-3 bottom-3 flex size-12 items-center justify-center rounded-full bg-foreground text-background shadow-lg transition-transform duration-180 hover:scale-110 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring motion-reduce:transform-none"
+      >
+        <PlayIcon class="size-4 fill-current" />
+      </a>
+    {/if}
     {#if fraction !== null && !item.completed}
       <ProgressLine value={fraction} class="absolute inset-x-0 bottom-0 h-1 bg-background/60" />
     {/if}

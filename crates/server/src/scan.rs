@@ -127,6 +127,8 @@ pub(crate) async fn scan_library(a: App, id: String) -> Result<Json<Value>> {
                 .and_then(|t| t.iter().find(|v| v["codec_type"] == "video"))
                 .and_then(|v| v["color_transfer"].as_str());
             data["color_transfer"] = json!(transfer);
+            data["file_available"] = json!(true);
+            data["file_removed_at"] = Value::Null;
             media_probe::attach_facts(&mut data, &meta);
             data["hdr"] = json!(tracks.is_some_and(|t| t.iter().any(|v| {
                 matches!(
@@ -146,7 +148,7 @@ pub(crate) async fn scan_library(a: App, id: String) -> Result<Json<Value>> {
         }
     }
     // Only remove genuinely missing files beneath roots that were online for this scan.
-    let rows = sqlx::query("SELECT id,path FROM items WHERE library_id=?")
+    let rows = sqlx::query("SELECT id,path FROM items WHERE library_id=? AND COALESCE(json_extract(data,'$.file_available'),1)!=0")
         .bind(&id)
         .fetch_all(&a.pool)
         .await

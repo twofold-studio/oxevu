@@ -93,6 +93,12 @@ export interface Item extends MetadataFields {
   poster_url?: string | null;
   thumbnail_url?: string | null;
   backdrop_url?: string | null;
+  /** Whether the local media file exists. Missing means true (older servers). */
+  file_available?: boolean;
+  /** Unix seconds when the file was removed; null if not removed. */
+  file_removed_at?: number | null;
+  /** Per-user opinion: like, dislike, or null (no opinion). */
+  reaction?: "like" | "dislike" | null;
 }
 
 export type ArtworkKind = "poster" | "thumbnail" | "backdrop";

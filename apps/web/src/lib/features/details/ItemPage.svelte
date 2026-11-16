@@ -6,6 +6,9 @@
   import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
   import CheckIcon from "@lucide/svelte/icons/check";
   import UsersRoundIcon from "@lucide/svelte/icons/users-round";
+  import Trash2Icon from "@lucide/svelte/icons/trash-2";
+  import HardDriveOffIcon from "@lucide/svelte/icons/hard-drive";
+  import { Badge } from "$lib/components/ui/badge";
   import { Button } from "$lib/components/ui/button";
   import { Skeleton } from "$lib/components/ui/skeleton";
   import * as Alert from "$lib/components/ui/alert";
@@ -13,10 +16,12 @@
   import DetailLayout from "$lib/components/DetailLayout.svelte";
   import NotFound from "$lib/components/NotFound.svelte";
   import { itemsApi } from "$lib/api/endpoints";
+  import type { RemovalResult } from "$lib/api/endpoints";
   import { ApiError, errorMessage } from "$lib/api/client";
   import type { Item } from "$lib/api/types";
   import { catalog } from "$lib/state/catalog.svelte";
-  import { href } from "$lib/state/router.svelte";
+  import { fileAvailable } from "$lib/state/catalog.svelte";
+  import { href, router } from "$lib/state/router.svelte";
   import { formatClock, formatRuntime } from "$lib/media/format";
   import { episodeNumberLabel, seasonKeyOf } from "$lib/media/grouping";
   import { resumePosition, watchedFraction } from "$lib/media/progress";
@@ -31,9 +36,12 @@
   import HistoryIcon from "@lucide/svelte/icons/history";
   import FileFacts from "./FileFacts.svelte";
   import PlaybackNotice from "./PlaybackNotice.svelte";
+  import ReactionControls from "./ReactionControls.svelte";
+  import FindAgainLink from "./FindAgainLink.svelte";
+  import RemovalDialog from "./RemovalDialog.svelte";
   import CreatePartyDialog from "$lib/features/party/CreatePartyDialog.svelte";
   import { session } from "$lib/state/session.svelte";
-  import { canCreateParties } from "$lib/state/access";
+  import { canCreateParties, isAdmin, canManageDownloads } from "$lib/state/access";
 
   let { id }: { id: string } = $props();
 
@@ -72,6 +80,10 @@
   const resume = $derived(item ? resumePosition(item) : null);
   const fraction = $derived(item ? watchedFraction(item) : null);
 
+  const hasFile = $derived(item ? fileAvailable(item) : true);
+  const admin = $derived(isAdmin(session.user));
+  const canDownload = $derived(canManageDownloads(session.user));
+
   // Neighbouring episodes within the same series, in season/episode order.
   const siblings = $derived.by(() => {
     if (!item || item.kind !== "episode") return null;
@@ -84,9 +96,19 @@
 
   let partyOpen = $state(false);
   let partyOpening = $state(0);
-  const canParty = $derived(canCreateParties(session.user));
+  const canParty = $derived(canCreateParties(session.user) && hasFile);
+
+  let removalOpen = $state(false);
 
   const episodeLine = $derived(item?.kind === "episode" ? episodeNumberLabel(item) : null);
+
+  function handleRemoved(r: RemovalResult) {
+    if (!r.kept_metadata && !r.failures.length && r.removed_ids.includes(id)) {
+      router.go(href.home());
+    } else {
+      fetched = catalog.find(id) ?? fetched;
+    }
+  }
 </script>
 
 {#if item}
@@ -142,16 +164,27 @@
           <ProgressLine value={fraction} class="max-w-md rounded-full" />
         {/if}
 
+        {#if !hasFile}
+          <div class="flex items-center gap-2">
+            <Badge variant="outline">
+              <HardDriveOffIcon data-icon="inline-start" />
+              No local file
+            </Badge>
+          </div>
+        {/if}
+
         <div class="flex flex-wrap gap-2">
-          <Button href={href.watch(item.id)} size="lg">
-            <PlayIcon data-icon="inline-start" />
-            {resume !== null ? `Resume from ${formatClock(resume)}` : item.completed ? "Play again" : "Play"}
-          </Button>
-          {#if resume !== null}
-            <Button href={href.watch(item.id, true)} size="lg" variant="outline">
-              <RotateCcwIcon data-icon="inline-start" />
-              Start over
+          {#if hasFile}
+            <Button href={href.watch(item.id)} size="lg">
+              <PlayIcon data-icon="inline-start" />
+              {resume !== null ? `Resume from ${formatClock(resume)}` : item.completed ? "Play again" : "Play"}
             </Button>
+            {#if resume !== null}
+              <Button href={href.watch(item.id, true)} size="lg" variant="outline">
+                <RotateCcwIcon data-icon="inline-start" />
+                Start over
+              </Button>
+            {/if}
           {/if}
           <IdentifyButton {item} onsaved={(updated) => (fetched = updated)} />
           {#if canParty}
@@ -167,7 +200,19 @@
               Watch together
             </Button>
           {/if}
+          {#if admin}
+            <Button
+              size="lg"
+              variant="outline"
+              onclick={() => (removalOpen = true)}
+            >
+              <Trash2Icon data-icon="inline-start" />
+              Remove
+            </Button>
+          {/if}
         </div>
+
+        <ReactionControls {item} />
 
         <MetadataDetails {item} />
 
@@ -177,6 +222,10 @@
           <Alert.Root>
             <Alert.Description>Showing saved details. Refresh failed: {error.message}</Alert.Description>
           </Alert.Root>
+        {/if}
+
+        {#if !hasFile && canDownload}
+          <FindAgainLink {item} />
         {/if}
 
         {#if siblings && (siblings.previous || siblings.next)}
@@ -212,9 +261,12 @@
     </div>
 
     <div class="max-w-xl">
-      <FileFacts {item} />
+      {#if hasFile}<FileFacts {item} />{/if}
     </div>
   </DetailLayout>
+  {#if admin}
+    <RemovalDialog bind:open={removalOpen} itemIds={[item.id]} label={item.title} onremoved={handleRemoved} />
+  {/if}
   {#key partyOpening}
     {#if partyOpening > 0}<CreatePartyDialog bind:open={partyOpen} itemId={item.id} />{/if}
   {/key}

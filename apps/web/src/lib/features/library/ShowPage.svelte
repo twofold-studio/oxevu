@@ -1,12 +1,18 @@
 <script lang="ts">
   import PlayIcon from "@lucide/svelte/icons/play";
+  import TrashIcon from "@lucide/svelte/icons/trash-2";
   import { Button } from "$lib/components/ui/button";
   import { Skeleton } from "$lib/components/ui/skeleton";
   import Page from "$lib/components/Page.svelte";
   import CatalogGate from "$lib/components/CatalogGate.svelte";
   import NotFound from "$lib/components/NotFound.svelte";
   import DetailLayout from "$lib/components/DetailLayout.svelte";
-  import { catalog } from "$lib/state/catalog.svelte";
+  import { catalog, fileAvailable } from "$lib/state/catalog.svelte";
+  import { session } from "$lib/state/session.svelte";
+  import { isAdmin, canManageDownloads } from "$lib/state/access";
+  import RemovalDialog from "$lib/features/details/RemovalDialog.svelte";
+  import FindAgainLink from "$lib/features/details/FindAgainLink.svelte";
+  import type { RemovalResult } from "$lib/api/endpoints";
   import { href, router } from "$lib/state/router.svelte";
   import { episodeName, seasonKey, seasonLabel } from "$lib/media/grouping";
   import { plural } from "$lib/media/format";
@@ -38,9 +44,16 @@
   });
 
   // What "Play" means for a series: the episode in progress, else the next unwatched.
-  const target = $derived(selectedSeason
-    ? (selectedSeason.episodes.find((entry) => entry.position_seconds > 0 && !entry.completed) ?? selectedSeason.episodes.find((entry) => !entry.completed) ?? selectedSeason.episodes[0])
-    : show ? (show.inProgress[0] ?? show.next) : undefined);
+  const episodes = $derived(selectedSeason?.episodes ?? show?.seasons.flatMap((s) => s.episodes) ?? []);
+  const target = $derived(episodes.find((e) => e.position_seconds > 0 && !e.completed && fileAvailable(e)) ?? episodes.find((e) => !e.completed && fileAvailable(e)) ?? episodes.find(fileAvailable) ?? episodes[0]);
+  const targetPlayable = $derived(target ? fileAvailable(target) : false);
+  const admin = $derived(isAdmin(session.user));
+  let removalOpen = $state(false);
+  const removalIds = $derived(episodes.map((e) => e.id));
+  const removalLabel = $derived(`${show?.title ?? "Series"}${selectedSeason ? ` · ${seasonLabel(selectedSeason.number)}` : ""}`);
+  function handleRemoved(result: RemovalResult) {
+    if (!result.kept_metadata && !result.failures.length) router.go(href.home());
+  }
   const resuming = $derived(target ? resumePosition(target) !== null : false);
   const watched = $derived(show ? show.seasons.reduce((n, s) => n + s.episodes.filter((e) => e.completed).length, 0) : 0);
 
@@ -72,7 +85,7 @@
       <PosterArt src={poster} title={show.title} />
     {/snippet}
     {#snippet nextUp()}
-      {#if target}
+      {#if target && targetPlayable}
         <section aria-labelledby="next-up" class="flex flex-col gap-3">
           <h2 id="next-up" class="text-base font-medium">{resuming ? "Continue watching" : "Next up"}</h2>
           <NextUpCard item={target} />
@@ -132,12 +145,17 @@
         </div>
         {#if target}
           <div class="flex flex-wrap gap-2">
+            {#if targetPlayable}
             <Button href={href.watch(target.id)} size="lg" class="h-auto max-w-full self-start py-3 whitespace-normal">
               <PlayIcon data-icon="inline-start" />
               {resuming ? "Resume" : "Play"}
               {episodeName(target)}
             </Button>
+            {:else if canManageDownloads(session.user)}
+              <FindAgainLink item={target} />
+            {/if}
             <IdentifyButton item={target} />
+            {#if admin}<Button variant="outline" size="lg" onclick={() => (removalOpen = true)}><TrashIcon data-icon="inline-start" />Remove {selectedSeason ? "season" : "series"}</Button>{/if}
           </div>
         {/if}
       </header>
@@ -167,4 +185,5 @@
       {/if}
     </DetailLayout>
   {/if}
+  {#if admin && show}<RemovalDialog bind:open={removalOpen} itemIds={removalIds} label={removalLabel} onremoved={handleRemoved} />{/if}
 </CatalogGate>

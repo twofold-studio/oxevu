@@ -3,6 +3,7 @@
   import { href } from "$lib/state/router.svelte";
   import { formatCodec, formatContainer, formatRuntime } from "$lib/media/format";
   import { watchedFraction } from "$lib/media/progress";
+  import { fileAvailable } from "$lib/state/catalog.svelte";
   import TitlePlate from "./TitlePlate.svelte";
 
   let { item }: { item: Item } = $props();
@@ -20,4 +21,5 @@
   detail={formatRuntime(item.duration_seconds)}
   progress={watchedFraction(item)}
   watched={item.completed}
+  fileRemoved={!fileAvailable(item)}
 />

@@ -7,6 +7,15 @@ pub(crate) async fn catalog(a: &App, h: &HeaderMap) -> Result<Vec<Value>> {
             .fetch_all(&a.pool)
             .await
             .map_err(db)?;
+    let reactions = sqlx::query("SELECT item_id,value FROM item_reactions WHERE user_id=?")
+        .bind(u["id"].as_str())
+        .fetch_all(&a.pool)
+        .await
+        .map_err(db)?;
+    let reactions: std::collections::HashMap<String, String> = reactions
+        .into_iter()
+        .map(|r| (r.get("item_id"), r.get("value")))
+        .collect();
     let rows=sqlx::query("SELECT items.id,items.library_id,data,CAST(COALESCE(position,0.0) AS REAL) position,COALESCE(completed,0) completed FROM items LEFT JOIN progress ON item_id=items.id AND user_id=?").bind(u["id"].as_str()).fetch_all(&a.pool).await.map_err(db)?;
     let mut visible = Vec::new();
     for r in rows {
@@ -61,6 +70,7 @@ pub(crate) async fn catalog(a: &App, h: &HeaderMap) -> Result<Vec<Value>> {
             v["position_seconds"] = json!(r.try_get::<f64, _>("position").map_err(db)?);
             v["completed"] = json!(r.try_get::<bool, _>("completed").map_err(db)?);
             v["favorite"] = json!(favorites.contains(&r.get::<String, _>("id")));
+            v["reaction"] = json!(reactions.get(&r.get::<String, _>("id")));
             Ok(v)
         })
         .collect()
@@ -144,7 +154,7 @@ pub(crate) async fn progress(
             p = 0.;
         }
     }
-    sqlx::query("INSERT INTO progress VALUES(?,?,?,?) ON CONFLICT(user_id,item_id) DO UPDATE SET position=excluded.position,completed=excluded.completed").bind(u["id"].as_str()).bind(id).bind(p).bind(c).execute(&a.pool).await.map_err(db)?;
+    sqlx::query("INSERT INTO progress SELECT ?,id,?,? FROM items WHERE id=? ON CONFLICT(user_id,item_id) DO UPDATE SET position=excluded.position,completed=excluded.completed").bind(u["id"].as_str()).bind(p).bind(c).bind(id).execute(&a.pool).await.map_err(db)?;
     Ok(StatusCode::NO_CONTENT)
 }
 pub(crate) async fn stream(

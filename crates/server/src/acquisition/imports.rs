@@ -147,7 +147,7 @@ pub(super) async fn execute(
         event(a, download, "Media imported; seeding source retained").await?;
     }
     sqlx::query(
-        "UPDATE acquisition_downloads SET data=json_remove(data,'$.import_warning') WHERE id=?",
+        "UPDATE acquisition_downloads SET data=json_remove(data,'$.import_warning','$.reimport_requested') WHERE id=?",
     )
     .bind(download)
     .execute(&a.pool)
@@ -170,6 +170,7 @@ async fn attach(a: &App, id: &str, file: &File) -> Result<()> {
         .await
         .map_err(db)?;
     let title = decode(&raw)?;
+    let item = crate::media_files::restore_identity(a, &item, &title).await?;
     let mut metadata = imported_metadata(&title);
     metadata["episode_coverage"] = json!(file.coverage);
     if let Some(first) = file.coverage.first() {
@@ -197,6 +198,27 @@ async fn attach(a: &App, id: &str, file: &File) -> Result<()> {
         .execute(&a.pool)
         .await
         .map_err(db)?;
+    if file.coverage.is_empty() {
+        sqlx::query(
+            "DELETE FROM acquisition_removed_units WHERE title_id=? AND season=-1 AND episode=-1",
+        )
+        .bind(&file.title_id)
+        .execute(&a.pool)
+        .await
+        .map_err(db)?;
+    } else {
+        for unit in &file.coverage {
+            sqlx::query(
+                "DELETE FROM acquisition_removed_units WHERE title_id=? AND season=? AND episode=?",
+            )
+            .bind(&file.title_id)
+            .bind(unit.season)
+            .bind(unit.episode)
+            .execute(&a.pool)
+            .await
+            .map_err(db)?;
+        }
+    }
     Ok(())
 }
 

@@ -26,7 +26,7 @@
   const certificate = $derived(present(series ? item.show_content_rating : item.content_rating));
   const rating = $derived(override === undefined ? itemRating(item, series) : override);
   const runtime = $derived(series ? null : formatRuntime(item.duration_seconds));
-  const finish = $derived(series ? null : endsAt(item.duration_seconds, resumePosition(item), now()));
+  const finish = $derived(series || item.file_available === false ? null : endsAt(item.duration_seconds, resumePosition(item), now()));
 </script>
 
 <ul aria-label="Details" class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">

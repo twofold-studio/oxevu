@@ -4,6 +4,9 @@ import type { Item } from "$lib/api/types";
 import { groupShows, showKey, type Show } from "$lib/media/grouping";
 import { findShow } from "$lib/media/show-slug";
 
+/** True when the item's local file is present (or the field is missing on older servers). */
+export const fileAvailable = (item: Item): boolean => item.file_available !== false;
+
 // One shared copy of the item list. Phase one returns every playable item in a
 // single response, so browsing, search and grouping derive from it locally.
 class Catalog {
@@ -19,7 +22,11 @@ class Catalog {
       ),
   );
   shows = $derived(groupShows(this.items));
-  inProgress = $derived(this.items.filter((item) => item.position_seconds > 0 && !item.completed));
+  inProgress = $derived(
+    this.items.filter(
+      (item) => item.position_seconds > 0 && !item.completed && fileAvailable(item),
+    ),
+  );
 
   private pending: Promise<void> | null = null;
 

@@ -33,6 +33,16 @@ pub(super) async fn units(a: &App, title: &Value, items: &[Value]) -> Result<Vec
     let raw:Vec<String>=sqlx::query_scalar("SELECT scope FROM acquisition_requests WHERE title_id=? AND status IN ('approved','fulfilled')")
         .bind(id).fetch_all(&a.pool).await.map_err(db)?;
     let mut scopes = Vec::new();
+    let removed =
+        sqlx::query("SELECT season,episode FROM acquisition_removed_units WHERE title_id=?")
+            .bind(id)
+            .fetch_all(&a.pool)
+            .await
+            .map_err(db)?;
+    let removed: std::collections::HashSet<(i64, i64)> = removed
+        .iter()
+        .map(|r| (r.get("season"), r.get("episode")))
+        .collect();
     for raw in raw {
         scopes.push(serde_json::from_str::<Scope>(&raw).map_err(|_| bad("invalid wanted scope"))?);
     }
@@ -53,7 +63,7 @@ pub(super) async fn units(a: &App, title: &Value, items: &[Value]) -> Result<Vec
     if title["kind"] == "movie" {
         return Ok(vec![
             json!({"season":null,"episode":null,"name":title["title"],"air_date":title["release_date"],
-            "wanted":!scopes.is_empty(),"available":items.iter().any(|i|i["online"]==true),"offline":items.iter().any(|i|i["online"]!=true),
+            "wanted":!scopes.is_empty()&&!removed.contains(&(-1,-1)),"available":items.iter().any(|i|i["online"]==true),"offline":items.iter().any(|i|i["online"]!=true),
             "item_id":items.iter().find(|i|i["online"]==true).map(|i|&i["id"])}),
         ]);
     }
@@ -68,7 +78,7 @@ pub(super) async fn units(a: &App, title: &Value, items: &[Value]) -> Result<Vec
             .iter()
             .find(|i| i["online"] == true && covers(i, season, episode));
         units.push(json!({"season":season,"episode":episode,"name":info["name"],"air_date":date,
-            "wanted":scopes.iter().any(|s|s.covers(season,episode,date.as_deref())),"available":available.is_some(),
+            "wanted":!removed.contains(&(season as i64,episode as i64))&&scopes.iter().any(|s|s.covers(season,episode,date.as_deref())),"available":available.is_some(),
             "offline":items.iter().any(|i|i["online"]!=true && covers(i,season,episode)),"item_id":available.map(|i|&i["id"])}));
     }
     Ok(units)

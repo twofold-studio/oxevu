@@ -12,5 +12,8 @@ export const canJoinParties = (user: Access) =>
 
 export const canCreateParties = (user: Access) => user?.syncplay_access === "create_join";
 
+export const canManageDownloads = (user: Access) =>
+  user?.is_admin === true || user?.acquisition?.manage_downloads === true;
+
 // Settings page permissions live beside the page catalog.
 export { canOpenSettingsPage, settingsNavFor } from "./settings-pages";

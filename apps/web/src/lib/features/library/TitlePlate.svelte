@@ -1,5 +1,6 @@
 <script lang="ts">
   import CheckIcon from "@lucide/svelte/icons/check";
+  import HardDriveOffIcon from "@lucide/svelte/icons/hard-drive";
   import Artwork from "$lib/components/Artwork.svelte";
   import { cn } from "$lib/utils";
   import ProgressLine from "./ProgressLine.svelte";
@@ -15,6 +16,7 @@
     detail,
     progress = null,
     watched = false,
+    fileRemoved = false,
   }: {
     href: string;
     title: string;
@@ -23,6 +25,8 @@
     detail?: string | null;
     progress?: number | null;
     watched?: boolean;
+    /** True when the item's local file has been removed. */
+    fileRemoved?: boolean;
   } = $props();
 
   const size = $derived(
@@ -62,6 +66,14 @@
           </div>
         {/snippet}
       </Artwork>
+      {#if fileRemoved}
+        <span
+          class="absolute top-2 left-2 flex items-center gap-1 rounded-md bg-background/80 px-1.5 py-0.5 text-[0.7rem] text-muted-foreground backdrop-blur-sm"
+        >
+          <HardDriveOffIcon class="size-3" />
+          No local file
+        </span>
+      {/if}
       {#if watched}
         <span
           class="absolute top-2 right-2 flex items-center gap-1 rounded-md bg-background/80 px-1.5 py-0.5 text-[0.7rem] text-foreground backdrop-blur-sm"

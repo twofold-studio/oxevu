@@ -19,6 +19,7 @@ mod episode_title;
 mod integrations;
 mod libraries;
 mod library_paths;
+mod media_files;
 mod media_probe;
 mod parties;
 mod playback;
@@ -171,6 +172,9 @@ async fn main() -> anyhow::Result<()> {
         .route("/items", get(items))
         .route("/items/{id}", get(item))
         .route("/items/{id}/favorite", put(catalog::favorite))
+        .route("/items/{id}/reaction", put(media_files::reaction))
+        .route("/library/removals/preview", post(media_files::preview))
+        .route("/library/removals", post(media_files::apply))
         .route("/items/{id}/stream", get(stream))
         .route("/items/{id}/subtitles", get(subtitles::list))
         .route("/items/{id}/subtitles/{track}", get(subtitles::serve))

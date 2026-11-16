@@ -1,6 +1,7 @@
 <script lang="ts">
   import PlayIcon from "@lucide/svelte/icons/play";
   import CheckIcon from "@lucide/svelte/icons/check";
+  import HardDriveOffIcon from "@lucide/svelte/icons/hard-drive";
   import FilmIcon from "@lucide/svelte/icons/film";
   import { Button } from "$lib/components/ui/button";
   import type { Item } from "$lib/api/types";
@@ -12,6 +13,7 @@
   import ProgressLine from "./ProgressLine.svelte";
   import ItemActions from "./ItemActions.svelte";
   import FlagIcon from "@lucide/svelte/icons/flag";
+  import { fileAvailable } from "$lib/state/catalog.svelte";
   import { endsAt, itemRating } from "$lib/media/metadata";
   import { now } from "$lib/state/clock.svelte";
   import MetaFact from "./metadata/MetaFact.svelte";
@@ -37,6 +39,7 @@
   const resume = $derived(resumePosition(item));
   const fraction = $derived(watchedFraction(item));
   const rating = $derived(itemRating(item));
+  const hasFile = $derived(fileAvailable(item));
   const finish = $derived(endsAt(item.duration_seconds, resume, now()));
   const status = $derived(
     item.completed
@@ -85,6 +88,12 @@
     {/if}
     {#if item.overview}<span class="line-clamp-2 text-sm text-muted-foreground">{item.overview}</span>{/if}
     <!-- Phones hide the status column; keep watched/remaining visible here. -->
+    {#if !hasFile}
+      <span class="flex items-center gap-1 text-xs text-muted-foreground">
+        <HardDriveOffIcon class="size-3" />
+        No local file
+      </span>
+    {/if}
     {#if status}
       <span class="flex items-center gap-1 text-xs text-muted-foreground sm:hidden">
         {#if item.completed}<CheckIcon class="size-3" />{/if}
@@ -101,15 +110,17 @@
        and facts keep the width beside the still. -->
   <div class="ms-auto flex shrink-0 items-center sm:ms-0">
     <ItemActions {item} />
-    <Button
-      href={href.watch(item.id)}
-      variant="ghost"
-      size="icon"
-      class="relative z-10 shrink-0"
-      aria-label={`${resume !== null ? "Resume" : "Play"} ${name}`}
-    >
-      <PlayIcon />
-    </Button>
+    {#if hasFile}
+      <Button
+        href={href.watch(item.id)}
+        variant="ghost"
+        size="icon"
+        class="relative z-10 shrink-0"
+        aria-label={`${resume !== null ? "Resume" : "Play"} ${name}`}
+      >
+        <PlayIcon />
+      </Button>
+    {/if}
   </div>
   {#if fraction !== null && !item.completed}
     <ProgressLine value={fraction} class="absolute inset-x-0 bottom-0" />

@@ -246,6 +246,47 @@ async fn automatic_import_completed_movie_uses_default_without_monitor_and_keeps
         .await
         .unwrap();
     assert_eq!(count, 1);
+    let item: String =
+        sqlx::query_scalar("SELECT item_id FROM acquisition_imports WHERE download_id='download'")
+            .fetch_one(&a.pool)
+            .await
+            .unwrap();
+    let headers = crate::tests::account(&a, "removal-owner", true).await;
+    let input = crate::media_files::Input {
+        item_ids: vec![item.clone()],
+        keep_metadata: true,
+        token: None,
+        confirm: false,
+    };
+    let Json(preview) = crate::media_files::preview(State(a.clone()), headers.clone(), Json(input))
+        .await
+        .unwrap();
+    let input = crate::media_files::Input {
+        item_ids: vec![item.clone()],
+        keep_metadata: true,
+        token: Some(preview["token"].as_str().unwrap().into()),
+        confirm: true,
+    };
+    let Json(removed) = crate::media_files::apply(State(a.clone()), headers, Json(input))
+        .await
+        .unwrap();
+    assert!(removed["failures"].as_array().unwrap().is_empty());
+    let destination = movies.join("Legal Test Movie (2026)/Legal Test Movie (2026).mp4");
+    assert!(!destination.exists());
+    auto_import::tick(&a).await.unwrap();
+    assert!(
+        !destination.exists(),
+        "a completed torrent must not undo an intentional removal"
+    );
+    sqlx::query("UPDATE acquisition_downloads SET data=json_set(data,'$.reimport_requested',json('true')) WHERE id='download'").execute(&a.pool).await.unwrap();
+    auto_import::tick(&a).await.unwrap();
+    assert!(destination.exists());
+    let restored: String =
+        sqlx::query_scalar("SELECT item_id FROM acquisition_imports WHERE download_id='download'")
+            .fetch_one(&a.pool)
+            .await
+            .unwrap();
+    assert_eq!(restored, item);
 }
 
 #[tokio::test]

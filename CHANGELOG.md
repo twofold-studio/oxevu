@@ -15,6 +15,11 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Movie, series and season pages offer confirmed removal, retained-entry badges, personal Like/Dislike controls and links to find releases again. Missing files are excluded from playback and Continue watching.
+
+- Admins can preview and confirm permanent removal of selected movie, season or series files, either keeping metadata/history or forgetting the entries. Shared hard links are reported separately from estimated reclaimed space.
+- Retained entries keep watch history, favorites and per-user like/dislike opinions. Rescans preserve them, intentional removals do not automatically reacquire, and matching later imports retain their identity and history.
+
 - Torrents are recognized from movie release names or episode numbering using a unique exact TMDB match, with review states for ambiguous names. Imports wait for completed, verified downloads and retain seeding sources.
 - One effective default import folder per media type, with configurable overrides and an authenticated endpoint for manually identifying a torrent.
 
