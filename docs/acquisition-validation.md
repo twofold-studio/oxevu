@@ -111,3 +111,10 @@ overflow or browser errors were observed. Web checks passed 146 tests plus type,
 lint, format and build. Rust passed 71 tests with four hardware checks skipped;
 strict Clippy and formatting passed. The cap tests were repeated after narrowing
 the update to its own JSON fields so concurrent import warnings are preserved.
+
+After deployment, automatic imports were enabled at the user's request without
+changing the combined cap. The existing completed Puss in Boots transfer reached
+`scanned` and appeared through the authenticated item API. Its stream returned
+HTTP 200 for HEAD and HTTP 206 for a 16-byte range. Source and library file shared
+an inode with two links, confirming the seeding source remained without another
+full media copy. The separate unidentified download was left unassociated.
