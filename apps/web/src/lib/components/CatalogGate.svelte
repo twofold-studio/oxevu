@@ -4,7 +4,7 @@
   import RotateCwIcon from "@lucide/svelte/icons/rotate-cw";
   import * as Alert from "$lib/components/ui/alert";
   import { Button } from "$lib/components/ui/button";
-  import { catalog } from "$lib/state/catalog.svelte";
+  import { catalog, catalogVisibleRefresh } from "$lib/state/catalog.svelte";
 
   // Loads the shared item list and renders loading/error states around a
   // page. Pages render their own skeleton so it matches their layout.
@@ -12,6 +12,7 @@
 
   onMount(() => {
     void catalog.ensure();
+    return catalogVisibleRefresh();
   });
 </script>
 

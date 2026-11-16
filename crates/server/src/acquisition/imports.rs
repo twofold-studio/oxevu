@@ -142,6 +142,7 @@ pub(super) async fn execute(
                 return Err(bad(format!("import failed: {e}")));
             }
         }
+        downloading::locate_import(a, download, library, &file).await?;
         let _ = scan::scan_library(a.clone(), library.to_owned()).await?;
         attach(a, &id, &file).await?;
         event(a, download, "Media imported; seeding source retained").await?;
@@ -157,7 +158,7 @@ pub(super) async fn execute(
 }
 
 async fn attach(a: &App, id: &str, file: &File) -> Result<()> {
-    let item: Option<String> = sqlx::query_scalar("SELECT id FROM items WHERE path=?")
+    let item: Option<String> = sqlx::query_scalar("SELECT id FROM items WHERE path=? AND COALESCE(json_extract(data,'$.file_available'),1)!=0")
         .bind(&file.destination)
         .fetch_optional(&a.pool)
         .await
@@ -170,7 +171,22 @@ async fn attach(a: &App, id: &str, file: &File) -> Result<()> {
         .await
         .map_err(db)?;
     let title = decode(&raw)?;
-    let item = crate::media_files::restore_identity(a, &item, &title).await?;
+    let pending: bool =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM acquisition_stream_items WHERE item_id=?)")
+            .bind(&item)
+            .fetch_one(&a.pool)
+            .await
+            .map_err(db)?;
+    let item = if pending {
+        item
+    } else {
+        crate::media_files::restore_identity(a, &item, &title).await?
+    };
+    sqlx::query("DELETE FROM acquisition_stream_items WHERE item_id=?")
+        .bind(&item)
+        .execute(&a.pool)
+        .await
+        .map_err(db)?;
     let mut metadata = imported_metadata(&title);
     metadata["episode_coverage"] = json!(file.coverage);
     if let Some(first) = file.coverage.first() {
@@ -222,7 +238,7 @@ async fn attach(a: &App, id: &str, file: &File) -> Result<()> {
     Ok(())
 }
 
-fn imported_metadata(title: &Value) -> Value {
+pub(super) fn imported_metadata(title: &Value) -> Value {
     let genres: Vec<&str> = title["genres"]
         .as_array()
         .into_iter()

@@ -39,7 +39,7 @@ pub(crate) async fn catalog(a: &App, h: &HeaderMap) -> Result<Vec<Value>> {
             Ok((id, data))
         })
         .collect::<Result<_>>()?;
-    visible
+    let mut items: Vec<Value> = visible
         .iter()
         .map(|r| {
             let mut v: Value = serde_json::from_str(r.get("data")).map_err(bad)?;
@@ -73,7 +73,9 @@ pub(crate) async fn catalog(a: &App, h: &HeaderMap) -> Result<Vec<Value>> {
             v["reaction"] = json!(reactions.get(&r.get::<String, _>("id")));
             Ok(v)
         })
-        .collect()
+        .collect::<Result<_>>()?;
+    acquisition::annotate_downloads(a, &mut items).await?;
+    Ok(items)
 }
 pub(crate) async fn items(State(a): State<App>, h: HeaderMap) -> Result<Json<Value>> {
     Ok(Json(json!({"items":catalog(&a,&h).await?})))
@@ -164,6 +166,9 @@ pub(crate) async fn stream(
     r: Request,
 ) -> Result<Response> {
     users::authorize_item(&a, &h, &id, true).await?;
+    if let Some(source) = acquisition::streaming::for_item(&a, &id).await? {
+        return source.response(a, r).await;
+    }
     let row=sqlx::query("SELECT items.path,items.data,libraries.path root FROM items JOIN libraries ON library_id=libraries.id WHERE items.id=?").bind(&id).fetch_optional(&a.pool).await.map_err(db)?.ok_or_else(||bad("unknown item"))?;
     let path = tokio::fs::canonicalize(row.get::<String, _>("path"))
         .await

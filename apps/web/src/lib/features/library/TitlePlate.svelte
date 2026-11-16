@@ -2,6 +2,8 @@
   import CheckIcon from "@lucide/svelte/icons/check";
   import HardDriveOffIcon from "@lucide/svelte/icons/hard-drive";
   import Artwork from "$lib/components/Artwork.svelte";
+  import DownloadBadge from "./DownloadBadge.svelte";
+  import type { DownloadStatus } from "$lib/api/types";
   import { cn } from "$lib/utils";
   import ProgressLine from "./ProgressLine.svelte";
 
@@ -17,6 +19,7 @@
     progress = null,
     watched = false,
     fileRemoved = false,
+    download = null,
   }: {
     href: string;
     title: string;
@@ -27,6 +30,7 @@
     watched?: boolean;
     /** True when the item's local file has been removed. */
     fileRemoved?: boolean;
+    download?: DownloadStatus | null;
   } = $props();
 
   const size = $derived(
@@ -66,12 +70,18 @@
           </div>
         {/snippet}
       </Artwork>
-      {#if fileRemoved}
+      {#if fileRemoved && !download}
         <span
           class="absolute top-2 left-2 flex items-center gap-1 rounded-md bg-background/80 px-1.5 py-0.5 text-[0.7rem] text-muted-foreground backdrop-blur-sm"
         >
           <HardDriveOffIcon class="size-3" />
           No local file
+        </span>
+      {:else if download}
+        <span
+          class="absolute top-2 left-2"
+        >
+          <DownloadBadge {download} compact />
         </span>
       {/if}
       {#if watched}

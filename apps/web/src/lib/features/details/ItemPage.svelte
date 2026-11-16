@@ -20,7 +20,7 @@
   import { ApiError, errorMessage } from "$lib/api/client";
   import type { Item } from "$lib/api/types";
   import { catalog } from "$lib/state/catalog.svelte";
-  import { fileAvailable } from "$lib/state/catalog.svelte";
+  import { fileAvailable, itemPlayable, catalogVisibleRefresh } from "$lib/state/catalog.svelte";
   import { href, router } from "$lib/state/router.svelte";
   import { formatClock, formatRuntime } from "$lib/media/format";
   import { episodeNumberLabel, seasonKeyOf } from "$lib/media/grouping";
@@ -40,6 +40,7 @@
   import FindAgainLink from "./FindAgainLink.svelte";
   import RemovalDialog from "./RemovalDialog.svelte";
   import CreatePartyDialog from "$lib/features/party/CreatePartyDialog.svelte";
+  import DownloadBadge from "$lib/features/library/DownloadBadge.svelte";
   import { session } from "$lib/state/session.svelte";
   import { canCreateParties, isAdmin, canManageDownloads } from "$lib/state/access";
 
@@ -49,19 +50,24 @@
   // progress written from another device is current.
   let fetched = $state<Item | null>(null);
   let error = $state<{ missing: boolean; message: string } | null>(null);
-  const item = $derived(fetched ?? catalog.find(id) ?? null);
+  const item = $derived(catalog.find(id) ?? fetched);
 
   onMount(() => {
+    const controller = new AbortController();
+    const stopRefresh = catalogVisibleRefresh();
     void catalog.ensure();
     itemsApi
-      .get(id)
+      .get(id, controller.signal)
       .then(({ item }) => {
+        if (controller.signal.aborted) return;
         fetched = item;
         catalog.patch(id, item);
       })
       .catch((e: unknown) => {
+        if (controller.signal.aborted) return;
         error = { missing: e instanceof ApiError && e.status === 404, message: errorMessage(e) };
       });
+    return () => { controller.abort(); stopRefresh(); };
   });
 
   // Movies lead with their poster; episodes with their own still, else the
@@ -81,6 +87,7 @@
   const fraction = $derived(item ? watchedFraction(item) : null);
 
   const hasFile = $derived(item ? fileAvailable(item) : true);
+  const playable = $derived(item ? itemPlayable(item) : true);
   const admin = $derived(isAdmin(session.user));
   const canDownload = $derived(canManageDownloads(session.user));
 
@@ -164,7 +171,11 @@
           <ProgressLine value={fraction} class="max-w-md rounded-full" />
         {/if}
 
-        {#if !hasFile}
+        {#if !hasFile && item.download}
+          <div class="flex items-center gap-2">
+            <DownloadBadge download={item.download} />
+          </div>
+        {:else if !hasFile}
           <div class="flex items-center gap-2">
             <Badge variant="outline">
               <HardDriveOffIcon data-icon="inline-start" />
@@ -174,7 +185,7 @@
         {/if}
 
         <div class="flex flex-wrap gap-2">
-          {#if hasFile}
+          {#if playable}
             <Button href={href.watch(item.id)} size="lg">
               <PlayIcon data-icon="inline-start" />
               {resume !== null ? `Resume from ${formatClock(resume)}` : item.completed ? "Play again" : "Play"}
@@ -200,7 +211,7 @@
               Watch together
             </Button>
           {/if}
-          {#if admin}
+          {#if admin && !item.download}
             <Button
               size="lg"
               variant="outline"
@@ -224,7 +235,7 @@
           </Alert.Root>
         {/if}
 
-        {#if !hasFile && canDownload}
+        {#if !hasFile && !item.download && canDownload}
           <FindAgainLink {item} />
         {/if}
 

@@ -28,6 +28,18 @@ pub(super) async fn build(a: &App, ids: &[String]) -> Result<Vec<Entry>> {
             .map_err(db)?
             .ok_or_else(|| bad("library item no longer exists"))?;
         let path = PathBuf::from(row.get::<String, _>("path"));
+        let pending: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM acquisition_stream_items WHERE item_id=?)",
+        )
+        .bind(id)
+        .fetch_one(&a.pool)
+        .await
+        .map_err(db)?;
+        if pending {
+            return Err(bad(
+                "This title is still downloading. Manage its transfer in Downloads before removing library files.",
+            ));
+        }
         let root = libraries::roots(a, &row.get::<String, _>("library_id"))
             .await?
             .into_iter()

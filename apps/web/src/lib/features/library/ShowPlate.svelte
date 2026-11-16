@@ -9,6 +9,12 @@
 
   const watchedCount = $derived(show.seasons.reduce((n, s) => n + s.episodes.filter((e) => e.completed).length, 0));
   const allRemoved = $derived(show.seasons.every((s) => s.episodes.every((e) => !fileAvailable(e))));
+  const activeDownload = $derived(
+    show.seasons
+      .flatMap((s) => s.episodes)
+      .find((e) => e.download && !fileAvailable(e))
+      ?.download ?? null,
+  );
   const facts = $derived([
     plural(show.seasons.length, "season"),
     plural(show.episodeCount, "episode"),
@@ -31,4 +37,5 @@
   progress={watchedCount > 0 ? watchedCount / show.episodeCount : null}
   watched={watchedCount === show.episodeCount}
   fileRemoved={allRemoved}
+  download={activeDownload}
 />

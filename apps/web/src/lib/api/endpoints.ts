@@ -111,14 +111,18 @@ export const removalApi = {
 export const itemsApi = {
   favorite: (itemId: string, favorite: boolean) =>
     request<void>(`/items/${id(itemId)}/favorite`, { method: "PUT", body: { favorite } }),
-  list: () => request<{ items: Item[] }>("/items"),
-  get: (itemId: string) => request<{ item: Item }>(`/items/${id(itemId)}`),
+  list: (signal?: AbortSignal) => request<{ items: Item[] }>("/items", { signal }),
+  get: (itemId: string, signal?: AbortSignal) =>
+    request<{ item: Item }>(`/items/${id(itemId)}`, { signal }),
   saveProgress: (itemId: string, body: ProgressUpdate, keepalive = false) =>
     request<void>(`/items/${id(itemId)}/progress`, { method: "PUT", body, keepalive }),
   /** Byte-range original file. The session cookie authorizes the <video> request. */
   streamUrl: (itemId: string) => `${API_BASE}/items/${id(itemId)}/stream`,
   reaction: (itemId: string, value: "like" | "dislike" | null) =>
-    request<{ value: "like" | "dislike" | null }>(`/items/${id(itemId)}/reaction`, { method: "PUT", body: { value } }),
+    request<{ value: "like" | "dislike" | null }>(`/items/${id(itemId)}/reaction`, {
+      method: "PUT",
+      body: { value },
+    }),
 };
 
 export const usersApi = {

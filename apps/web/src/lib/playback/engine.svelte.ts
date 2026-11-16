@@ -31,6 +31,7 @@ export class PlaybackEngine {
   readonly item: Item;
   private readonly canTranscode: boolean;
   private readonly onSignedOut: () => void;
+  readonly progressive: boolean;
 
   phase = $state<EnginePhase>("idle");
   session = $state<PlaybackSession | null>(null);
@@ -73,6 +74,7 @@ export class PlaybackEngine {
   constructor(item: Item, canTranscode: boolean, onSignedOut: () => void) {
     this.item = item;
     this.canTranscode = canTranscode;
+    this.progressive = item.download?.playable === true && item.file_available === false;
     this.qualityLimit = canTranscode ? initialNetworkQuality() : undefined;
     this.onSignedOut = onSignedOut;
     this.directOk = directPlaySupported(item);
@@ -103,6 +105,8 @@ export class PlaybackEngine {
     this.wantPlaying = playing;
     this.pendingTarget = absolute;
     this.phase = "starting";
+    if (this.progressive)
+      this.notice = "Buffering from an active download — this may take longer than usual.";
     this.problem = null;
     this.metadataWait?.abort();
     this.metadataWait = new AbortController();
@@ -113,13 +117,16 @@ export class PlaybackEngine {
     let session: PlaybackSession | null;
     let video: HTMLVideoElement | null;
     try {
-      session = await this.controller.open({
-        item_id: this.item.id,
-        start_seconds: Math.round(absolute * 1000) / 1000,
-        mode: this.mode,
-        direct_play_supported: this.directOk,
-        ...(this.mode !== "direct" ? this.qualityLimit : undefined),
-      });
+      session = await this.controller.open(
+        {
+          item_id: this.item.id,
+          start_seconds: Math.round(absolute * 1000) / 1000,
+          mode: this.mode,
+          direct_play_supported: this.directOk,
+          ...(this.mode !== "direct" ? this.qualityLimit : undefined),
+        },
+        this.progressive,
+      );
       video = this.video;
       if (!session || token !== this.loadToken || !video) return;
       if (session.method !== "direct") await prepareHls(video);
@@ -156,6 +163,7 @@ export class PlaybackEngine {
     this.videoHeight = video.videoHeight;
     this.pendingTarget = null;
     this.phase = "ready";
+    if (this.progressive && this.notice?.startsWith("Buffering from")) this.notice = null;
     this.subtitles.attach(video, mediaOffset(session));
     if (this.wantPlaying) await this.play();
   }

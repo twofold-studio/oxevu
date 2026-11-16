@@ -7,7 +7,7 @@
   import CatalogGate from "$lib/components/CatalogGate.svelte";
   import NotFound from "$lib/components/NotFound.svelte";
   import DetailLayout from "$lib/components/DetailLayout.svelte";
-  import { catalog, fileAvailable } from "$lib/state/catalog.svelte";
+  import { catalog, itemPlayable } from "$lib/state/catalog.svelte";
   import { session } from "$lib/state/session.svelte";
   import { isAdmin, canManageDownloads } from "$lib/state/access";
   import RemovalDialog from "$lib/features/details/RemovalDialog.svelte";
@@ -45,8 +45,8 @@
 
   // What "Play" means for a series: the episode in progress, else the next unwatched.
   const episodes = $derived(selectedSeason?.episodes ?? show?.seasons.flatMap((s) => s.episodes) ?? []);
-  const target = $derived(episodes.find((e) => e.position_seconds > 0 && !e.completed && fileAvailable(e)) ?? episodes.find((e) => !e.completed && fileAvailable(e)) ?? episodes.find(fileAvailable) ?? episodes[0]);
-  const targetPlayable = $derived(target ? fileAvailable(target) : false);
+  const target = $derived(episodes.find((e) => e.position_seconds > 0 && !e.completed && itemPlayable(e)) ?? episodes.find((e) => !e.completed && itemPlayable(e)) ?? episodes.find(itemPlayable) ?? episodes[0]);
+  const targetPlayable = $derived(target ? itemPlayable(target) : false);
   const admin = $derived(isAdmin(session.user));
   let removalOpen = $state(false);
   const removalIds = $derived(episodes.map((e) => e.id));
@@ -151,11 +151,13 @@
               {resuming ? "Resume" : "Play"}
               {episodeName(target)}
             </Button>
-            {:else if canManageDownloads(session.user)}
+            {:else if target.download && canManageDownloads(session.user)}
+              <Button variant="outline" href={href.activity()}>View download</Button>
+            {:else if !target.download && canManageDownloads(session.user)}
               <FindAgainLink item={target} />
             {/if}
             <IdentifyButton item={target} />
-            {#if admin}<Button variant="outline" size="lg" onclick={() => (removalOpen = true)}><TrashIcon data-icon="inline-start" />Remove {selectedSeason ? "season" : "series"}</Button>{/if}
+            {#if admin}<Button variant="outline" size="lg" disabled={episodes.some((e) => !!e.download)} title={episodes.some((e) => !!e.download) ? "Manage active transfers in Downloads before removing this selection" : undefined} onclick={() => (removalOpen = true)}><TrashIcon data-icon="inline-start" />Remove {selectedSeason ? "season" : "series"}</Button>{/if}
           </div>
         {/if}
       </header>

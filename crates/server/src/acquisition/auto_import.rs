@@ -22,6 +22,7 @@ pub(crate) async fn run(a: App) {
 pub(super) async fn tick(a: &App) -> Result<()> {
     let c = config::load(a).await?;
     recognition::tick(a).await?;
+    downloading::sync(a).await?;
     if !c.import_enabled {
         return Ok(());
     }

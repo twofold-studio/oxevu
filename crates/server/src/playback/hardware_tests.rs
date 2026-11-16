@@ -118,7 +118,8 @@ async fn cuda_real_arcane_excerpt() {
         max_height: 720,
         ..Default::default()
     };
-    let cmd = worker::command(&a, &source, &root, 0., "nvenc", &settings, true);
+    let input = super::source::Input::local(source);
+    let cmd = worker::command(&a, &input, &root, 0., "nvenc", &settings, true);
     let args: Vec<_> = cmd
         .as_std()
         .get_args()

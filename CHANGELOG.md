@@ -15,6 +15,10 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Library cards, episodes, details and Downloads link to recognized transfers with download status and Play/Resume when streaming is available. Progressive playback shows buffering status, uses a bounded startup wait and retains session leases without rapid heartbeats. Visible library views share a ten-second refresh loop.
+
+- Recognized torrent videos appear as downloading library entries. Playback reads verified pieces with range/seek priorities, supports the existing FFmpeg conversion path through a private loopback reader, respects paused transfers and queue limits, and retains the same item ID and user history after full import. Growing sources are excluded from finalized transcode caching.
+
 - Movie, series and season pages offer confirmed removal, retained-entry badges, personal Like/Dislike controls and links to find releases again. Missing files are excluded from playback and Continue watching.
 
 - Admins can preview and confirm permanent removal of selected movie, season or series files, either keeping metadata/history or forgetting the entries. Shared hard links are reported separately from estimated reclaimed space.

@@ -45,7 +45,7 @@ impl Cache {
 pub(super) async fn metadata(
     a: &App,
     path: &std::path::Path,
-    mut cancel: watch::Receiver<bool>,
+    cancel: watch::Receiver<bool>,
 ) -> std::result::Result<Value, String> {
     if *cancel.borrow() {
         return Err("Playback stopped".into());
@@ -60,12 +60,43 @@ pub(super) async fn metadata(
     command.args(["-v", "error", "-protocol_whitelist", "file,pipe", "-show_entries",
         "stream=codec_type,codec_name,width,height,color_transfer,pix_fmt:stream_side_data=side_data_type:format=bit_rate", "-of", "json"])
         .arg(path).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::null()).kill_on_drop(true);
+    let value = probe(command, cancel, 15).await?;
+    if Identity::read(path).await.ok().as_ref() == Some(&identity) {
+        a.playback
+            .source_metadata
+            .lock()
+            .await
+            .insert(identity, value.clone());
+    }
+    Ok(value)
+}
+
+pub(super) async fn progressive(
+    input: &source::Input,
+    cancel: watch::Receiver<bool>,
+) -> std::result::Result<Value, String> {
+    let mut command = Command::new("ffprobe");
+    command.args(["-v", "error"]);
+    input.arguments(&mut command);
+    command.args(["-show_entries","stream=codec_type,codec_name,width,height,color_transfer,pix_fmt:stream_side_data=side_data_type:format=bit_rate,duration","-of","json"])
+        .arg(input.path()).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::null()).kill_on_drop(true);
+    probe(command, cancel, 90).await
+}
+
+async fn probe(
+    mut command: Command,
+    mut cancel: watch::Receiver<bool>,
+    seconds: u64,
+) -> std::result::Result<Value, String> {
+    if *cancel.borrow() {
+        return Err("Playback stopped".into());
+    }
     runtime::parent_death(&mut command);
     let mut child = command.spawn().map_err(|_| "ffprobe unavailable")?;
     let stdout = child.stdout.take().ok_or("ffprobe stdout unavailable")?;
     let mut bytes = Vec::new();
     let result = tokio::select! {
-        result = tokio::time::timeout(std::time::Duration::from_secs(15), async {
+        result = tokio::time::timeout(std::time::Duration::from_secs(seconds), async {
             stdout.take(256 * 1024 + 1).read_to_end(&mut bytes).await?;
             if bytes.len() > 256 * 1024 { return Err(std::io::Error::other("probe output exceeded limit")); }
             child.wait().await
@@ -77,15 +108,7 @@ pub(super) async fn metadata(
         let _ = child.wait().await;
         return Err("Source probe failed".into());
     }
-    let value: Value = serde_json::from_slice(&bytes).map_err(|_| "Invalid source metadata")?;
-    if Identity::read(path).await.ok().as_ref() == Some(&identity) {
-        a.playback
-            .source_metadata
-            .lock()
-            .await
-            .insert(identity, value.clone());
-    }
-    Ok(value)
+    serde_json::from_slice(&bytes).map_err(|_| "Invalid source metadata".into())
 }
 
 #[cfg(test)]

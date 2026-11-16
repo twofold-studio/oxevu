@@ -180,7 +180,7 @@ async fn real_transfers_obey_entry_and_combined_caps_and_reconnect_without_losin
     assert_eq!(view["download_limit_kib"], 256);
     assert_eq!(
         view["import_blocker"],
-        "Associate this download with a catalog title before importing."
+        "Recognizing this torrent before automatic import."
     );
     for (n, id) in ids.iter().enumerate() {
         assert_eq!(

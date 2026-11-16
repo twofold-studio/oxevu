@@ -279,7 +279,9 @@
       <div class="flex flex-col items-center gap-3">
         <Spinner class="size-8 text-white/80" />
         {#if engine.phase === "starting"}
-          <span class="text-sm text-white/70">Preparing stream</span>
+          <span class="text-sm text-white/70">
+            {engine.progressive ? "Buffering from download" : "Preparing stream"}
+          </span>
         {/if}
       </div>
     </div>

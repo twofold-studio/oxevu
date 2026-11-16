@@ -2,7 +2,7 @@ use super::*;
 use tokio::{process::Command, sync::watch};
 pub(super) fn command(
     a: &App,
-    path: &std::path::Path,
+    input: &source::Input,
     dir: &std::path::Path,
     start: f64,
     method: &str,
@@ -10,25 +10,16 @@ pub(super) fn command(
     decode: bool,
 ) -> Command {
     let mut cmd = Command::new(&a.playback.ffmpeg);
-    cmd.args([
-        "-nostdin",
-        "-v",
-        "error",
-        "-y",
-        "-threads",
-        "2",
-        "-protocol_whitelist",
-        "file,pipe",
-        "-ss",
-    ])
-    .arg(start.to_string());
+    cmd.args(["-nostdin", "-v", "error", "-y", "-threads", "2"]);
+    input.arguments(&mut cmd);
+    cmd.arg("-ss").arg(start.to_string());
     if decode {
         cmd.args(["-hwaccel", "cuda", "-hwaccel_device"])
             .arg(s.gpu_index.to_string())
             .args(["-hwaccel_output_format", "cuda"]);
     }
     cmd.arg("-i")
-        .arg(path)
+        .arg(input.path())
         .args(["-map", "0:v:0", "-map", "0:a:0?", "-sn", "-dn"]);
     if method == "remux" {
         cmd.args(["-c:v", "copy"]);
@@ -116,7 +107,7 @@ pub(super) fn command(
 pub async fn run(
     a: App,
     id: String,
-    path: PathBuf,
+    source: source::Source,
     start: f64,
     mut method: String,
     s: settings::Settings,
@@ -125,10 +116,9 @@ pub async fn run(
 ) {
     let dir = a.playback.scratch.join(&id);
     let requested_method = method.clone();
-    let cache_key = if s.cache_enabled {
-        super::cache::key(&a, &path, &requested_method, &s).await
-    } else {
-        None
+    let cache_key = match source.local().filter(|_| s.cache_enabled) {
+        Some(path) => super::cache::key(&a, path, &requested_method, &s).await,
+        None => None,
     };
     let mut output = json!({});
     let result = async {
@@ -138,7 +128,24 @@ pub async fn run(
         if *cancel.borrow() {
             return Err("Playback stopped".into());
         }
-        let meta = super::source_probe::metadata(&a, &path, cancel.clone()).await?;
+        let input=source.prepare(&a).await?;
+        let meta = if input.progressive() {
+            super::source_probe::progressive(&input,cancel.clone()).await?
+        } else {
+            super::source_probe::metadata(&a,input.path(),cancel.clone()).await?
+        };
+        if input.progressive() {
+            let duration=meta["format"]["duration"].as_str().and_then(|s|s.parse::<f64>().ok()).filter(|v|v.is_finite()&&*v>0.);
+            if duration.is_some_and(|d|start>=d){return Err("Start offset exceeds duration".into());}
+            let item = {
+                let mut sessions=a.playback.sessions.lock().await;
+                sessions.get_mut(&id).map(|e|{e.value["duration_seconds"]=json!(duration);e.item.clone()})
+            };
+            if let (Some(item),Some(duration))=(item,duration) {
+                sqlx::query("UPDATE items SET data=json_set(data,'$.duration_seconds',?) WHERE id=? AND EXISTS(SELECT 1 FROM acquisition_stream_items WHERE item_id=items.id)")
+                    .bind(duration).bind(item).execute(&a.pool).await.map_err(|_|"Cannot retain source duration")?;
+            }
+        }
         let streams = meta["streams"].as_array().ok_or("Source has no streams")?;
         if streams.iter().any(|v| {
             matches!(
@@ -223,7 +230,7 @@ pub async fn run(
             }
         }
         let mut result = runtime::run_process(
-            command(&a, &path, &dir, start, &method, &s, decode),
+            command(&a, &input, &dir, start, &method, &s, decode),
             cancel.clone(),
             &a.playback.scratch,
             limit,
@@ -255,7 +262,7 @@ pub async fn run(
                 e.value["reason"] = json!("GPU pipeline failed; using CPU fallback");
             }
             result = runtime::run_process(
-                command(&a, &path, &dir, start, &method, &s, false),
+                command(&a, &input, &dir, start, &method, &s, false),
                 cancel.clone(),
                 &a.playback.scratch,
                 limit,
@@ -293,15 +300,16 @@ pub async fn run(
             }
         }
     }
-    if result.is_ok()
-        || result
-            .as_ref()
-            .is_err_and(|error| error == "Playback stopped")
+    if let Some(path) = source.local()
+        && (result.is_ok()
+            || result
+                .as_ref()
+                .is_err_and(|error| error == "Playback stopped"))
     {
         super::cache::store(
             &a,
             &id,
-            &path,
+            path,
             start,
             &requested_method,
             &s,

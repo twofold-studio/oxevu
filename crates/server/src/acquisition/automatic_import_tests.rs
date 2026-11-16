@@ -228,6 +228,29 @@ async fn automatic_import_completed_movie_uses_default_without_monitor_and_keeps
         .execute(&a.pool)
         .await
         .unwrap();
+    downloading::sync(&a).await.unwrap();
+    let pending: String = sqlx::query_scalar(
+        "SELECT item_id FROM acquisition_stream_items WHERE download_id='download'",
+    )
+    .fetch_one(&a.pool)
+    .await
+    .unwrap();
+    {
+        let h = crate::tests::account(&a, "early-viewer", true).await;
+        let u = user(&a, &h).await.unwrap();
+        sqlx::query("INSERT INTO progress VALUES(?,?,0.25,0)")
+            .bind(u["id"].as_str())
+            .bind(&pending)
+            .execute(&a.pool)
+            .await
+            .unwrap();
+        sqlx::query("INSERT INTO item_reactions VALUES(?,?,'like')")
+            .bind(u["id"].as_str())
+            .bind(&pending)
+            .execute(&a.pool)
+            .await
+            .unwrap();
+    }
     auto_import::tick(&a).await.unwrap();
     let state: Option<String> =
         sqlx::query_scalar("SELECT state FROM acquisition_imports WHERE download_id='download'")
@@ -252,6 +275,30 @@ async fn automatic_import_completed_movie_uses_default_without_monitor_and_keeps
             .await
             .unwrap();
     let headers = crate::tests::account(&a, "removal-owner", true).await;
+    assert_eq!(
+        item, pending,
+        "Full import must preserve the downloading identity"
+    );
+    let position: f64 =
+        sqlx::query_scalar("SELECT CAST(position AS REAL) FROM progress WHERE item_id=?")
+            .bind(&item)
+            .fetch_one(&a.pool)
+            .await
+            .unwrap();
+    assert_eq!(position, 0.25);
+    let opinion: String = sqlx::query_scalar("SELECT value FROM item_reactions WHERE item_id=?")
+        .bind(&item)
+        .fetch_one(&a.pool)
+        .await
+        .unwrap();
+    assert_eq!(opinion, "like");
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>("SELECT count(*) FROM acquisition_stream_items")
+            .fetch_one(&a.pool)
+            .await
+            .unwrap(),
+        0
+    );
     let input = crate::media_files::Input {
         item_ids: vec![item.clone()],
         keep_metadata: true,

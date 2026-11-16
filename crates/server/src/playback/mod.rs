@@ -4,6 +4,7 @@ mod cache;
 mod cache_index;
 mod quality;
 pub(crate) mod runtime;
+mod source;
 mod source_probe;
 mod worker;
 pub(crate) use runtime::Runtime;
@@ -42,15 +43,7 @@ pub(crate) async fn create(
         .await
         .map_err(db)?;
     let data: Value = serde_json::from_str(row.get("data")).map_err(bad)?;
-    if data["file_available"] == false {
-        return Err(bad(
-            "This title has no local media. Find a release to download it again.",
-        ));
-    }
-    let path = tokio::fs::canonicalize(row.get::<String, _>("path"))
-        .await
-        .map_err(|_| bad("source unavailable"))?;
-    libraries::item_root(&a, &item, &path).await?;
+    let source = source::Source::resolve(&a, &item, &row, &data).await?;
     let duration = data["duration_seconds"].as_f64();
     if duration.is_some_and(|d| start >= d) {
         return Err(bad("start offset exceeds duration"));
@@ -76,10 +69,9 @@ pub(crate) async fn create(
         }
     };
     let id = uuid::Uuid::new_v4().to_string();
-    let cached = if direct {
-        None
-    } else {
-        cache::restore(&a, &id, &path, start, method, &settings, duration).await
+    let cached = match source.local().filter(|_| !direct) {
+        Some(path) => cache::restore(&a, &id, path, start, method, &settings, duration).await,
+        None => None,
     };
     let (cancel, rx) = watch::channel(false);
     let (done, done_rx) = watch::channel(direct || cached.is_some());
@@ -95,13 +87,13 @@ pub(crate) async fn create(
         value["height"] = json!(hit.height);
         value["reason"] = json!("Reusing finalized transcoded segments");
     }
-    value["cached_ranges"] = json!(if direct {
-        Vec::new()
-    } else {
-        cache::ranges(&a, &path, method, &settings).await
+    value["progressive"] = json!(source.local().is_none());
+    value["cached_ranges"] = json!(match source.local().filter(|_| !direct) {
+        Some(path) => cache::ranges(&a, path, method, &settings).await,
+        None => Vec::new(),
     });
     let mut sessions = a.playback.sessions.lock().await;
-    let present:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM items WHERE id=? AND COALESCE(json_extract(data,'$.file_available'),1)!=0)").bind(&item).fetch_one(&a.pool).await.map_err(db)?;
+    let present:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM items i WHERE i.id=? AND (COALESCE(json_extract(i.data,'$.file_available'),1)!=0 OR EXISTS(SELECT 1 FROM acquisition_stream_items s WHERE s.item_id=i.id)))").bind(&item).fetch_one(&a.pool).await.map_err(db)?;
     if !present {
         drop(sessions);
         if cached.is_some() {
@@ -157,7 +149,7 @@ pub(crate) async fn create(
         let id = id.clone();
         let method = method.to_owned();
         tokio::spawn(async move {
-            worker::run(a, id, path, start, method, settings, rx, done).await;
+            worker::run(a, id, source, start, method, settings, rx, done).await;
         });
     }
     Ok(Json(json!({"session":value})))

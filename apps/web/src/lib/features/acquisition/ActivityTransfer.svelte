@@ -16,6 +16,7 @@
   import * as Tooltip from "$lib/components/ui/tooltip";
   import { session } from "$lib/state/session.svelte";
   import { href } from "$lib/state/router.svelte";
+  import { catalog } from "$lib/state/catalog.svelte";
   import type { Download } from "$lib/api/acquisition-types";
   import { bytes } from "./format";
   import { progress, eta, transferError, importMessage, recognitionLabel } from "./activity";
@@ -30,6 +31,9 @@
   let limitOpen = $state(false);
   let identifyOpening = $state(0);
   const label = $derived(job.release_title ?? job.files[0]?.path ?? job.title?.title ?? "Resolving torrent metadata");
+  const libraryItem = $derived(
+    catalog.items.find((i) => i.download?.id === job.id),
+  );
   const downloaded = $derived(["seeding", "completed"].includes(job.state) || job.stats.finished === true);
   const left = $derived(eta(job));
   const stateLabel = $derived(
@@ -54,6 +58,9 @@
     <div class="min-w-0 flex-1">
       <h2 class="text-sm font-medium break-words">{label}</h2>
       <p class="mt-0.5 text-xs text-muted-foreground">{[job.title?.title !== label ? job.title?.title : null, job.indexer_name, job.release_size ? bytes(job.release_size) : null].filter(Boolean).join(" · ")}{#if job.id} · <span class="font-mono">{job.id.slice(0,8)}</span>{/if}</p>
+      {#if libraryItem}
+        <a href={href.item(libraryItem.id)} class="text-xs text-primary hover:underline">View in library</a>
+      {/if}
     </div>
     <div class="flex shrink-0 items-center gap-0.5">
       {#if ["paused","queued","completed"].includes(job.state)}<Button variant="ghost" size="icon-sm" aria-label="Resume" disabled={pending} onclick={() => onaction("resume")}><PlayIcon /></Button>

@@ -40,7 +40,13 @@ function fakeApi() {
   return { api, get, pending, stopped };
 }
 
-const timing = { pollMs: 1, heartbeatMs: 1000, startTimeoutMs: 50 };
+const timing = {
+  pollMs: 1,
+  heartbeatMs: 1000,
+  startTimeoutMs: 50,
+  progressivePollMs: 1,
+  progressiveStartTimeoutMs: 200,
+};
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe("SessionController", () => {
@@ -193,5 +199,55 @@ describe("SessionController", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("sends heartbeats during progressive startup polling", async () => {
+    const { api, pending } = fakeApi();
+    const heartbeat = vi.fn(async () => undefined);
+    api.heartbeat = heartbeat;
+    let pollCount = 0;
+    api.get = vi.fn(async (id: string) => {
+      pollCount++;
+      return pollCount >= 3 ? session(id) : session(id, "starting");
+    });
+    const controller = new SessionController(api, () => undefined, {
+      ...timing,
+      heartbeatMs: 1,
+      progressivePollMs: 1,
+      progressiveStartTimeoutMs: 500,
+    });
+    const opened = controller.open(request, true);
+    await flush();
+    pending[0](session("a", "starting"));
+    await opened;
+    expect(heartbeat).toHaveBeenCalled();
+    controller.dispose();
+  });
+
+  it("uses the progressive budget reported by the server and keeps normal heartbeat spacing", async () => {
+    const { api, pending } = fakeApi();
+    const heartbeat = vi.fn(async () => undefined);
+    api.heartbeat = heartbeat;
+    let time = 0;
+    let polls = 0;
+    const sleeps: number[] = [];
+    api.get = vi.fn(async (id: string) => (++polls >= 3 ? session(id) : session(id, "starting")));
+    const controller = new SessionController(
+      api,
+      () => undefined,
+      { ...timing, heartbeatMs: 1000, progressivePollMs: 500, progressiveStartTimeoutMs: 5000 },
+      async (ms) => {
+        sleeps.push(ms);
+        time += ms;
+      },
+      () => time,
+    );
+    const opened = controller.open(request);
+    await flush();
+    pending[0]({ ...session("a", "starting"), progressive: true });
+    await opened;
+    expect(sleeps).toEqual([500, 500, 500]);
+    expect(heartbeat).toHaveBeenCalledTimes(1);
+    controller.dispose();
   });
 });

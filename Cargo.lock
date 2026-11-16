@@ -2158,6 +2158,7 @@ dependencies = [
  "argon2",
  "axum",
  "base64 0.22.1",
+ "futures-util",
  "libc",
  "librqbit",
  "quick-xml 0.38.4",

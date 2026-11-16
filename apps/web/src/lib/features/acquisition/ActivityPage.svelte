@@ -21,6 +21,8 @@
   import ImportDialog from "./ImportDialog.svelte";
   import ActivityLimits from "./ActivityLimits.svelte";
   import { session } from "$lib/state/session.svelte";
+  import { catalogVisibleRefresh } from "$lib/state/catalog.svelte";
+  onMount(catalogVisibleRefresh);
   const resource = createResource(async () => { const [d,e] = await Promise.all([acquisitionApi.downloads(), acquisitionApi.events()]); return { downloads: d.downloads, events: e.events, importEnabled: d.import_enabled }; });
   let error = $state<string | null>(null);let pending = $state<string | null>(null);let addOpen = $state(false);let filesOpen = $state(false);let importOpen = $state(false);let removeOpen = $state(false);let selectedId = $state<string | null>(null);let opening = $state(0);
   const selected = $derived(resource.value?.downloads.find((d) => d.id === selectedId) ?? null);

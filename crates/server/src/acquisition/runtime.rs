@@ -7,6 +7,7 @@ pub(crate) struct Runtime {
     pub directory: PathBuf,
     pub gate: Mutex<()>,
     pub import_jobs: Arc<Semaphore>,
+    pub(super) streams: Arc<Semaphore>,
     engine: Mutex<Option<Arc<Session>>>,
     stopping: std::sync::atomic::AtomicBool,
 }
@@ -18,6 +19,7 @@ impl Runtime {
             engine: Mutex::new(None),
             stopping: std::sync::atomic::AtomicBool::new(false),
             import_jobs: Arc::new(Semaphore::new(1)),
+            streams: Arc::new(Semaphore::new(streaming::MAX_READERS)),
         })
     }
     pub(super) async fn engine(&self, c: &config::Config) -> Result<Arc<Session>> {
@@ -60,7 +62,9 @@ impl Runtime {
                 ratelimits: limits,
                 peer_limit: Some(128),
                 concurrent_init_limit: Some(2),
-                runtime_worker_threads: Some(2),
+                // rqbit holds one blocking permit for each FileStream's entire
+                // lifetime. Reserve two more for piece writes and initialization.
+                runtime_worker_threads: Some(streaming::MAX_READERS + 2),
                 ..Default::default()
             },
         )
@@ -76,6 +80,10 @@ impl Runtime {
     }
     pub(super) async fn current(&self) -> Option<Arc<Session>> {
         self.engine.lock().await.clone()
+    }
+    #[cfg(test)]
+    pub(super) async fn use_test_engine(&self, session: Arc<Session>) {
+        *self.engine.lock().await = Some(session);
     }
     pub(super) fn is_stopping(&self) -> bool {
         self.stopping.load(std::sync::atomic::Ordering::SeqCst)

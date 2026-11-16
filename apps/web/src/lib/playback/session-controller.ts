@@ -13,12 +13,20 @@ export interface SessionTiming {
   heartbeatMs: number;
   /** Give up waiting for a `starting` session after this long. */
   startTimeoutMs: number;
+  /** Poll interval for progressive sessions (default: max(pollMs, 500)).
+   *  150 ms is too fast for a 90+ second wait. */
+  progressivePollMs?: number;
+  /** Extended timeout for progressive (download-backed) sessions.
+   *  Omit to reuse `startTimeoutMs`. */
+  progressiveStartTimeoutMs?: number;
 }
 
 export const defaultTiming: SessionTiming = {
   pollMs: 150,
   heartbeatMs: 15_000,
   startTimeoutMs: 90_000,
+  progressivePollMs: 500,
+  progressiveStartTimeoutMs: 180_000,
 };
 
 /** The server reported the session as failed, or it never became ready. */
@@ -61,7 +69,7 @@ export class SessionController {
   }
 
   /** Resolves with the ready session, or null when a newer call superseded it. */
-  open(body: PlaybackSessionRequest): Promise<PlaybackSession | null> {
+  open(body: PlaybackSessionRequest, progressive = false): Promise<PlaybackSession | null> {
     if (this.disposed) return Promise.resolve(null);
     const generation = ++this.generation;
     this.release(false);
@@ -69,7 +77,7 @@ export class SessionController {
       if (this.stale(generation)) return null;
       await this.closing;
       if (this.stale(generation)) return null;
-      return this.start(body, generation);
+      return this.start(body, generation, progressive);
     });
     // A failed create must not prevent a later explicit retry.
     this.queue = opened.catch(() => undefined);
@@ -79,21 +87,40 @@ export class SessionController {
   private async start(
     body: PlaybackSessionRequest,
     generation: number,
+    progressive: boolean,
   ): Promise<PlaybackSession | null> {
     let session = await this.api.create(body);
     // Track starting sessions too: cancellation must not wait for readiness.
     this.active = session;
     if (this.stale(generation)) return this.discard(session);
-    const deadline = this.now() + this.timing.startTimeoutMs;
+    progressive = progressive || session.progressive === true;
+    let lastHeartbeat = this.now();
+    const startTimeout = progressive
+      ? (this.timing.progressiveStartTimeoutMs ?? this.timing.startTimeoutMs)
+      : this.timing.startTimeoutMs;
+    const pollInterval = progressive
+      ? (this.timing.progressivePollMs ?? Math.max(this.timing.pollMs, 500))
+      : this.timing.pollMs;
+    const deadline = this.now() + startTimeout;
     try {
       while (session.status === "starting") {
         if (this.stale(generation)) return this.discard(session);
         if (this.now() >= deadline) {
           throw new SessionFailedError("The server took too long to start the stream.", session);
         }
-        await this.sleep(this.timing.pollMs);
+        await this.sleep(pollInterval);
         if (this.stale(generation)) return this.discard(session);
         session = await this.api.get(session.id);
+        // Keep the lease alive during long progressive startup waits.
+        if (
+          progressive &&
+          session.status === "starting" &&
+          !this.stale(generation) &&
+          this.now() - lastHeartbeat >= this.timing.heartbeatMs
+        ) {
+          await this.api.heartbeat(session.id).catch(() => undefined);
+          lastHeartbeat = this.now();
+        }
       }
       if (this.stale(generation)) return this.discard(session);
       if (session.status === "failed" || !session.stream_url) {

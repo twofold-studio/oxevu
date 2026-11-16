@@ -8,7 +8,7 @@
   import { resumePosition, watchedFraction } from "$lib/media/progress";
   import Artwork from "$lib/components/Artwork.svelte";
   import ProgressLine from "./ProgressLine.svelte";
-  import { fileAvailable } from "$lib/state/catalog.svelte";
+  import { itemPlayable } from "$lib/state/catalog.svelte";
 
   // Details and playback have separate links so keyboard users can choose either.
   let { item }: { item: Item } = $props();
@@ -21,7 +21,7 @@
       ? `${formatRuntime(item.duration_seconds - resume) ?? "<1m"} left`
       : formatRuntime(item.duration_seconds),
   );
-  const hasFile = $derived(fileAvailable(item));
+  const playable = $derived(itemPlayable(item));
 </script>
 
 <div
@@ -43,7 +43,7 @@
       {/snippet}
     </Artwork>
     </a>
-    {#if hasFile}
+    {#if playable}
       <a
         href={href.watch(item.id)}
         aria-label={`${resume !== null ? "Resume" : "Play"} ${caption}`}

@@ -13,7 +13,8 @@
   import ProgressLine from "./ProgressLine.svelte";
   import ItemActions from "./ItemActions.svelte";
   import FlagIcon from "@lucide/svelte/icons/flag";
-  import { fileAvailable } from "$lib/state/catalog.svelte";
+  import { fileAvailable, itemPlayable } from "$lib/state/catalog.svelte";
+  import DownloadBadge from "./DownloadBadge.svelte";
   import { endsAt, itemRating } from "$lib/media/metadata";
   import { now } from "$lib/state/clock.svelte";
   import MetaFact from "./metadata/MetaFact.svelte";
@@ -40,6 +41,7 @@
   const fraction = $derived(watchedFraction(item));
   const rating = $derived(itemRating(item));
   const hasFile = $derived(fileAvailable(item));
+  const playable = $derived(itemPlayable(item));
   const finish = $derived(endsAt(item.duration_seconds, resume, now()));
   const status = $derived(
     item.completed
@@ -88,7 +90,9 @@
     {/if}
     {#if item.overview}<span class="line-clamp-2 text-sm text-muted-foreground">{item.overview}</span>{/if}
     <!-- Phones hide the status column; keep watched/remaining visible here. -->
-    {#if !hasFile}
+    {#if !hasFile && item.download}
+      <DownloadBadge download={item.download} />
+    {:else if !hasFile}
       <span class="flex items-center gap-1 text-xs text-muted-foreground">
         <HardDriveOffIcon class="size-3" />
         No local file
@@ -110,7 +114,7 @@
        and facts keep the width beside the still. -->
   <div class="ms-auto flex shrink-0 items-center sm:ms-0">
     <ItemActions {item} />
-    {#if hasFile}
+    {#if playable}
       <Button
         href={href.watch(item.id)}
         variant="ghost"

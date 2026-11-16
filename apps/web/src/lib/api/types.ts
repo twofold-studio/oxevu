@@ -62,6 +62,16 @@ export interface ScanResult {
 
 export type ItemKind = "movie" | "episode";
 
+/** Download/transfer status attached to items backed by an in-progress torrent. */
+export interface DownloadStatus {
+  id: string;
+  file_index: number;
+  state: string;
+  bytes_received: number;
+  size_bytes: number | null;
+  playable: boolean;
+}
+
 export interface Item extends MetadataFields {
   id: string;
   library_id: string;
@@ -97,6 +107,8 @@ export interface Item extends MetadataFields {
   file_available?: boolean;
   /** Unix seconds when the file was removed; null if not removed. */
   file_removed_at?: number | null;
+  /** Present while the item is backed by an active torrent transfer. */
+  download?: DownloadStatus | null;
   /** Per-user opinion: like, dislike, or null (no opinion). */
   reaction?: "like" | "dislike" | null;
 }

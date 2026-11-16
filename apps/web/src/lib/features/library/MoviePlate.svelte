@@ -22,4 +22,5 @@
   progress={watchedFraction(item)}
   watched={item.completed}
   fileRemoved={!fileAvailable(item)}
+  download={item.download}
 />

@@ -30,6 +30,8 @@ export interface PlaybackSession {
   /** Why the server picked this method, e.g. a GPU fallback. */
   reason: string | null;
   error: string | null;
+  /** True when the session streams from an in-progress download. */
+  progressive?: boolean;
 }
 
 export interface PartyMember {
