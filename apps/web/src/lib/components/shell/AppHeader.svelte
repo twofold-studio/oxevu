@@ -3,7 +3,7 @@
   import { catalog } from "$lib/state/catalog.svelte";
   import { href, router } from "$lib/state/router.svelte";
   import { breadcrumbs } from "./breadcrumbs";
-  import OxevuMark from "./OxevuMark.svelte";
+  import rustLogo from "../../../../../../assets/logo.png";
   import SearchBox from "./SearchBox.svelte";
   import AccountMenu from "./AccountMenu.svelte";
 
@@ -14,7 +14,7 @@
   class="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 border-b bg-background/95 px-4 backdrop-blur sm:px-5"
 >
   <a href={href.home()} class="flex shrink-0 items-center gap-2 rounded-md font-semibold tracking-tight">
-    <OxevuMark />
+    <img src={rustLogo} alt="" class="size-7 shrink-0 rounded-md object-cover" />
     <span class="hidden sm:inline">Oxevu</span>
   </a>
 

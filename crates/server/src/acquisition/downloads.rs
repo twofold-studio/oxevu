@@ -182,16 +182,40 @@ pub(super) async fn list(State(a): State<App>, h: HeaderMap) -> Result<Json<Valu
 pub(super) async fn view(a: &App, id: &str) -> Result<Value> {
     let r=sqlx::query("SELECT d.*,t.data title,releases.data cached_release,m.enabled monitor_enabled,m.library_id import_library,m.root import_root FROM acquisition_downloads d LEFT JOIN acquisition_titles t ON t.id=d.title_id LEFT JOIN acquisition_releases releases ON releases.id=d.release_id LEFT JOIN acquisition_monitors m ON m.title_id=d.title_id WHERE d.id=?").bind(id).fetch_optional(&a.pool).await.map_err(db)?.ok_or_else(||bad("unknown download"))?;
     let data = decode(r.get("data"))?;
-    let import_blocker = if r.get::<Option<String>, _>("title_id").is_none() {
-        Some("Associate this download with a catalog title before importing.")
-    } else if r.get::<Option<String>, _>("import_library").is_none()
-        || r.get::<Option<String>, _>("import_root").is_none()
-    {
-        Some("Choose this title's destination library and folder in Wanted.")
-    } else if r.get::<Option<bool>, _>("monitor_enabled") != Some(true) {
-        Some("Enable monitoring for this title in Wanted to import automatically.")
+    let title = r
+        .get::<Option<String>, _>("title")
+        .map(|s| decode(&s))
+        .transpose()?;
+    let target = if let Some(title) = &title {
+        destinations::for_title(
+            a,
+            r.get::<String, _>("title_id").as_str(),
+            title["kind"].as_str().unwrap_or("movie"),
+        )
+        .await
     } else {
-        None
+        Ok(None)
+    };
+    let import_blocker = if title.is_none() {
+        Some(
+            data["recognition"]["message"]
+                .as_str()
+                .unwrap_or("Recognizing this torrent before automatic import.")
+                .to_owned(),
+        )
+    } else {
+        match &target {
+            Ok(Some(_)) => None,
+            Ok(None) => Some(
+                "Choose a default movie/series import folder in Acquisition settings.".to_owned(),
+            ),
+            Err(error) => Some(
+                error.1.0["error"]
+                    .as_str()
+                    .unwrap_or("Import destination unavailable.")
+                    .to_owned(),
+            ),
+        }
     };
     let release = if data["release"].is_object() {
         data["release"].clone()
@@ -202,7 +226,9 @@ pub(super) async fn view(a: &App, id: &str) -> Result<Value> {
             .unwrap_or(Value::Null)
     };
     Ok(
-        json!({"id":id,"title_id":r.get::<Option<String>,_>("title_id"),"title":r.get::<Option<String>,_>("title").map(|s|decode(&s)).transpose()?,
+        json!({"id":id,"title_id":r.get::<Option<String>,_>("title_id"),"title":title,
+        "recognition":if r.get::<Option<String>,_>("title_id").is_some(){json!({"state":"matched"})}else if data["recognition"].is_object(){data["recognition"].clone()}else{json!({"state":"pending"})},
+        "import_destination":target.ok().flatten(),
         "infohash":r.get::<Option<String>,_>("infohash"),"state":r.get::<String,_>("state"),"error":r.get::<Option<String>,_>("error"),
         "release_title":release["title"],"indexer_name":release["indexer_name"],"release_size":release["size"],
         "imported":sqlx::query_scalar::<_,bool>("SELECT EXISTS(SELECT 1 FROM acquisition_imports WHERE download_id=? AND state='scanned')").bind(id).fetch_one(&a.pool).await.map_err(db)?,

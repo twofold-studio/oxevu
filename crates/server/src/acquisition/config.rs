@@ -18,6 +18,9 @@ pub(super) struct Config {
     pub search_interval_minutes: u32,
     pub import_enabled: bool,
     pub copy_fallback: bool,
+    pub auto_identify: bool,
+    pub movie_destination: Option<destinations::Destination>,
+    pub series_destination: Option<destinations::Destination>,
 }
 impl Default for Config {
     fn default() -> Self {
@@ -37,6 +40,9 @@ impl Default for Config {
             search_interval_minutes: 60,
             import_enabled: false,
             copy_fallback: false,
+            auto_identify: true,
+            movie_destination: None,
+            series_destination: None,
         }
     }
 }
@@ -73,10 +79,27 @@ pub(super) async fn put(
 ) -> Result<Json<Value>> {
     users::admin(&a, &h).await?;
     validate(&c)?;
+    let old = load(&a).await?;
+    for (kind, target, previous) in [
+        ("movies", &mut c.movie_destination, &old.movie_destination),
+        ("tv", &mut c.series_destination, &old.series_destination),
+    ] {
+        if let Some(target) = target {
+            if let Some(previous) = previous
+                .as_ref()
+                .filter(|old| old.library_id == target.library_id && old.root == target.root)
+            {
+                // Unrelated settings, including disabling imports, remain editable
+                // while a saved destination is offline. Keep its original mount pin.
+                target.root_device = previous.root_device;
+            } else {
+                destinations::validate(&a, kind, target).await?;
+            }
+        }
+    }
     let root = super::storage::canonical_candidate(std::path::Path::new(&c.download_dir)).await?;
     super::storage::validate_download_root(&a, &root).await?;
     c.download_dir = root.to_string_lossy().into_owned();
-    let old = load(&a).await?;
     let n: i64 =
         sqlx::query_scalar("SELECT count(*) FROM acquisition_downloads WHERE state!='removed'")
             .fetch_one(&a.pool)

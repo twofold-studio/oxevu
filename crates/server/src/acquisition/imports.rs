@@ -47,6 +47,19 @@ pub(super) async fn execute(
         if !config.import_enabled {
             return Err(bad("enable imports explicitly in acquisition settings"));
         }
+        let current: Option<String> = sqlx::query_scalar::<_, Option<String>>(
+            "SELECT title_id FROM acquisition_downloads WHERE id=? AND state!='removed'",
+        )
+        .bind(download)
+        .fetch_optional(&a.pool)
+        .await
+        .map_err(db)?
+        .flatten();
+        if current.as_deref() != Some(file.title_id.as_str()) {
+            return Err(bad(
+                "The download title changed. Preview the import again before publishing files.",
+            ));
+        }
         let registered: bool = sqlx::query_scalar(
             "SELECT EXISTS(SELECT 1 FROM library_roots r JOIN libraries l ON l.id=r.library_id JOIN acquisition_titles t ON t.id=? LEFT JOIN library_options o ON o.library_id=l.id WHERE r.library_id=? AND r.path=? AND COALESCE(o.enabled,1)=1 AND l.kind=CASE t.kind WHEN 'tv' THEN 'tv' ELSE 'movies' END)",
         )

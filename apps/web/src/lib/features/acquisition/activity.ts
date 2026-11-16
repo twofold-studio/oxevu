@@ -1,4 +1,4 @@
-import type { Download } from "$lib/api/acquisition-types";
+import type { Download, RecognitionState } from "$lib/api/acquisition-types";
 
 export function progress(job: Download): number {
   return job.stats.total_bytes
@@ -37,4 +37,15 @@ export function importMessage(job: Download, enabled: boolean): string {
     job.import_warning ??
     "Downloaded · automatic import pending. This is checked every 10 seconds."
   );
+}
+
+const RECOGNITION_LABELS: Record<RecognitionState, string> = {
+  matched: "Identified",
+  needs_review: "Needs review",
+  pending: "Identifying…",
+  unavailable: "Not identified",
+};
+
+export function recognitionLabel(state: RecognitionState): string {
+  return RECOGNITION_LABELS[state] ?? state;
 }

@@ -9,9 +9,14 @@ as available; planned features belong in GOAL.md.
 
 ### Fixed
 
+- Import previews explain missing torrent identities instead of returning a generic database error. Automatic imports use a default movie/series destination without requiring a per-title Wanted rule.
+
 - Imported titles keep their catalog cover, genres, provider link and rating. Existing imports receive missing cover metadata without replacing owner matches.
 
 ### Added
+
+- Torrents are recognized from movie release names or episode numbering using a unique exact TMDB match, with review states for ambiguous names. Imports wait for completed, verified downloads and retain seeding sources.
+- One effective default import folder per media type, with configurable overrides and an authenticated endpoint for manually identifying a torrent.
 
 - Item pages tuck file size, format, resolution, bitrate, codecs and audio channels into a collapsed Stats for nerds section. New scans record these technical facts; older items can be rescanned.
 
@@ -28,6 +33,10 @@ as available; planned features belong in GOAL.md.
   replacement plan, with engine/network validation and staged migration gates.
 
 ### Changed
+
+- Download rows use compact status icons, recognition badges and a collapsible transfer-speed control. Imports settings show effective movie/series destinations, and uncertain torrents can be identified from catalog search results.
+
+- The application header uses the existing rust-orange logo artwork; the favicon is unchanged.
 
 - Activity offers persistent per-entry download caps alongside combined transfer
   caps, with autosave and validation. Entry changes reconnect only that torrent.

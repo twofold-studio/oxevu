@@ -6,7 +6,7 @@ import type { AcquisitionConfig } from "$lib/api/acquisition-types";
 export type AcquisitionErrors = Partial<Record<keyof AcquisitionConfig, string>>;
 
 type NumericKey = {
-  [K in keyof AcquisitionConfig]: AcquisitionConfig[K] extends number ? K : never;
+  [K in keyof AcquisitionConfig]-?: AcquisitionConfig[K] extends number ? K : never;
 }[keyof AcquisitionConfig];
 
 type Range = { min: number; max: number; integer?: boolean };

@@ -5,9 +5,12 @@ use serde::{Deserialize, Serialize};
 mod access;
 mod adoption;
 mod auto_import;
+#[cfg(test)]
+mod automatic_import_tests;
 mod catalog;
 mod claims;
 mod config;
+mod destinations;
 mod download_limits;
 mod downloads;
 mod feeds;
@@ -19,6 +22,7 @@ mod jobs;
 mod migration;
 mod monitoring;
 mod profiles;
+mod recognition;
 mod release_facts;
 mod release_identity;
 mod releases;
@@ -54,6 +58,11 @@ pub(crate) fn routes() -> Router<App> {
         .route("/acquisition/migration", post(migration::apply))
         .route("/acquisition/events", get(events))
         .route("/acquisition/settings", get(config::get).put(config::put))
+        .route("/acquisition/import-defaults", get(destinations::get))
+        .route(
+            "/acquisition/downloads/{id}/identity",
+            put(recognition::associate),
+        )
         .route("/acquisition/profiles", get(profiles::list))
         .route("/acquisition/profiles/{id}", put(profiles::put))
         .route("/acquisition/indexers", get(indexers::list))

@@ -45,13 +45,15 @@ pub(super) async fn build(a: &App, id: &str, input: &Input) -> Result<Vec<File>>
     .map_err(db)?
     .ok_or_else(|| bad("unknown download"))?;
     let title_id: String = row
-        .try_get("title_id")
-        .map_err(|_| bad("associate this download with a catalog title before importing"))?;
+        .get::<Option<String>, _>("title_id")
+        .filter(|id| !id.is_empty())
+        .ok_or_else(|| bad("This torrent has not been recognized yet. Wait for recognition or associate it with a catalog title before importing."))?;
     let title_raw: String = sqlx::query_scalar("SELECT data FROM acquisition_titles WHERE id=?")
         .bind(&title_id)
-        .fetch_one(&a.pool)
+        .fetch_optional(&a.pool)
         .await
-        .map_err(db)?;
+        .map_err(db)?
+        .ok_or_else(|| bad("The associated catalog title is missing. Identify this torrent again before importing."))?;
     let title = decode(&title_raw)?;
     let data = decode(row.get("data"))?;
     let kind = if title["kind"] == "tv" {

@@ -41,7 +41,8 @@
           <ActivityTransfer {job} importEnabled={resource.value?.importEnabled ?? false} pending={pending === job.id} onaction={(value) => void action(job, value)}
             onfiles={() => { selectedId = job.id; opening++; filesOpen = true; }}
             onimport={() => { selectedId = job.id; opening++; importOpen = true; }}
-            onremove={() => { selectedId = job.id; removeOpen = true; }} />
+            onremove={() => { selectedId = job.id; removeOpen = true; }}
+            onrefresh={() => { void resource.load(); }} />
         {/each}
       </ul>
     {/if}

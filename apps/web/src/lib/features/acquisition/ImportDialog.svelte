@@ -6,7 +6,7 @@
   import { Checkbox } from "$lib/components/ui/checkbox";
   import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
-  import type { Download, ImportInput, ImportFile } from "$lib/api/acquisition-types";
+  import type { Download, ImportInput, ImportFile, ImportDefaults } from "$lib/api/acquisition-types";
   import type { Library } from "$lib/api/types";
   import { librariesApi } from "$lib/api/endpoints";
   import { acquisitionApi } from "$lib/api/acquisition";
@@ -24,7 +24,23 @@
   const valid = $derived(Boolean(libraryId && root && body.mappings.length && (!tv || body.mappings.every((m) => m.episodes.length && m.episodes.every((e) => Number.isInteger(e.season) && Number.isInteger(e.episode) && e.season >= 0 && e.episode >= 0)))));
   const currentPreview = $derived(reviewed && previewInput === JSON.stringify(body) ? reviewed : null);
   onMount(async () => {
-    try { libraries = (await librariesApi.list()).libraries; for (const file of files) { const code = /s(\d{1,3})e(\d{1,4})(?:-?e(\d{1,4}))?/i.exec(file.path); mappings[file.index] = { selected: false, season: Number(code?.[1] ?? 1), first: Number(code?.[2] ?? 1), last: Number(code?.[3] ?? code?.[2] ?? 1) }; } }
+    try {
+      const [libResult, defaults] = await Promise.all([
+        librariesApi.list(),
+        acquisitionApi.importDefaults().catch(() => null as ImportDefaults | null),
+      ]);
+      libraries = libResult.libraries;
+      for (const file of files) { const code = /s(\d{1,3})e(\d{1,4})(?:-?e(\d{1,4}))?/i.exec(file.path); mappings[file.index] = { selected: false, season: Number(code?.[1] ?? 1), first: Number(code?.[2] ?? 1), last: Number(code?.[3] ?? code?.[2] ?? 1) }; }
+      const dest = job.import_destination ?? (tv ? defaults?.tv : defaults?.movies) ?? null;
+      if (dest) {
+        const matchLib = libraries.find((l) => l.id === dest.library_id && l.enabled);
+        if (matchLib) {
+          libraryId = matchLib.id;
+          if (matchLib.paths.includes(dest.root)) root = dest.root;
+          else if (matchLib.paths.length === 1) root = matchLib.paths[0];
+        }
+      }
+    }
     catch (e) { error = errorMessage(e); }
   });
   function toggle(index: number, checked: boolean) { if (!tv && checked) for (const m of Object.values(mappings)) m.selected = false; mappings[index].selected = checked; }

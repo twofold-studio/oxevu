@@ -75,6 +75,9 @@ export const acquisitionApi = {
     ),
   import: (id: string, body: A.ImportInput) =>
     post<{ imports: unknown[] }>(`/downloads/${path(id)}/imports`, body),
+  importDefaults: () => get<A.ImportDefaults>("/import-defaults"),
+  identify: (id: string, kind: A.MediaKind, provider_id: number) =>
+    put<{ download: A.Download }>(`/downloads/${path(id)}/identity`, { kind, provider_id }),
   settings: () =>
     get<{ settings: A.AcquisitionConfig; engine: string; network_policy: string }>("/settings"),
   configure: (body: A.AcquisitionConfig) =>

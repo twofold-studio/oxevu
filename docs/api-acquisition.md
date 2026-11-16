@@ -1,5 +1,35 @@
 # Acquisition API
 
+## Automatic recognition and import defaults
+
+Acquisition settings additionally accept `auto_identify` (default true),
+`movie_destination` and `series_destination`. A destination is
+`{library_id,root}` or null; the server records its filesystem device when saved.
+Null selects the first enabled matching library/root, in creation order.
+`GET /api/v1/acquisition/import-defaults` returns the effective `movies` and `tv`
+destinations. Explicit per-title destinations take precedence. Disabled or removed
+explicit defaults require choosing a new default; offline roots suspend imports.
+
+The 10-second import worker attempts recognition when torrent file metadata becomes
+available. Movie release names and `SxxExx`/season names select the search kind;
+only a single exact normalized title match with the same release year, when known,
+is accepted. Mixed-title packs and uncertain matches remain for review. Provider
+failures and unresolved names retry after five minutes. This does not enable
+automatic release searching or change download selection.
+
+Downloads include `recognition` (`pending`, `matched`, `needs_review`, or
+`unavailable`, plus a message) and `import_destination`. Administrators or users
+allowed to manage downloads can explicitly associate a torrent with
+`PUT /api/v1/acquisition/downloads/{id}/identity`, body
+`{kind:"movie"|"tv",provider_id:number}`. An active or completed import prevents
+reassociation. Missing identities in manual import previews produce a helpful
+error rather than a database error.
+
+With library writes enabled, completed verified standalone downloads also import
+without a Wanted rule. Unwanted samples/extras are skipped. Ambiguous episode
+numbers or multiple main movie files require review. Existing media is never
+overwritten, the seeding source remains, and imports honor configured copy fallback.
+
 All routes are under `/api/v1/acquisition`, use the existing HTTP-only session,
 and require the configured same-origin `Origin` on mutations. JSON bodies reject
 unknown fields. Admins have every acquisition permission; delegated permissions

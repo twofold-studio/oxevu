@@ -21,18 +21,22 @@ pub(crate) async fn run(a: App) {
 }
 pub(super) async fn tick(a: &App) -> Result<()> {
     let c = config::load(a).await?;
+    recognition::tick(a).await?;
     if !c.import_enabled {
         return Ok(());
     }
     recover(a).await?;
-    let rows=sqlx::query("SELECT d.id,d.title_id,d.data,m.library_id,m.root,m.root_device FROM acquisition_downloads d JOIN acquisition_monitors m ON m.title_id=d.title_id WHERE d.state IN ('downloading','seeding','completed','paused') AND m.enabled=1 AND m.library_id IS NOT NULL AND m.root IS NOT NULL AND json_array_length(json_extract(d.data,'$.files'))>0 ORDER BY d.created_at LIMIT 1000").fetch_all(&a.pool).await.map_err(db)?;
+    let rows=sqlx::query("SELECT d.id,d.title_id,d.data FROM acquisition_downloads d WHERE d.title_id IS NOT NULL AND d.state IN ('downloading','seeding','completed','paused') AND json_array_length(json_extract(d.data,'$.files'))>0 ORDER BY d.created_at LIMIT 1000").fetch_all(&a.pool).await.map_err(db)?;
     for row in rows {
         if a.acquisition.is_stopping() {
             break;
         }
         let id: String = row.get("id");
         match for_download(a, &row).await {
-            Ok(()) => {}
+            Ok(()) => {
+                sqlx::query("UPDATE acquisition_downloads SET data=json_remove(data,'$.import_warning') WHERE id=? AND json_type(data,'$.import_warning') IS NOT NULL")
+                    .bind(&id).execute(&a.pool).await.map_err(db)?;
+            }
             Err(e) => {
                 let message = e.1.0["error"]
                     .as_str()
@@ -52,13 +56,6 @@ pub(super) async fn tick(a: &App) -> Result<()> {
 
 async fn for_download(a: &App, row: &sqlx::sqlite::SqliteRow) -> Result<()> {
     use std::os::unix::fs::MetadataExt;
-    let root: String = row.get("root");
-    let meta = tokio::fs::metadata(&root)
-        .await
-        .map_err(|_| bad("library root offline; import suspended"))?;
-    if Some(meta.dev() as i64) != row.get::<Option<i64>, _>("root_device") {
-        return Err(bad("library mount changed; import suspended"));
-    }
     let raw: String = sqlx::query_scalar("SELECT data FROM acquisition_titles WHERE id=?")
         .bind(row.get::<String, _>("title_id"))
         .fetch_one(&a.pool)
@@ -66,13 +63,39 @@ async fn for_download(a: &App, row: &sqlx::sqlite::SqliteRow) -> Result<()> {
         .map_err(db)?;
     let title = decode(&raw)?;
     let data = decode(row.get("data"))?;
+    if data["stats"]["finished"] != true {
+        return Ok(());
+    }
+    let target = destinations::for_title(
+        a,
+        row.get("title_id"),
+        title["kind"].as_str().unwrap_or("movie"),
+    )
+    .await?
+    .ok_or_else(|| {
+        bad("Choose a default import folder for this media type in Acquisition settings.")
+    })?;
+    let meta = tokio::fs::metadata(&target.root)
+        .await
+        .map_err(|_| bad("library root offline; import suspended"))?;
+    if target
+        .root_device
+        .is_some_and(|device| device != meta.dev())
+    {
+        return Err(bad("library mount changed; import suspended"));
+    }
     let items = wanted::inventory(a, &title).await?;
     if items.iter().any(|i| i["online"] != true) {
         return Err(bad(
             "existing media offline or unverified; import suspended",
         ));
     }
-    let units = wanted::units(a, &title, &items).await?;
+    let mut units = wanted::units(a, &title, &items).await?;
+    if data["input"]["only_wanted"] != true {
+        for unit in &mut units {
+            unit["wanted"] = json!(true);
+        }
+    }
     let mappings = mappings(&data, &title, &units)?;
     if mappings.is_empty() {
         let imported: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM acquisition_imports WHERE download_id=? AND state='scanned')")
@@ -85,8 +108,8 @@ async fn for_download(a: &App, row: &sqlx::sqlite::SqliteRow) -> Result<()> {
         return Ok(());
     }
     let input = Input {
-        library_id: row.get("library_id"),
-        root,
+        library_id: target.library_id,
+        root: target.root,
         mappings,
         token: None,
     };

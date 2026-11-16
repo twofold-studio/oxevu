@@ -56,6 +56,20 @@ export interface MediaRequest {
   created_at: number;
   availability: Availability;
 }
+export interface ImportDestination {
+  library_id: string;
+  root: string;
+  root_device?: number | null;
+}
+export interface ImportDefaults {
+  movies: ImportDestination | null;
+  tv: ImportDestination | null;
+}
+export type RecognitionState = "pending" | "matched" | "needs_review" | "unavailable";
+export interface Recognition {
+  state: RecognitionState;
+  message?: string;
+}
 export interface AcquisitionConfig {
   enabled: boolean;
   download_dir: string;
@@ -72,6 +86,9 @@ export interface AcquisitionConfig {
   search_interval_minutes: number;
   import_enabled: boolean;
   copy_fallback: boolean;
+  auto_identify?: boolean;
+  movie_destination?: ImportDestination | null;
+  series_destination?: ImportDestination | null;
 }
 export interface AcquisitionProfile {
   name: string;
@@ -202,6 +219,8 @@ export interface Download {
   imported?: boolean;
   import_blocker?: string | null;
   download_limit_kib?: number;
+  recognition?: Recognition | null;
+  import_destination?: ImportDestination | null;
 }
 export interface DownloadInput {
   paused?: boolean;
