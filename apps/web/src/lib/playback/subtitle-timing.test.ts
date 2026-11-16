@@ -2,6 +2,16 @@ import { describe, expect, it } from "vite-plus/test";
 import { offsetVtt } from "./subtitle-timing";
 
 describe("subtitle timing", () => {
+  it("delays or advances captions during direct play", () => {
+    const text = "WEBVTT\n\n00:03.000 --> 00:05.000\nHello";
+    expect(offsetVtt(text, 0, 1.5)).toContain("00:00:04.500 --> 00:00:06.500");
+    expect(offsetVtt(text, 0, -1.5)).toContain("00:00:01.500 --> 00:00:03.500");
+  });
+  it("combines personal delay with the HLS seek offset without modifying text", () => {
+    expect(offsetVtt("WEBVTT\n\n00:10:03.000 --> 00:10:05.000 align:end\nHello", 600, 2)).toContain(
+      "00:00:05.000 --> 00:00:07.000 align:end\nHello",
+    );
+  });
   it("shifts absolute cues to an offset HLS session, keeping cue settings and text", () => {
     const vtt = "WEBVTT\n\n00:10:03.000 --> 00:10:05.500 align:start\nHello\n";
     expect(offsetVtt(vtt, 600)).toBe(

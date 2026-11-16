@@ -11,8 +11,10 @@ function format(value: number): string {
 }
 
 /** VTT is in item time; HLS media starts at zero for each seek session. */
-export function offsetVtt(vtt: string, offset: number): string {
-  if (offset <= 0) return vtt;
+export function offsetVtt(vtt: string, offset: number, delay = 0): string {
+  if (!Number.isFinite(offset) || !Number.isFinite(delay) || (offset === 0 && delay === 0))
+    return vtt;
+  const shift = delay - offset;
   return vtt
     .split(/\r?\n\r?\n/)
     .flatMap((block) => {
@@ -23,8 +25,8 @@ export function offsetVtt(vtt: string, offset: number): string {
           const a = seconds(start),
             b = seconds(end);
           if (!Number.isFinite(a) || !Number.isFinite(b)) return line;
-          expired = b <= offset;
-          return `${format(a - offset)} --> ${format(b - offset)}${settings}`;
+          expired = b + shift <= 0;
+          return `${format(a + shift)} --> ${format(b + shift)}${settings}`;
         },
       );
       return expired ? [] : [shifted];

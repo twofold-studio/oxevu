@@ -39,10 +39,10 @@
   import ReactionControls from "./ReactionControls.svelte";
   import FindAgainLink from "./FindAgainLink.svelte";
   import RemovalDialog from "./RemovalDialog.svelte";
-  import CreatePartyDialog from "$lib/features/party/CreatePartyDialog.svelte";
+  import { partySession } from "$lib/party/session.svelte";
   import DownloadBadge from "$lib/features/library/DownloadBadge.svelte";
   import { session } from "$lib/state/session.svelte";
-  import { canCreateParties, isAdmin, canManageDownloads } from "$lib/state/access";
+  import { canJoinParties, isAdmin, canManageDownloads } from "$lib/state/access";
 
   let { id }: { id: string } = $props();
 
@@ -101,9 +101,9 @@
     return { show, previous: ordered[index - 1], next: ordered[index + 1] };
   });
 
-  let partyOpen = $state(false);
-  let partyOpening = $state(0);
-  const canParty = $derived(canCreateParties(session.user) && hasFile);
+  const canParty = $derived(canJoinParties(session.user) && session.user?.can_play === true && hasFile
+    && partySession.connection?.state === "live"
+    && partySession.connection.party?.members.some((member) => member.user_id === session.user?.id));
 
   let removalOpen = $state(false);
 
@@ -202,10 +202,7 @@
             <Button
               size="lg"
               variant="outline"
-              onclick={() => {
-                partyOpening++;
-                partyOpen = true;
-              }}
+              href={href.watch(item.id)}
             >
               <UsersRoundIcon data-icon="inline-start" />
               Watch together
@@ -278,9 +275,6 @@
   {#if admin}
     <RemovalDialog bind:open={removalOpen} itemIds={[item.id]} label={item.title} onremoved={handleRemoved} />
   {/if}
-  {#key partyOpening}
-    {#if partyOpening > 0}<CreatePartyDialog bind:open={partyOpen} itemId={item.id} />{/if}
-  {/key}
 {:else if error}
   {#if error.missing}
     <NotFound title="Title not found" description="It may have been removed by a rescan." />

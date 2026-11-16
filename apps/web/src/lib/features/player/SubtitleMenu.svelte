@@ -4,10 +4,13 @@
   import { buttonVariants } from "$lib/components/ui/button";
   import { Input } from "$lib/components/ui/input";
   import SubtitleSearchDialog from "./SubtitleSearchDialog.svelte";
+  import SubtitleOffsetDialog from "./SubtitleOffsetDialog.svelte";
   import type { Subtitles } from "$lib/playback/subtitles.svelte";
 
   let { subtitles, itemId, canDownload, open = $bindable(false) }: { subtitles: Subtitles; itemId: string; canDownload: boolean; open?: boolean } = $props();
   let query = $state("");
+  let offsetOpen = $state(false);
+  const selectedTrack = $derived(subtitles.tracks.find((track) => track.id === subtitles.selected));
   const searchable = $derived(subtitles.tracks.length > 8);
   const filtered = $derived(subtitles.tracks.filter((track) =>
     !searchable || `${track.label} ${track.language ?? ""} ${track.codec}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
@@ -49,9 +52,18 @@
       <DropdownMenu.Label class="text-xs leading-5 font-normal text-muted-foreground">Image-based subtitles require burning into video, which is not available yet.</DropdownMenu.Label>
     {/if}
     <DropdownMenu.Separator />
-    <DropdownMenu.Item onclick={() => (subtitles.searchOpen = true)}>Find subtitles…</DropdownMenu.Item>
+    <DropdownMenu.Group>
+      <DropdownMenu.Item disabled={!selectedTrack?.supported} onclick={() => { open = false; offsetOpen = true; }}>
+        Timing offset{subtitles.delay !== 0 ? ` (${subtitles.delay > 0 ? "+" : ""}${subtitles.delay}s)` : ""}…
+      </DropdownMenu.Item>
+      <DropdownMenu.Item onclick={() => { open = false; subtitles.searchOpen = true; }}>Find subtitles…</DropdownMenu.Item>
+    </DropdownMenu.Group>
   </DropdownMenu.Content>
 </DropdownMenu.Root>
+
+{#if offsetOpen}
+  <SubtitleOffsetDialog bind:open={offsetOpen} {subtitles} />
+{/if}
 
 {#if subtitles.searchOpen}
   <SubtitleSearchDialog bind:open={subtitles.searchOpen} {subtitles} {itemId} {canDownload} />

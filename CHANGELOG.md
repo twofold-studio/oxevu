@@ -9,11 +9,17 @@ as available; planned features belong in GOAL.md.
 
 ### Fixed
 
+- The title-page Watch together action appears only for a joined live party and opens playback in that existing party instead of creating another one.
+
+- Wide search-result dialogs allow more horizontal space, keep their grid content within the viewport, and wrap long subtitle release names without pushing Download controls off screen.
+
 - Import previews explain missing torrent identities instead of returning a generic database error. Automatic imports use a default movie/series destination without requiring a per-title Wanted rule.
 
 - Imported titles keep their catalog cover, genres, provider link and rating. Existing imports receive missing cover metadata without replacing owner matches.
 
 ### Added
+
+- Subtitle timing controls offer earlier/later adjustments, exact seconds and reset, remembered in this browser per title and track. Personal timing is combined with HLS seek offsets without modifying subtitle files or party playback.
 
 - Library cards, episodes, details and Downloads link to recognized transfers with download status and Play/Resume when streaming is available. Progressive playback shows buffering status, uses a bounded startup wait and retains session leases without rapid heartbeats. Visible library views share a ten-second refresh loop.
 

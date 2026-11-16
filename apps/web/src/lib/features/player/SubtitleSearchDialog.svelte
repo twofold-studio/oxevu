@@ -53,11 +53,11 @@
 
 <Dialog.Root bind:open>
   <Dialog.Content portalProps={{ disabled: true }} size="wide">
-    <Dialog.Header>
+    <Dialog.Header class="min-w-0 pr-6">
       <Dialog.Title>Find subtitles</Dialog.Title>
-      <Dialog.Description>Search OpenSubtitles for this title. An administrator must configure the integration first. Downloads count against the account's quota and stay in Oxevu's data folder.</Dialog.Description>
+      <Dialog.Description class="min-w-0 break-words">Search OpenSubtitles for this title. Downloads use the configured account's quota and stay in Oxevu's data folder.</Dialog.Description>
     </Dialog.Header>
-    <form onsubmit={search}>
+    <form class="min-w-0" onsubmit={search}>
       <Field.Group>
         <Field.Field>
           <Field.Label for="subtitle-language">Language code</Field.Label>
@@ -70,14 +70,14 @@
     {#if failure}<p class="text-sm text-destructive" role="alert">{failure}</p>{/if}
     {#if results}
       {#if results.length === 0}<p class="text-sm text-muted-foreground">No subtitles found for this language.</p>{/if}
-      <ul class="flex flex-col divide-y rounded-md border">
+      <ul class="flex min-w-0 flex-col divide-y rounded-md border">
         {#each results as result (result.id)}
-          <li class="flex items-center gap-3 p-3">
+          <li class="flex min-w-0 flex-col items-start gap-3 p-3 sm:flex-row sm:items-center">
             <div class="min-w-0 flex-1">
-              <p class="text-sm break-words">{result.label}</p>
+              <p class="text-sm [overflow-wrap:anywhere]">{result.label}</p>
               <p class="text-xs text-muted-foreground">{result.language}{result.hearing_impaired ? " · Hearing impaired" : ""} · {result.download_count} downloads</p>
             </div>
-            <Button size="sm" variant="outline" disabled={busy || !canDownload} onclick={() => void download(result)}>Download</Button>
+            <Button class="shrink-0" size="sm" variant="outline" disabled={busy || !canDownload} onclick={() => void download(result)}>Download</Button>
           </li>
         {/each}
       </ul>

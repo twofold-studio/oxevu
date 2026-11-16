@@ -1,5 +1,6 @@
 import { request, errorMessage } from "$lib/api/client";
 import { offsetVtt } from "./subtitle-timing";
+import { normalizeSubtitleDelay, readSubtitleDelay, saveSubtitleDelay } from "./subtitle-delay";
 import { readSubtitlePreference, saveSubtitlePreference } from "./personal-preferences";
 
 export interface SubtitleTrack {
@@ -19,6 +20,9 @@ export class Subtitles {
   searchOpen = $state(false);
   error = $state<string | null>(null);
   loading = $state(false);
+  /** Positive seconds display captions later; negative seconds display them earlier. */
+  delay = $state(0);
+  private itemId = "";
   private video: HTMLVideoElement | null = null;
   private offset = 0;
   private element: HTMLTrackElement | null = null;
@@ -28,10 +32,20 @@ export class Subtitles {
   private cached: { id: string; text: string } | null = null;
 
   async load(itemId: string, chooseDefault = true) {
+    if (this.itemId !== itemId) {
+      this.abort?.abort();
+      this.clear();
+      this.cached = null;
+      this.tracks = [];
+      this.itemId = itemId;
+      this.delay = 0;
+      this.selected = "off";
+    }
     try {
       const { tracks } = await request<{ tracks: SubtitleTrack[] }>(
         `/items/${encodeURIComponent(itemId)}/subtitles`,
       );
+      if (this.itemId !== itemId) return false;
       this.tracks = tracks;
       const preference = readSubtitlePreference();
       const preferred = preference
@@ -49,6 +63,7 @@ export class Subtitles {
       if (chooseDefault) this.select(preferred?.id ?? "off", false);
       return true;
     } catch (error) {
+      if (this.itemId !== itemId) return false;
       this.error = errorMessage(error);
       return false;
     }
@@ -62,11 +77,19 @@ export class Subtitles {
 
   select(id: string, remember = true) {
     this.selected = id;
+    this.delay = id === "off" ? 0 : readSubtitleDelay(this.itemId, id);
     if (remember) {
       const track = this.tracks.find((track) => track.id === id);
       if (id === "off") saveSubtitlePreference({ off: true });
       else if (track) saveSubtitlePreference({ language: track.language, label: track.label });
     }
+    void this.render();
+  }
+
+  setDelay(seconds: number) {
+    if (this.selected === "off") return;
+    this.delay = normalizeSubtitleDelay(seconds);
+    saveSubtitleDelay(this.itemId, this.selected, this.delay);
     void this.render();
   }
 
@@ -115,7 +138,7 @@ export class Subtitles {
       }
       if (abort.signal.aborted) return;
       this.objectUrl = URL.createObjectURL(
-        new Blob([offsetVtt(text, this.offset)], { type: "text/vtt" }),
+        new Blob([offsetVtt(text, this.offset, this.delay)], { type: "text/vtt" }),
       );
       const element = document.createElement("track");
       element.kind = "subtitles";

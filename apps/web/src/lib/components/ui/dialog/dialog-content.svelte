@@ -31,7 +31,7 @@
 		data-slot="dialog-content"
 		data-size={size}
 		class={cn(
-			"bg-popover text-popover-foreground data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 ring-foreground/10 grid max-h-[calc(100dvh-2rem)] max-w-[calc(100%_-_2rem)] overflow-y-auto gap-4 rounded-xl p-4 text-sm ring-1 duration-100 sm:max-w-lg data-[size=wide]:sm:max-w-xl fixed top-1/2 left-1/2 z-50 w-full -translate-x-1/2 -translate-y-1/2 outline-none",
+			"bg-popover text-popover-foreground data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 ring-foreground/10 grid min-w-0 grid-cols-[minmax(0,1fr)] max-h-[calc(100dvh-2rem)] max-w-[calc(100%_-_2rem)] overflow-x-hidden overflow-y-auto gap-4 rounded-xl p-4 text-sm ring-1 duration-100 sm:max-w-lg data-[size=wide]:sm:max-w-4xl fixed top-1/2 left-1/2 z-50 w-full -translate-x-1/2 -translate-y-1/2 outline-none",
 			className
 		)}
 		{...restProps}

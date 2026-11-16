@@ -137,3 +137,17 @@ The order of the later modules may change as implementation reveals dependencies
 - Torrent engine acceptance beyond the librqbit spike, indexer coverage and
   optional interface binding.
 - Release platforms, license, and exact distribution format.
+
+## Requested follow-up at the November 2026 thread handoff
+
+- Add genre/tag-aware library search (including science-fiction aliases), type,
+  watched and Favorites filters. An interrupted UI proposal exists outside this
+  repository; it is not integrated or verified.
+- Add visible Favorite/Watched detail actions and watched/unwatched operations for
+  the current episodes of a season or show, with bounded requests and honest
+  partial-failure handling. Move secondary actions into a compact overflow menu.
+  Existing episode-row actions remain available; the detail/group rework is pending.
+- Trial automatic subtitle synchronization on a separate output copy, preserving
+  the original. See the [proposed contract](docs/subtitle-alignment-contract.md).
+  No alignment backend, executable installation, Auto-align UI or real-film trial
+  has been completed. Manual browser-local timing offset is a separate feature.
