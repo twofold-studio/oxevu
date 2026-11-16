@@ -75,6 +75,13 @@ async fn for_download(a: &App, row: &sqlx::sqlite::SqliteRow) -> Result<()> {
     let units = wanted::units(a, &title, &items).await?;
     let mappings = mappings(&data, &title, &units)?;
     if mappings.is_empty() {
+        let imported: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM acquisition_imports WHERE download_id=? AND state='scanned')")
+            .bind(row.get::<String, _>("id")).fetch_one(&a.pool).await.map_err(db)?;
+        if data["stats"]["finished"] == true && !imported {
+            return Err(bad(
+                "No missing requested media matches these files; review the import mappings.",
+            ));
+        }
         return Ok(());
     }
     let input = Input {

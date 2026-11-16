@@ -200,6 +200,8 @@ export interface Download {
   indexer_name?: string | null;
   release_size?: number | null;
   imported?: boolean;
+  import_blocker?: string | null;
+  download_limit_kib?: number;
 }
 export interface DownloadInput {
   paused?: boolean;

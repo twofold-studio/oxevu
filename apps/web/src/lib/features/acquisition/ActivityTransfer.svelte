@@ -10,7 +10,8 @@
   import { href } from "$lib/state/router.svelte";
   import type { Download } from "$lib/api/acquisition-types";
   import { bytes } from "./format";
-  import { progress, eta, transferError } from "./activity";
+  import { progress, eta, transferError, importMessage } from "./activity";
+  import TransferLimit from "./TransferLimit.svelte";
 
   let { job, importEnabled, pending, onaction, onfiles, onimport, onremove }: {
     job: Download; importEnabled: boolean; pending: boolean;
@@ -41,13 +42,17 @@
       <Button variant="ghost" size="icon-sm" aria-label="Remove job and keep files" onclick={onremove}><TrashIcon /></Button>
     </div>
   </div>
+  <TransferLimit id={job.id} initial={job.download_limit_kib ?? 0} />
   {#if job.error}
     <p role="alert" class="text-sm text-destructive">{transferError(job.error)}</p>
     <details class="text-xs text-muted-foreground"><summary class="cursor-pointer">Technical details</summary><p class="mt-2 break-words">{job.error}</p></details>
   {/if}
-  {#if downloaded && !job.imported}
-    <p class="text-sm text-muted-foreground">{!importEnabled ? "Downloaded · not imported. Automatic imports are off." : job.import_warning ?? "Downloaded · import pending. Review the destination and files."}
-      {#if session.user?.is_admin}<a class="underline" href={href.settings("downloads/imports")}>Import settings</a>{/if}
+  {#if downloaded}
+    <p class="text-sm text-muted-foreground">{importMessage(job, importEnabled)}
+      {#if !job.imported && session.user?.is_admin}
+        {#if job.import_blocker && job.title_id}<a class="underline" href={href.wanted()}>Configure destination in Wanted</a>
+        {:else}<a class="underline" href={href.settings("downloads/imports")}>Import settings</a>{/if}
+      {/if}
     </p>
   {:else if job.import_warning}<p class="text-sm text-muted-foreground">Import review · {job.import_warning}</p>{/if}
   {#if job.queue_reason}<p class="text-xs text-muted-foreground">{job.queue_reason}</p>{/if}

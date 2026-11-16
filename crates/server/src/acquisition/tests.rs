@@ -2,6 +2,7 @@ use super::*;
 use scope::{Episode, Scope};
 mod adoption;
 mod automation;
+mod download_limits;
 mod fixture;
 mod flow;
 mod magnet_flow;

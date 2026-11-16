@@ -21,12 +21,12 @@
       <SettingsRow
         icon={FolderInputIcon}
         title="Library writes"
-        description="Imports are reviewed per download or follow a title's destination rule."
+        description="Completed, verified files import automatically every 10 seconds when the title has an enabled destination rule in Wanted."
       >
         <SwitchField
           id="acq-imports"
-          label="Allow library imports"
-          description="Permit reviewed imports and configured per-title destination rules to write completed media into libraries."
+          label="Automatically import completed media"
+          description="Allow writes into configured library destinations and reviewed manual imports. Ambiguous files need review; the seeding source is retained."
           bind:checked={form.draft.import_enabled}
         />
       </SettingsRow>

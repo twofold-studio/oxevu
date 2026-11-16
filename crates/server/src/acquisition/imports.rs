@@ -133,6 +133,13 @@ pub(super) async fn execute(
         attach(a, &id, &file).await?;
         event(a, download, "Media imported; seeding source retained").await?;
     }
+    sqlx::query(
+        "UPDATE acquisition_downloads SET data=json_remove(data,'$.import_warning') WHERE id=?",
+    )
+    .bind(download)
+    .execute(&a.pool)
+    .await
+    .map_err(db)?;
     Ok(())
 }
 

@@ -8,6 +8,7 @@ mod auto_import;
 mod catalog;
 mod claims;
 mod config;
+mod download_limits;
 mod downloads;
 mod feeds;
 mod import_io;
@@ -40,6 +41,10 @@ pub(crate) use runtime::Runtime;
 pub(crate) fn routes() -> Router<App> {
     Router::new()
         .route("/acquisition/release-sources", get(indexers::sources))
+        .route(
+            "/acquisition/downloads/{id}/limits",
+            put(download_limits::put),
+        )
         .route(
             "/acquisition/downloads/{id}",
             get(downloads::read).put(downloads::control),

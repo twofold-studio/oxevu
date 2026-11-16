@@ -21,3 +21,20 @@ export function transferError(raw: string): string {
   if (/indexer unavailable|timed? ?out|timeout/i.test(raw)) return "The indexer did not respond.";
   return raw;
 }
+
+export function validateTransferLimit(value: number | undefined): string | null {
+  if (value === undefined || !Number.isInteger(value)) return "Enter a whole number.";
+  if (value < 0 || value > 1_000_000) return "Use 0–1000000 KiB/s.";
+  if (value > 0 && value < 16) return "Use zero for no entry cap, or at least 16 KiB/s.";
+  return null;
+}
+
+export function importMessage(job: Download, enabled: boolean): string {
+  if (job.imported) return "Imported into the library. Seeding files are retained.";
+  if (!enabled) return "Downloaded · not imported. Automatic imports are off.";
+  return (
+    job.import_blocker ??
+    job.import_warning ??
+    "Downloaded · automatic import pending. This is checked every 10 seconds."
+  );
+}

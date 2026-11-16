@@ -46,6 +46,19 @@ Activity keeps the release name, indexer, job ID and import status. Completed
 transfers stay outside the library while automatic imports are off; administrators
 can review an import explicitly. Download completion alone is not library availability.
 
+Activity has a combined download/upload cap and a download cap for each entry.
+Both apply together; zero removes that cap. Enter whole KiB/s, at least 16 for a
+nonzero cap. Values save automatically. Changing the combined cap is live;
+changing an entry cap briefly reconnects and rechecks that torrent, keeping files
+and paused intent. Limits survive a server restart.
+
+With automatic imports enabled, the worker checks verified files every 10 seconds.
+The title needs an enabled destination rule in Wanted and missing requested media
+that matches the selected files. Activity explains missing prerequisites and
+import errors, then shows when media has entered the library. Imports retain the
+seeding source and never overwrite existing media. Enable cross-filesystem copy
+fallback when the download folder and library cannot share hardlinks.
+
 Profile minimum/maximum sizes display in GiB; the API retains its historical
 `*_size_mb` names, measured in MiB. Zero maximum means unlimited and does not
 disable the minimum. No existing profile is changed by this upgrade.

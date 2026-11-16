@@ -209,6 +209,7 @@ pub(super) async fn prepare(
                 paused: true,
                 overwrite: true,
                 initial_peers: Some(listed.seen_peers.into_iter().take(128).collect()),
+                ratelimits: download_limits::engine_limits(&data),
                 ..Default::default()
             }),
         )

@@ -17,6 +17,12 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Activity offers persistent per-entry download caps alongside combined transfer
+  caps, with autosave and validation. Entry changes reconnect only that torrent.
+- Completed downloads explain missing import destinations or title associations,
+  show successful imports, and clear stale warnings after import. Import settings
+  explain the automatic 10-second check and retained seeding files.
+
 - Release search has cancellation, elapsed time, partial/empty/failure states,
   profile-change warnings, stable result keys and inline download outcomes.
 - Activity identifies transfers by release and indexer, shows ETA and job IDs,

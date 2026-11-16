@@ -30,7 +30,7 @@ async fn approved_movie_reaches_playable_library_without_moving_seed_source() {
     )
     .await
     .unwrap();
-    let c = config::Config {
+    let mut c = config::Config {
         enabled: true,
         download_dir: f
             .directory
@@ -43,10 +43,10 @@ async fn approved_movie_reaches_playable_library_without_moving_seed_source() {
         dht: false,
         min_free_gb: 0,
         storage_limit_gb: 1,
-        import_enabled: true,
+        import_enabled: false,
         ..Default::default()
     };
-    let _ = config::put(State(a.clone()), admin.clone(), Json(c))
+    let _ = config::put(State(a.clone()), admin.clone(), Json(c.clone()))
         .await
         .unwrap();
     let _ = monitoring::put(
@@ -97,11 +97,21 @@ async fn approved_movie_reaches_playable_library_without_moving_seed_source() {
     assert_eq!(downloads::enqueue(a, input).await.unwrap(), id);
     tokio::time::timeout(std::time::Duration::from_secs(30), async {
         let mut last = String::new();
+        let mut enabled_imports = false;
         loop {
             jobs::tick(a).await.unwrap();
             auto_import::tick(a).await.unwrap();
             wanted::fulfill(a).await.unwrap();
             let view = downloads::view(a, &id).await.unwrap();
+            if !enabled_imports && view["stats"]["finished"] == true {
+                assert_eq!(view["imported"], false);
+                assert!(tokio::fs::read_dir(&f.root).await.unwrap().next_entry().await.unwrap().is_none());
+                c.import_enabled = true;
+                let _ = config::put(State(a.clone()), admin.clone(), Json(c.clone())).await.unwrap();
+                enabled_imports = true;
+                sqlx::query("UPDATE acquisition_downloads SET data=json_set(data,'$.import_warning','stale warning') WHERE id=?")
+                    .bind(&id).execute(&a.pool).await.unwrap();
+            }
             let state = format!(
                 "{}:{}:{}",
                 view["state"], view["error"], view["import_warning"]
@@ -118,6 +128,9 @@ async fn approved_movie_reaches_playable_library_without_moving_seed_source() {
     })
     .await
     .unwrap();
+    let imported = downloads::view(a, &id).await.unwrap();
+    assert_eq!(imported["imported"], true);
+    assert_eq!(imported["import_warning"], Value::Null);
     let row=sqlx::query("SELECT destination,item_id FROM acquisition_imports WHERE download_id=? AND state='scanned'").bind(&id).fetch_one(&a.pool).await.unwrap();
     assert_eq!(
         requests::create_for(

@@ -64,6 +64,8 @@ export const acquisitionApi = {
   downloads: () => get<{ downloads: A.Download[]; import_enabled: boolean }>("/downloads"),
   download: (input: A.DownloadInput) => post<{ download: A.Download }>("/downloads", input),
   downloadStatus: (id: string) => get<{ download: A.Download }>(`/downloads/${path(id)}`),
+  downloadLimit: (id: string, download_limit_kib: number) =>
+    put<{ download: A.Download }>(`/downloads/${path(id)}/limits`, { download_limit_kib }),
   control: (id: string, action: string, selected_files?: number[]) =>
     put<{ download: A.Download }>(`/downloads/${path(id)}`, { action, selected_files }),
   previewImport: (id: string, body: A.ImportInput) =>

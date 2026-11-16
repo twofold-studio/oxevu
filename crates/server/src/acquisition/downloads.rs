@@ -180,8 +180,19 @@ pub(super) async fn list(State(a): State<App>, h: HeaderMap) -> Result<Json<Valu
     ))
 }
 pub(super) async fn view(a: &App, id: &str) -> Result<Value> {
-    let r=sqlx::query("SELECT d.*,t.data title,releases.data cached_release FROM acquisition_downloads d LEFT JOIN acquisition_titles t ON t.id=d.title_id LEFT JOIN acquisition_releases releases ON releases.id=d.release_id WHERE d.id=?").bind(id).fetch_optional(&a.pool).await.map_err(db)?.ok_or_else(||bad("unknown download"))?;
+    let r=sqlx::query("SELECT d.*,t.data title,releases.data cached_release,m.enabled monitor_enabled,m.library_id import_library,m.root import_root FROM acquisition_downloads d LEFT JOIN acquisition_titles t ON t.id=d.title_id LEFT JOIN acquisition_releases releases ON releases.id=d.release_id LEFT JOIN acquisition_monitors m ON m.title_id=d.title_id WHERE d.id=?").bind(id).fetch_optional(&a.pool).await.map_err(db)?.ok_or_else(||bad("unknown download"))?;
     let data = decode(r.get("data"))?;
+    let import_blocker = if r.get::<Option<String>, _>("title_id").is_none() {
+        Some("Associate this download with a catalog title before importing.")
+    } else if r.get::<Option<String>, _>("import_library").is_none()
+        || r.get::<Option<String>, _>("import_root").is_none()
+    {
+        Some("Choose this title's destination library and folder in Wanted.")
+    } else if r.get::<Option<bool>, _>("monitor_enabled") != Some(true) {
+        Some("Enable monitoring for this title in Wanted to import automatically.")
+    } else {
+        None
+    };
     let release = if data["release"].is_object() {
         data["release"].clone()
     } else {
@@ -195,6 +206,7 @@ pub(super) async fn view(a: &App, id: &str) -> Result<Value> {
         "infohash":r.get::<Option<String>,_>("infohash"),"state":r.get::<String,_>("state"),"error":r.get::<Option<String>,_>("error"),
         "release_title":release["title"],"indexer_name":release["indexer_name"],"release_size":release["size"],
         "imported":sqlx::query_scalar::<_,bool>("SELECT EXISTS(SELECT 1 FROM acquisition_imports WHERE download_id=? AND state='scanned')").bind(id).fetch_one(&a.pool).await.map_err(db)?,
+        "download_limit_kib":data["download_limit_kib"].as_u64().unwrap_or(0),"import_blocker":import_blocker,
         "stats":data["stats"],"files":data["files"],"import_warning":data["import_warning"],"queue_reason":data["queue_reason"],"selected_files":data["input"]["selected_files"],"seed_seconds":r.get::<i64,_>("seed_seconds"),"created_at":r.get::<i64,_>("created_at")}),
     )
 }

@@ -23,6 +23,7 @@ are separate from library/playback access.
 | `POST /downloads` | Download manager; one `release_id`, `magnet`, or `torrent_base64` |
 | `GET /downloads/{id}` | Download manager; current job outcome, including asynchronous startup failure |
 | `PUT /downloads/{id}` | Download manager; `{action,selected_files?}` |
+| `PUT /downloads/{id}/limits` | Download manager; `{download_limit_kib}`; zero removes the entry cap |
 | `POST /downloads/{id}/imports/preview` | Download manager; inspect mapped destinations |
 | `POST /downloads/{id}/imports` | Admin; confirm exact import plan token |
 | `POST /downloads/{id}/adoption/preview` | Admin; inspect existing data `{source_root}` |
@@ -75,6 +76,12 @@ v1/hybrid magnets or one same-origin HTTP redirect, preserving host restrictions
 Download list responses include `import_enabled`. Jobs expose snapshotted
 `release_title`, `indexer_name`, `release_size`, and whether any file was imported.
 Profile `min_size_mb`/`max_size_mb` remain MiB; zero maximum means unlimited.
+
+Jobs also expose `download_limit_kib` (default zero) and `import_blocker` for a
+missing title, destination or enabled monitor. Entry limits persist across
+restarts and are enforced alongside the shared session limit, not instead of it.
+Rates are whole KiB/s: zero or 16–1000000. Updating a running entry reconnects and
+rechecks that torrent without deleting files; paused jobs remain paused.
 
 Import input contains `library_id`, configured `root`, and `mappings`, for example
 `[{"file_index":0,"episodes":[{"season":1,"episode":1}]}]`. Movie mappings have

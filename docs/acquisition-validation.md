@@ -92,3 +92,22 @@ After deployment, the original live movie search returned 115 source hits from
 four successful indexers in 3.9 seconds. Grouping matching infohashes produced
 65 torrents with 65 unique IDs; 46 rows listed additional sources. This checked
 search only: no live download was started and no profile setting was changed.
+
+## Entry caps and automatic imports · 2026-11-16
+
+Two generated loopback torrents exercised a 16 KiB/s entry cap alongside a
+64 KiB/s combined cap. Both transferred bytes within token-bucket bounds.
+Changing one entry's cap preserved its files, rechecked and completed the
+transfer. Permission, range, persisted-value and paused-intent checks passed.
+
+The movie acceptance flow now completes its transfer with imports off, verifies
+the library is empty, enables imports and observes publication, scan and request
+fulfilment. A stale import warning is cleared and the seeding source is retained.
+
+Browser checks against disposable data covered independent entry/combined
+autosaves, invalid-rate rejection, saved values after server restart and missing
+import prerequisites. Desktop and 390px screenshots were inspected; no sideways
+overflow or browser errors were observed. Web checks passed 146 tests plus type,
+lint, format and build. Rust passed 71 tests with four hardware checks skipped;
+strict Clippy and formatting passed. The cap tests were repeated after narrowing
+the update to its own JSON fields so concurrent import warnings are preserved.
