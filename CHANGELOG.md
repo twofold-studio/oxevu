@@ -17,6 +17,11 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Series overviews place Continue watching and season covers beside the title
+  and details on wide screens. Viewport-height spacing brings seasons into the
+  first screen where space permits; smaller screens retain natural scrolling.
+  Season covers include episode counts and watched progress.
+
 - Native acquisition: TMDB discovery, scoped household requests and approvals,
   wanted movies/episodes, multi-user quotas/permissions, Torznab search and feeds,
   acquisition profiles and an embedded BitTorrent queue. Includes selective

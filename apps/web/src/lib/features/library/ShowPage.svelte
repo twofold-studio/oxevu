@@ -14,6 +14,7 @@
   import { artworkSrc } from "$lib/api/artwork";
   import EpisodeList from "./EpisodeList.svelte";
   import NextUpCard from "./NextUpCard.svelte";
+  import SeasonShelf from "./SeasonShelf.svelte";
   import IdentifyButton from "./IdentifyButton.svelte";
   import MetadataDetails from "./MetadataDetails.svelte";
   import PosterArt from "./PosterArt.svelte";
@@ -46,8 +47,7 @@
   // The selected season lives in the URL (replaced, not pushed), so leaving
   // for an episode and pressing Back reopens the same tab. Without one, open
   // on the season holding the target episode.
-  const poster = $derived(selectedSeason?.posterUrl ?? show?.posterUrl);
-</script>
+  const poster = $derived(selectedSeason?.posterUrl ?? show?.posterUrl);</script>
 
 <CatalogGate>
   {#snippet skeleton()}
@@ -66,15 +66,44 @@
   {#if !show}
     <NotFound title="Series not found" description="It may have been removed by a rescan." />
   {:else}
+    <!-- A single-season series lists its episodes inline instead of covers. -->
+    {@const overview = !selectedSeason && show.seasons.length !== 1}
     {#snippet posterArt()}
       <PosterArt src={poster} title={show.title} />
+    {/snippet}
+    {#snippet nextUp()}
+      {#if target}
+        <section aria-labelledby="next-up" class="flex flex-col gap-3">
+          <h2 id="next-up" class="text-base font-medium">{resuming ? "Continue watching" : "Next up"}</h2>
+          <NextUpCard item={target} />
+        </section>
+      {/if}
+    {/snippet}
+    <!-- A series with several seasons keeps Continue watching and the season
+         covers in the side column, so they share the first viewport with the
+         title wherever the screen is wide enough. -->
+    {#snippet seasonsAside()}
+      <!-- Between lg and xl the column sits under the details; pairing the two
+           sections side by side there keeps the seasons from dropping a full
+           card height further down. -->
+      <div class="flex flex-col gap-8 lg:grid lg:grid-cols-2 lg:items-start xl:flex xl:items-stretch xl:gap-6">
+        {@render nextUp()}
+        <section aria-labelledby="seasons" class="flex flex-col gap-4">
+          <h2 id="seasons" class="text-base font-medium">Seasons</h2>
+          <SeasonShelf
+            slug={show.slug}
+            seasons={show.seasons}
+            class="grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(8rem,10rem))] lg:grid-cols-2"
+          />
+        </section>
+      </div>
     {/snippet}
     <DetailLayout
       backdrop={show.backdropUrl}
       {poster}
       art={artworkSrc(poster) ? posterArt : undefined}
+      aside={overview ? seasonsAside : undefined}
     >
-
       <header class="flex flex-col gap-5">
         <div class="flex flex-col gap-2">
           <h1
@@ -119,36 +148,23 @@
         {#if metadata?.season_overview}<p class="max-w-3xl text-sm leading-7 text-muted-foreground">{metadata.season_overview}</p>{/if}
       {/if}
 
-      {#if target && !selectedSeason}
-        <section aria-labelledby="next-up" class="flex flex-col gap-3">
-          <h2 id="next-up" class="text-base font-medium">{resuming ? "Continue watching" : "Next up"}</h2>
-          <NextUpCard item={target} />
+      {#if !overview}
+        {#if !selectedSeason}{@render nextUp()}{/if}
+        <section aria-labelledby="episodes" class="flex flex-col gap-4">
+          <h2 id="episodes" class="text-base font-medium">
+            {selectedSeason ? "Episodes" : seasonLabel(show.seasons[0].number)}
+          </h2>
+          {#if selectedSeason}
+            <EpisodeList episodes={selectedSeason.episodes} label={seasonLabel(selectedSeason.number)} upNextId={target?.id} />
+          {:else}
+            <EpisodeList
+              episodes={show.seasons[0].episodes}
+              label={seasonLabel(show.seasons[0].number)}
+              upNextId={target?.id}
+            />
+          {/if}
         </section>
       {/if}
-
-      <section aria-labelledby="episodes" class="flex flex-col gap-4">
-        <h2 id="episodes" class="text-base font-medium">
-          {selectedSeason ? "Episodes" : show.seasons.length === 1 ? seasonLabel(show.seasons[0].number) : "Seasons"}
-        </h2>
-        {#if selectedSeason}
-          <EpisodeList episodes={selectedSeason.episodes} label={seasonLabel(selectedSeason.number)} upNextId={target?.id} />
-        {:else if show.seasons.length === 1}
-          <EpisodeList
-            episodes={show.seasons[0].episodes}
-            label={seasonLabel(show.seasons[0].number)}
-            upNextId={target?.id}
-          />
-        {:else}
-          <div class="grid grid-cols-2 gap-5 sm:grid-cols-[repeat(auto-fill,12.5rem)]">
-            {#each show.seasons as entry (seasonKey(entry))}
-              <a href={href.show(show.slug, seasonKey(entry))} class="lift press flex flex-col gap-2 text-center">
-                <PosterArt src={entry.posterUrl} title={seasonLabel(entry.number)} />
-                <span>{seasonLabel(entry.number)}</span>
-              </a>
-            {/each}
-          </div>
-        {/if}
-      </section>
     </DetailLayout>
   {/if}
 </CatalogGate>

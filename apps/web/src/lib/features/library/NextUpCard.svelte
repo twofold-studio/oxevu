@@ -55,7 +55,7 @@
   <!-- One understated line, "Season 2, Episode 5 - Title" (the card can point
        outside the open season tab, so it names the season); truncation keeps the full text in `title`. -->
   <span class="flex min-w-0 items-baseline justify-between gap-3 text-sm">
-    <a href={href.item(item.id)} class="truncate text-foreground/85 hover:underline" title={caption}>{caption}</a>
+    <a href={href.item(item.id)} class="line-clamp-2 min-w-0 text-foreground/85 hover:underline" title={caption}>{caption}</a>
     {#if remaining}<span class="shrink-0 text-xs text-muted-foreground tabular-nums">{remaining}</span>{/if}
   </span>
 </div>
