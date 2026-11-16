@@ -23,7 +23,7 @@
   import { fileAvailable, itemPlayable, catalogVisibleRefresh } from "$lib/state/catalog.svelte";
   import { href, router } from "$lib/state/router.svelte";
   import { formatClock, formatRuntime } from "$lib/media/format";
-  import { episodeNumberLabel, seasonKeyOf } from "$lib/media/grouping";
+  import { episodeNumberLabel, seasonKeyOf, seasonLabel } from "$lib/media/grouping";
   import { resumePosition, watchedFraction } from "$lib/media/progress";
   import ProgressLine from "$lib/features/library/ProgressLine.svelte";
   import Artwork from "$lib/components/Artwork.svelte";
@@ -131,26 +131,66 @@
       <PosterArt src={art.src} title={art.title} />
     {/if}
   {/snippet}
+  <!-- Previous/next episode in series order, full width under the hero. -->
+  {#snippet episodeNav()}
+    {#if siblings}
+      <nav aria-label="Episodes" class="grid gap-2 border-t pt-6 sm:grid-cols-2">
+        {#if siblings.previous}
+          <a
+            href={href.item(siblings.previous.id)}
+            class="flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors hover:bg-accent/40"
+          >
+            <ChevronLeftIcon class="size-4 shrink-0 text-muted-foreground" />
+            <span class="flex min-w-0 flex-col">
+              <span class="text-xs text-muted-foreground">Previous · {episodeNumberLabel(siblings.previous) ?? "Episode"}</span>
+              <span class="truncate text-sm font-medium">{siblings.previous.title}</span>
+            </span>
+          </a>
+        {:else}
+          <span class="hidden sm:block"></span>
+        {/if}
+        {#if siblings.next}
+          <a
+            href={href.item(siblings.next.id)}
+            class="flex items-center justify-end gap-3 rounded-lg border px-4 py-3 text-right transition-colors hover:bg-accent/40"
+          >
+            <span class="flex min-w-0 flex-col">
+              <span class="text-xs text-muted-foreground">Next · {episodeNumberLabel(siblings.next) ?? "Episode"}</span>
+              <span class="truncate text-sm font-medium">{siblings.next.title}</span>
+            </span>
+            <ChevronRightIcon class="size-4 shrink-0 text-muted-foreground" />
+          </a>
+        {/if}
+      </nav>
+    {/if}
+  {/snippet}
   <DetailLayout
     backdrop={item.backdrop_url}
     poster={item.poster_url}
     art={art ? leadArt : undefined}
     artShape={art?.shape}
+    below={siblings && (siblings.previous || siblings.next) ? episodeNav : undefined}
   >
     <div class="flex flex-col gap-6">
         <div class="flex flex-col gap-2">
           {#if item.kind === "episode"}
-            <p class="text-sm text-muted-foreground">
+            <!-- Series › Season › Episode, the same hierarchy as the show page;
+                 the season link opens that season's tab there. -->
+            <p class="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
               {#if siblings}
-                <a href={href.show(siblings.show.slug, seasonKeyOf(item.season_number))} class="text-foreground hover:underline">{siblings.show.title}</a>
+                <a href={href.show(siblings.show.slug)} class="font-medium text-foreground hover:underline">{siblings.show.title}</a>
+                <ChevronRightIcon aria-hidden="true" class="size-3.5 opacity-60" />
+                <a href={href.show(siblings.show.slug, seasonKeyOf(item.season_number))} class="hover:text-foreground hover:underline">{seasonLabel(item.season_number)}</a>
+                {@const number = episodeNumberLabel(item, { withSeason: false })}
+                {#if number}<ChevronRightIcon aria-hidden="true" class="size-3.5 opacity-60" /><span>{number}</span>{/if}
               {:else}
-                {item.show_title ?? "Series"}
+                <span class="text-foreground">{item.show_title ?? "Series"}</span>
+                {#if episodeLine}<span class="ml-1">{episodeLine}</span>{/if}
               {/if}
-              {#if episodeLine}<span class="ml-2">{episodeLine}</span>{/if}
             </p>
           {/if}
           <h1
-            class="text-4xl leading-[1.05] font-semibold tracking-tight text-balance break-words [text-shadow:0_2px_24px_rgb(0_0_0/0.6)] lg:text-5xl"
+            class="text-3xl leading-[1.05] font-semibold tracking-tight text-balance break-words [text-shadow:0_2px_24px_rgb(0_0_0/0.6)] sm:text-4xl lg:text-5xl"
           >
             {item.title}
           </h1>
@@ -237,36 +277,6 @@
           <FindAgainLink {item} />
         {/if}
 
-        {#if siblings && (siblings.previous || siblings.next)}
-          <nav aria-label="Episodes" class="mt-4 grid gap-2 border-t pt-6 sm:grid-cols-2">
-            {#if siblings.previous}
-              <a
-                href={href.item(siblings.previous.id)}
-                class="flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors hover:bg-accent/40"
-              >
-                <ChevronLeftIcon class="size-4 shrink-0 text-muted-foreground" />
-                <span class="flex min-w-0 flex-col">
-                  <span class="text-xs text-muted-foreground">Previous</span>
-                  <span class="truncate text-sm font-medium">{siblings.previous.title}</span>
-                </span>
-              </a>
-            {:else}
-              <span class="hidden sm:block"></span>
-            {/if}
-            {#if siblings.next}
-              <a
-                href={href.item(siblings.next.id)}
-                class="flex items-center justify-end gap-3 rounded-lg border px-4 py-3 text-right transition-colors hover:bg-accent/40"
-              >
-                <span class="flex min-w-0 flex-col">
-                  <span class="text-xs text-muted-foreground">Next</span>
-                  <span class="truncate text-sm font-medium">{siblings.next.title}</span>
-                </span>
-                <ChevronRightIcon class="size-4 shrink-0 text-muted-foreground" />
-              </a>
-            {/if}
-          </nav>
-        {/if}
     </div>
 
   </DetailLayout>

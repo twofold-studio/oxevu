@@ -9,6 +9,8 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Series pages are one compact page: the series hero (Play/Resume, Identify, Favorite, Remove, overview) is followed by a full-width Episodes section whose season tabs sit directly above the selected season's summary and episodes. Season covers and separate season pages are replaced by the tab strip; `?season=` links open that tab, and season favorites and removal sit beside the season heading. Continue watching stays beside the title on wide screens. Movie and episode pages share the same hero scale and action sizes; episodes show a Series › Season › Episode trail and full-width previous/next links.
+
 - Player volume feedback appears in the center with smoother seek/volume animations and new play/pause indicators; reduced-motion preferences remain supported.
 
 - Watch parties opens from the top-right header between the account menu and search, replacing its rail and mobile More links.

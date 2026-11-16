@@ -1,11 +1,12 @@
 <script lang="ts">
   import HeartIcon from "@lucide/svelte/icons/heart";
-  import { Button } from "$lib/components/ui/button";
+  import { Button, type ButtonSize } from "$lib/components/ui/button";
   import { itemsApi } from "$lib/api/endpoints";
   import type { Item } from "$lib/api/types";
   import { catalog } from "$lib/state/catalog.svelte";
 
-  let { items, label = "Favorite" }: { items: Item[]; label?: string } = $props();
+  // `size` matches the surrounding action row (hero actions are `lg`).
+  let { items, label = "Favorite", size = "lg" }: { items: Item[]; label?: string; size?: ButtonSize } = $props();
   let busy = $state(false);
   let error = $state(false);
   const active = $derived(items.length > 0 && items.every((item) => item.favorite));
@@ -24,8 +25,8 @@
   }
 </script>
 
-<Button variant="outline" disabled={busy || !items.length} aria-pressed={active} onclick={toggle}>
-  <HeartIcon class={active ? "fill-current" : ""} />
+<Button variant="outline" {size} disabled={busy || !items.length} aria-pressed={active} onclick={toggle}>
+  <HeartIcon data-icon="inline-start" class={active ? "fill-current" : ""} />
   {label}
 </Button>
 {#if error}<span role="status" class="text-xs text-destructive">Could not save favorites. Try again.</span>{/if}
