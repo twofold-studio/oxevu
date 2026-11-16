@@ -23,6 +23,8 @@
   import AddDownloadDialog from "./AddDownloadDialog.svelte";
   import DownloadFilesDialog from "./DownloadFilesDialog.svelte";
   import ImportDialog from "./ImportDialog.svelte";
+  import ActivityLimits from "./ActivityLimits.svelte";
+  import { session } from "$lib/state/session.svelte";
   const resource = createResource(async () => { const [d,e] = await Promise.all([acquisitionApi.downloads(), acquisitionApi.events()]); return { downloads: d.downloads, events: e.events }; });
   let error = $state<string | null>(null);let pending = $state<string | null>(null);let addOpen = $state(false);let filesOpen = $state(false);let importOpen = $state(false);let removeOpen = $state(false);let selectedId = $state<string | null>(null);let opening = $state(0);
   const selected = $derived(resource.value?.downloads.find((d) => d.id === selectedId) ?? null);
@@ -34,6 +36,7 @@
   <PageHeader title="Activity" description="Transfers, seeding and import history in one place.">
     {#snippet actions()}<Button variant="outline" onclick={resource.load} aria-label="Refresh activity"><RotateCwIcon /></Button><Button onclick={() => { opening++; addOpen = true; }}><PlusIcon data-icon="inline-start" />Add download</Button>{/snippet}
   </PageHeader>
+  {#if session.user?.is_admin}<ActivityLimits />{/if}
   {#if error}<p role="alert" class="mb-4 text-sm text-destructive">{error}</p>{/if}
   <ResourceGate status={resource.status} error={resource.error} what="download activity" onretry={resource.load}>
     {#if resource.value?.downloads.length === 0}<Empty.Root class="border"><Empty.Header><Empty.Media variant="icon"><DownloadIcon /></Empty.Media><Empty.Title>No transfers</Empty.Title><Empty.Description>Find a release under Wanted, or add a torrent directly. Configure storage and indexers in download settings.</Empty.Description></Empty.Header><Empty.Content><Button variant="outline" href={href.settings("acquisition")}>Download settings</Button></Empty.Content></Empty.Root>

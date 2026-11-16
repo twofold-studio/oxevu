@@ -17,7 +17,7 @@
   import PartyPanel from "./PartyPanel.svelte";
   import SyncStatus from "./SyncStatus.svelte";
 
-  // One party title. Keyed by item in PartyRoom, so a host's title change
+  // One party title. Keyed by item in App, so a member's title change
   // tears this down (stopping its stream) and starts a fresh engine.
   let {
     item,
@@ -56,13 +56,12 @@
     try {
       await connection.control(body);
     } catch (error) {
-      // The next snapshot puts the host back on the server timeline.
+      // The next snapshot puts this player back on the server timeline.
       toast.error(`The party didn't accept that: ${errorMessage(error)}`);
     }
   }
 
   function onintent(intent: PlayerIntent) {
-    if (!isHost) return;
     driver.noteLocalIntent(Date.now());
     if (intent.type === "seek") void send({ action: "seek", position_seconds: intent.position });
     else void send({ action: intent.type, position_seconds: engine.absolute });
@@ -81,10 +80,9 @@
 <PlayerView
   {engine}
   {start}
-  backHref={href.parties()}
+  backHref={href.item(item.id)}
   {canTranscode}
   {autoplay}
-  locked={!isHost}
   {onintent}
 >
   {#snippet status()}
@@ -100,7 +98,7 @@
     </Button>
   {/snippet}
   {#snippet aside()}
-    {#if sync.kind === "blocked" && !isHost}
+    {#if sync.kind === "blocked"}
       <!-- Autoplay was blocked: a click here is the user gesture browsers need. -->
       <div class="absolute inset-0 z-10 grid place-items-center bg-black/60">
         <div class="flex flex-col items-center gap-3 text-center">

@@ -38,6 +38,7 @@ Use these terms consistently in code, API fields and documentation.
 | Private torrent | Torrent whose metadata restricts peer discovery to its tracker; support depends on engine and tracker rules. |
 | Show slug | Readable URL segment such as `arcane`. Duplicate titles receive numeric suffixes; adding or renaming shows can change these links. Internal IDs and progress remain unchanged. |
 | Watch party | Authorized group sharing a server-controlled timeline; each member has an independent playback session and library permissions. |
+| Party lobby | A joined watch party before playback. Members can browse; opening a title starts it for everyone, with personal volume and subtitles. |
 | Playback lease | Heartbeat-renewed session lifetime; idle sessions are stopped and cleaned up. |
 | Software release | Dated Oxevu version recorded in VERSION and CHANGELOG.md, starting at 0.1.0. |
 | vd | Home server and target for playback/resource validation. |

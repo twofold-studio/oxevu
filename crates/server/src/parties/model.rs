@@ -41,11 +41,12 @@ pub(crate) struct Room {
     pub id: String,
     pub name: String,
     pub host: String,
-    pub item: String,
+    pub item: Option<String>,
     pub paused: bool,
     pub position: f64,
     pub updated: u64,
     pub revision: u64,
+    pub playback_revision: u64,
     pub duration: Option<f64>,
     pub members: BTreeMap<String, Member>,
     pub touched: Instant,
@@ -62,14 +63,20 @@ impl Room {
             .map_or(position, |duration| position.min(duration))
     }
     pub fn snapshot(&self, now: u64) -> Value {
-        json!({"id":self.id,"name":self.name,"host_user_id":self.host,"item_id":self.item,"paused":self.paused,"position_seconds":self.position,"updated_at_ms":self.updated,"server_now_ms":now,"revision":self.revision,"members":self.members.iter().map(|(id,m)|json!({"user_id":id,"username":m.username})).collect::<Vec<_>>()})
+        json!({"id":self.id,"name":self.name,"host_user_id":self.host,"item_id":self.item,"paused":self.paused,"position_seconds":self.position,"updated_at_ms":self.updated,"server_now_ms":now,"revision":self.revision,"playback_revision":self.playback_revision,"members":self.members.iter().map(|(id,m)|json!({"user_id":id,"username":m.username})).collect::<Vec<_>>()})
     }
 }
-pub(crate) async fn access(a: &App, u: Value, item: &str) -> Result<Value> {
-    if !matches!(u["syncplay_access"].as_str(), Some("create_join" | "join")) {
+pub(crate) async fn access(a: &App, u: Value, item: Option<&str>) -> Result<Value> {
+    if !matches!(u["syncplay_access"].as_str(), Some("create_join" | "join"))
+        || u["can_play"] != true
+        || u["disabled"] == true
+    {
         return Err(users::forbidden());
     }
-    users::authorize_profile(a, u, item, true).await
+    match item {
+        Some(item) => users::authorize_profile(a, u, item, true).await,
+        None => Ok(u),
+    }
 }
 pub(crate) async fn duration(a: &App, item: &str) -> Result<Option<f64>> {
     let data: String = sqlx::query_scalar("SELECT data FROM items WHERE id=?")
@@ -114,7 +121,7 @@ pub(crate) fn touch(room: &mut Room, u: &Value, h: &HeaderMap) {
         },
     );
 }
-// Room state and validation share one lock so membership and host controls are atomic.
+// Room state and validation share one lock so membership and shared controls are atomic.
 pub(crate) async fn prune(a: &App, rooms: &mut BTreeMap<String, Room>) -> Result<()> {
     let mut closed = Vec::new();
     for (id, room) in rooms.iter_mut() {
@@ -145,7 +152,9 @@ async fn prune_room(a: &App, room: &mut Room) -> Result<bool> {
         let profile = users::profile(a, user).await?;
         if !valid_session
             || m.touched.elapsed() > MEMBER_IDLE
-            || access(a, profile.clone(), &room.item).await.is_err()
+            || access(a, profile.clone(), room.item.as_deref())
+                .await
+                .is_err()
         {
             removed.push(user.clone());
         } else {

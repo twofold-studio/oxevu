@@ -80,4 +80,5 @@ async fn create_room(a: &App, h: &HeaderMap, item: &str) -> Value {
 
 mod lifecycle;
 mod limits;
+mod lobby;
 mod permissions;

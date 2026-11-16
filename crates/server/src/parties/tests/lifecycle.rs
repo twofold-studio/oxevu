@@ -1,6 +1,6 @@
 use super::*;
 #[tokio::test]
-async fn two_user_authenticated_lifecycle_and_host_timeline() {
+async fn two_user_authenticated_lifecycle_and_shared_timeline() {
     let (a, host, guest) = fixture().await;
     assert_eq!(
         request(&a, &HeaderMap::new(), "GET", "/parties", Value::Null)
@@ -43,7 +43,7 @@ async fn two_user_authenticated_lifecycle_and_host_timeline() {
         )
         .await
         .0,
-        StatusCode::FORBIDDEN
+        StatusCode::OK
     );
     let playing = request(
         &a,
@@ -117,11 +117,12 @@ fn deterministic_timeline_clamps_elapsed_and_checks_finite_positions() {
         id: "r".into(),
         name: "r".into(),
         host: "h".into(),
-        item: "i".into(),
+        item: Some("i".into()),
         paused: false,
         position: 10.,
         updated: 1000,
         revision: 1,
+        playback_revision: 1,
         duration: Some(20.),
         members: Default::default(),
         touched: std::time::Instant::now(),

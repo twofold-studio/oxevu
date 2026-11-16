@@ -9,6 +9,9 @@
   import AppShell from "$lib/components/shell/AppShell.svelte";
   import PlayerPage from "$lib/features/player/PlayerPage.svelte";
   import PartyRoom from "$lib/features/party/PartyRoom.svelte";
+  import PartyCoordinator from "$lib/features/party/PartyCoordinator.svelte";
+  import PartyPlayback from "$lib/features/party/PartyPlayback.svelte";
+  import { partySession } from "$lib/party/session.svelte";
   import Routes from "./Routes.svelte";
 
   onMount(() => {
@@ -17,6 +20,7 @@
 </script>
 
 <Tooltip.Provider delayDuration={300}>
+  {#if session.phase === "signed-in"}<PartyCoordinator />{/if}
   {#if session.phase === "loading"}
     <div class="grid min-h-dvh place-items-center" aria-busy="true">
       <span class="sr-only">Loading Oxevu</span>
@@ -28,12 +32,16 @@
   {:else if router.route.name === "watch"}
     <!-- The player owns the whole viewport; the shell would only get in the way. -->
     {#key router.route.id}
-      <PlayerPage id={router.route.id} fromStart={router.route.fromStart} />
+      {#if partySession.connection}
+        <PartyPlayback id={router.route.id} fromStart={router.route.fromStart} />
+      {:else}
+        <PlayerPage id={router.route.id} fromStart={router.route.fromStart} />
+      {/if}
     {/key}
   {:else if router.route.name === "party"}
-    {#key router.route.id}
-      <PartyRoom id={router.route.id} />
-    {/key}
+    <AppShell>
+      {#key router.route.id}<PartyRoom id={router.route.id} />{/key}
+    </AppShell>
   {:else}
     <AppShell>
       <Routes route={router.route} />

@@ -17,6 +17,14 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Watch parties can start as empty lobbies and stay joined while browsing.
+  Any member can start a title, pause or seek for everyone. Volume, subtitles and
+  stream quality remain personal; Back leaves the player without leaving the party.
+  This browser remembers its volume, mute and subtitle-language/off preferences
+  when changing titles.
+- Indexer tests keep a stable button footprint, animate between the connection,
+  spinner and result icons, and show inline success or failure without reloading rows.
+
 - Settings open from the account menu and replace the application rail with a
   grouped settings navigation (Media, Playback, Downloads, Sources, People, Your
   account) and Back to library. Each former tab is split into focused,
@@ -28,6 +36,9 @@ as available; planned features belong in GOAL.md.
   settings record save only their own fields through one ordered queue.
 
 ### Added
+
+- Activity has autosaving global download/upload speed limits for administrators,
+  applied to running transfers without restarting the torrent engine.
 
 - Series overviews place Continue watching and season covers beside the title
   and details on wide screens. Viewport-height spacing brings seasons into the

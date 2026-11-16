@@ -25,7 +25,11 @@ export const settle = quintOut;
  */
 export function enter(
   _node: Element,
-  { delay = durations.exit, duration = durations.enter, y = 6 } = {},
+  {
+    delay = durations.exit,
+    duration = durations.enter,
+    y = 6,
+  }: { delay?: number; duration?: number; y?: number } = {},
 ): TransitionConfig {
   if (prefersReducedMotion.current) return { duration: 0 };
   return {
@@ -41,7 +45,10 @@ export function enter(
  * focus, clicks and the accessibility tree only ever see the new view, even
  * while several old views are still fading during rapid switching.
  */
-export function leave(node: Element, { duration = durations.exit } = {}): TransitionConfig {
+export function leave(
+  node: Element,
+  { duration = durations.exit }: { duration?: number } = {},
+): TransitionConfig {
   if (node instanceof HTMLElement) node.inert = true;
   if (prefersReducedMotion.current) return { duration: 0 };
   return { duration, css: (t) => `opacity: ${t}` };

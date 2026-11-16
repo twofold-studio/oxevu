@@ -6,6 +6,7 @@
   import SettingsNav from "$lib/features/settings/navigation/SettingsNav.svelte";
   import { router } from "$lib/state/router.svelte";
   import { cn } from "$lib/utils";
+  import PartyBanner from "$lib/features/party/PartyBanner.svelte";
 
   let { children }: { children: Snippet } = $props();
 
@@ -24,6 +25,7 @@
 
 <div class="flex min-h-dvh flex-col">
   <AppHeader />
+  <PartyBanner />
   <div class="flex flex-1">
     {#if inSettings}<SettingsNav />{:else}<NavRail />{/if}
     <main id="main" tabindex="-1" class={cn("min-w-0 flex-1 outline-none md:pb-0", !inSettings && "pb-20")}>

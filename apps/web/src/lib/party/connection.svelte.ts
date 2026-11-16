@@ -12,7 +12,7 @@ const RECONNECT_AFTER = 3;
 
 /**
  * Membership in one watch party: joins, polls the snapshot every second,
- * estimates the server clock and sends host controls. Snapshots with an older
+ * estimates the server clock and sends member controls. Snapshots with an older
  * revision than one already seen are ignored (responses can overtake each
  * other); equal revisions still refresh membership.
  */
@@ -36,7 +36,10 @@ export class PartyConnection {
   private left = false;
   readonly id: string;
 
-  constructor(id: string) {
+  constructor(
+    id: string,
+    private readonly received?: (party: Party) => void,
+  ) {
     this.id = id;
   }
 
@@ -55,7 +58,7 @@ export class PartyConnection {
     return this.clock.serverNow(Date.now());
   }
 
-  /** Host only; the server rejects others and items any member can't open. */
+  /** Every member may control playback; a title must be accessible to everyone. */
   async control(body: PartyControl) {
     await this.timed(() => partiesApi.control(this.id, body));
   }
@@ -112,7 +115,9 @@ export class PartyConnection {
     if (this.seen === null || party.revision >= this.seen) {
       this.seen = party.revision;
       this.party = party;
-      if (party.item_id !== this.item?.id) void this.loadItem(party.item_id);
+      if (!party.item_id) this.item = null;
+      else if (party.item_id !== this.item?.id) void this.loadItem(party.item_id);
+      this.received?.(party);
     }
   }
 

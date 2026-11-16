@@ -8,13 +8,11 @@
   import { errorMessage } from "$lib/api/client";
   import { href, router } from "$lib/state/router.svelte";
   import { session } from "$lib/state/session.svelte";
-  import ItemPicker from "./ItemPicker.svelte";
+  import { partySession } from "$lib/party/session.svelte";
 
   // Parent remounts per opening; `itemId` preselects a title.
   let { open = $bindable(false), itemId = null }: { open: boolean; itemId?: string | null } = $props();
 
-  // svelte-ignore state_referenced_locally
-  let selected = $state<string | null>(itemId);
   let name = $state(`${session.user?.username ?? "My"}'s party`);
   let submitted = $state(false);
   let pending = $state(false);
@@ -22,19 +20,20 @@
 
   const errors = $derived({
     name: !name.trim() ? "Enter a name." : name.trim().length > 80 ? "Use at most 80 characters." : null,
-    item: selected ? null : "Choose a title.",
   });
 
   async function submit(event: SubmitEvent) {
     event.preventDefault();
     submitted = true;
     failure = null;
-    if (errors.name || errors.item || pending || !selected) return;
+    if (errors.name || pending) return;
     pending = true;
     try {
-      const { party } = await partiesApi.create({ name: name.trim(), item_id: selected });
+      const { party } = await partiesApi.create({ name: name.trim() });
+      await partySession.join(party.id);
+      if (itemId) await partySession.play(itemId, true);
       open = false;
-      router.go(href.party(party.id));
+      if (!itemId) router.go(href.party(party.id));
     } catch (error) {
       failure = errorMessage(error);
     } finally {
@@ -48,8 +47,8 @@
     <Dialog.Header>
       <Dialog.Title>Start a watch party</Dialog.Title>
       <Dialog.Description>
-        You host: play, pause, seeking and title changes apply to everyone. Each guest streams on their own
-        connection, so sync is close but not frame-perfect.
+        Invite others, then anyone can open a title from the library. Play, pause and seeking are shared;
+        volume and subtitles stay personal.
       </Dialog.Description>
     </Dialog.Header>
     <form onsubmit={submit} novalidate>
@@ -58,11 +57,6 @@
           <Field.Label for="party-name">Name</Field.Label>
           <Input id="party-name" bind:value={name} aria-invalid={submitted && errors.name ? true : undefined} />
           {#if submitted && errors.name}<Field.Error>{errors.name}</Field.Error>{/if}
-        </Field.Field>
-        <Field.Field data-invalid={submitted && errors.item ? true : undefined}>
-          <Field.Label>Title</Field.Label>
-          <ItemPicker bind:value={selected} invalid={submitted && Boolean(errors.item)} />
-          {#if submitted && errors.item}<Field.Error>{errors.item}</Field.Error>{/if}
         </Field.Field>
         {#if failure}<p class="text-sm text-destructive" role="alert">{failure}</p>{/if}
         <Dialog.Footer>

@@ -50,7 +50,7 @@
   <div class="flex items-start justify-between gap-2">
     <div class="flex min-w-0 flex-col">
       <span class="truncate font-medium">{party.name}</span>
-      <span class="text-xs text-white/60">{isHost ? "You're hosting" : "The host controls playback"}</span>
+      <span class="text-xs text-white/60">Everyone controls playback. Volume and subtitles are personal.</span>
     </div>
     <Button variant="ghost" size="icon" onclick={onclose} aria-label="Close party panel"><XIcon /></Button>
   </div>
@@ -73,7 +73,6 @@
     </ul>
   </section>
 
-  {#if isHost}
     <section class="flex flex-col gap-2">
       {#if picking}
         <ItemPicker bind:value={choice} />
@@ -91,7 +90,6 @@
         </Button>
       {/if}
     </section>
-  {/if}
 
   <section class="mt-auto flex flex-col gap-2">
     {#if confirmLeave}

@@ -23,7 +23,7 @@ pub(crate) async fn list(State(a): State<App>, h: HeaderMap) -> Result<Json<Valu
     let now = a.parties.now();
     let mut parties = Vec::new();
     for room in rooms.values() {
-        if access(&a, u.clone(), &room.item).await.is_ok() {
+        if access(&a, u.clone(), room.item.as_deref()).await.is_ok() {
             parties.push(room.snapshot(now))
         }
     }
@@ -42,11 +42,16 @@ pub(crate) async fn create(
         .as_str()
         .filter(|s| !s.trim().is_empty() && s.len() <= 100 && !s.chars().any(char::is_control))
         .ok_or_else(|| bad("invalid party name"))?;
-    let item = v["item_id"]
-        .as_str()
-        .ok_or_else(|| bad("item_id required"))?;
+    let item = v
+        .get("item_id")
+        .filter(|value| !value.is_null())
+        .map(|value| value.as_str().ok_or_else(|| bad("invalid item_id")))
+        .transpose()?;
     access(&a, u.clone(), item).await?;
-    let duration = duration(&a, item).await?;
+    let duration = match item {
+        Some(item) => duration(&a, item).await?,
+        None => None,
+    };
     let mut rooms = a.parties.rooms.lock().await;
     prune(&a, &mut rooms).await?;
     if rooms.len() >= MAX_ROOMS {
@@ -61,11 +66,12 @@ pub(crate) async fn create(
         id: id.clone(),
         name: name.trim().into(),
         host: u["id"].as_str().unwrap_or_default().into(),
-        item: item.into(),
+        item: item.map(str::to_owned),
         paused: true,
         position: 0.,
         updated: now,
         revision: 1,
+        playback_revision: u64::from(item.is_some()),
         duration,
         members: Default::default(),
         touched: std::time::Instant::now(),
@@ -84,7 +90,7 @@ pub(crate) async fn join(
     let mut rooms = a.parties.rooms.lock().await;
     prune_one(&a, &mut rooms, &id).await?;
     let room = rooms.get_mut(&id).ok_or_else(missing)?;
-    access(&a, u.clone(), &room.item).await?;
+    access(&a, u.clone(), room.item.as_deref()).await?;
     let member = room
         .members
         .contains_key(u["id"].as_str().unwrap_or_default());
@@ -115,7 +121,7 @@ pub(crate) async fn read(
     {
         return Err(missing());
     }
-    access(&a, u.clone(), &room.item).await?;
+    access(&a, u.clone(), room.item.as_deref()).await?;
     touch(room, &u, &h);
     Ok(Json(json!({"party":room.snapshot(a.parties.now())})))
 }
@@ -149,10 +155,13 @@ pub(crate) async fn control(
     let mut rooms = a.parties.rooms.lock().await;
     prune_one(&a, &mut rooms, &id).await?;
     let room = rooms.get_mut(&id).ok_or_else(missing)?;
-    if room.host != u["id"].as_str().unwrap_or_default() {
+    if !room
+        .members
+        .contains_key(u["id"].as_str().unwrap_or_default())
+    {
         return Err(users::forbidden());
     }
-    access(&a, u.clone(), &room.item).await?;
+    access(&a, u.clone(), room.item.as_deref()).await?;
     let action = v["action"]
         .as_str()
         .filter(|s| matches!(*s, "play" | "pause" | "seek" | "item"))
@@ -160,14 +169,16 @@ pub(crate) async fn control(
     let mut item = room.item.clone();
     let mut duration = room.duration;
     if action == "item" {
-        item = v["item_id"]
+        let selected = v["item_id"]
             .as_str()
-            .ok_or_else(|| bad("item_id required"))?
-            .into();
+            .ok_or_else(|| bad("item_id required"))?;
         for user in room.members.keys() {
-            access(&a, users::profile(&a, user).await?, &item).await?;
+            access(&a, users::profile(&a, user).await?, Some(selected)).await?;
         }
-        duration = model::duration(&a, &item).await?;
+        duration = model::duration(&a, selected).await?;
+        item = Some(selected.to_owned());
+    } else if item.is_none() {
+        return Err(bad("choose a title before controlling playback"));
     }
     let supplied = position(v.get("position_seconds"), duration)?;
     if action == "seek" && supplied.is_none() {
@@ -186,11 +197,14 @@ pub(crate) async fn control(
     room.position = position;
     room.updated = now;
     match action {
-        "play" => room.paused = false,
-        "pause" | "item" => room.paused = true,
+        "play" | "item" => room.paused = false,
+        "pause" => room.paused = true,
         _ => {}
     }
     room.revision += 1;
+    if action == "item" {
+        room.playback_revision += 1;
+    }
     touch(room, &u, &h);
     Ok(Json(json!({"party":room.snapshot(now)})))
 }

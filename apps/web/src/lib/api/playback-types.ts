@@ -41,13 +41,15 @@ export interface Party {
   id: string;
   name: string;
   host_user_id: string;
-  item_id: string;
+  item_id: string | null;
   paused: boolean;
   /** Item position at `updated_at_ms` on the server clock. */
   position_seconds: number;
   updated_at_ms: number;
   server_now_ms: number;
   revision: number;
+  /** Changes only when a member opens a title, including reopening the same title. */
+  playback_revision: number;
   members: PartyMember[];
 }
 

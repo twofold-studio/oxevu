@@ -118,24 +118,34 @@ shutdown. If GPU fails and fallback allowed retry CPU once and report actual met
 
 Authenticated server-authoritative timeline; membership can never grant library access.
 GET `/parties` -> `{parties:Party[]}` (only parties caller may join/access).
-POST `/parties` body `{name,item_id}` -> `{party:Party}`; requires create_join.
+POST `/parties` body `{name,item_id?:string|null}` -> `{party:Party}`; requires create_join.
+Omit the item to create a lobby before choosing anything to watch.
 POST `/parties/{id}/join` -> same; requires join/create_join and item access.
 POST `/parties/{id}/leave` -> 204; host leaving closes party (clear UI).
 GET `/parties/{id}` -> `{party:Party}` members only.
 POST `/parties/{id}/control` body
 `{action:"play"|"pause"|"seek"|"item",position_seconds?:number,item_id?:string}`
--> same; host only; validate item for EVERY member before change, else reject.
+-> same; any current member; validate item for EVERY member before change, else reject.
+Opening an item starts playback; other controls require an item already selected.
 
-Party = {id,name,host_user_id,item_id,paused:boolean,position_seconds:number,
-updated_at_ms:number,server_now_ms:number,revision:number,
+Party = {id,name,host_user_id,item_id:string|null,paused:boolean,position_seconds:number,
+updated_at_ms:number,server_now_ms:number,revision:number,playback_revision:number,
 members:[{user_id,username}]}.
 Use polling 1s first (no websocket dependency required); snapshots extrapolate
 playing position via server clock, estimate clock offset/RTT. Ignore stale revisions,
 avoid event feedback loops and microseek jitter, correct large drift; follower
-controls follow host. Autoplay blocked state must offer explicit Join playback click.
+controls follow the shared timeline. Autoplay blocked state must offer explicit Join playback click.
 Each member gets independent authorized playback session; maintain progress separately.
-Host controls entire timeline, including pause and item changes. Leave/close cleans
-client sessions; disabled users lose membership/access. Bound rooms/members and
+Membership polls at app level, including while browsing and viewing settings.
+Opening a movie or episode broadcasts it to everyone. `playback_revision` changes
+only on item selection (including reopening the same item); pause, seek and member
+updates never navigate browsing members back into the player. Volume, mute,
+subtitle track and delivery quality are local, absent from party controls.
+Volume/mute and subtitle language (or explicit Off) persist in browser storage
+across titles; an unavailable preferred language stays off for that title.
+Back exits the player without leaving the party. Explicit leave stops membership;
+refresh restores this tab's membership from session storage. Creator leaving ends
+the room. Disabled users lose membership/access. Bound rooms/members and
 clean idle rooms, make buffering/reconnect visible without pretending perfect sync.
 
 ## Acceptance
@@ -143,7 +153,8 @@ clean idle rooms, make buffering/reconnect visible without pretending perfect sy
 Migration of existing user/library data, two-user ACL separation and admin controls;
 CPU and NVIDIA conversion on vd using samples; GPU failure fallback; seeking/resume,
 manifest/segment auth, job/disk bounds and cleanup; settings persist across restart;
-two browser party participants synchronize play/pause/seek and cannot control as guest.
+two browser party participants can both select titles and synchronize play/pause/seek,
+while volume and subtitles remain independent.
 Document measured/untested limits; don't call this phase complete from mocks alone.
 
 ## Subtitles and integrations

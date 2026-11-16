@@ -54,6 +54,8 @@ export function breadcrumbs(route: Route, catalog: Lookup): Crumb[] {
         : [{ label: "Settings" }];
     case "parties":
       return [{ label: "Watch parties" }];
+    case "party":
+      return [{ label: "Watch parties", href: href.parties() }, { label: "Party" }];
     case "discover":
       return [{ label: "Discover" }];
     case "discover-title":

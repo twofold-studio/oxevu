@@ -1,5 +1,6 @@
 import { request, errorMessage } from "$lib/api/client";
 import { offsetVtt } from "./subtitle-timing";
+import { readSubtitlePreference, saveSubtitlePreference } from "./personal-preferences";
 
 export interface SubtitleTrack {
   id: string;
@@ -32,9 +33,20 @@ export class Subtitles {
         `/items/${encodeURIComponent(itemId)}/subtitles`,
       );
       this.tracks = tracks;
-      const preferred =
-        tracks.find((t) => t.supported && t.forced) ?? tracks.find((t) => t.supported && t.default);
-      if (preferred && chooseDefault) this.select(preferred.id);
+      const preference = readSubtitlePreference();
+      const preferred = preference
+        ? "off" in preference
+          ? null
+          : tracks.find(
+              (track) =>
+                track.supported &&
+                (preference.language
+                  ? track.language === preference.language
+                  : track.label === preference.label),
+            )
+        : (tracks.find((t) => t.supported && t.forced) ??
+          tracks.find((t) => t.supported && t.default));
+      if (chooseDefault) this.select(preferred?.id ?? "off", false);
       return true;
     } catch (error) {
       this.error = errorMessage(error);
@@ -48,8 +60,13 @@ export class Subtitles {
     void this.render();
   }
 
-  select(id: string) {
+  select(id: string, remember = true) {
     this.selected = id;
+    if (remember) {
+      const track = this.tracks.find((track) => track.id === id);
+      if (id === "off") saveSubtitlePreference({ off: true });
+      else if (track) saveSubtitlePreference({ language: track.language, label: track.label });
+    }
     void this.render();
   }
 

@@ -18,6 +18,7 @@
   import { createIdle } from "./idle.svelte";
   import { playerShortcut } from "./shortcuts";
   import { readSeekSeconds } from "$lib/playback/seek-preference";
+  import { readVolume, saveVolume } from "$lib/playback/personal-preferences";
   import ActionFeedback from "./ActionFeedback.svelte";
   import EpisodeNavigation from "./EpisodeNavigation.svelte";
 
@@ -59,8 +60,9 @@
   let video = $state<HTMLVideoElement | null>(null);
   let mediaDuration = $state(Number.NaN);
   let paused = $state(true);
-  let muted = $state(false);
-  let volume = $state(1);
+  const personalVolume = readVolume();
+  let muted = $state(personalVolume.muted);
+  let volume = $state(personalVolume.level);
   let buffered = $state<{ start: number; end: number }[]>([]);
   let waiting = $state(false);
   let started = $state(false);
@@ -246,6 +248,7 @@
     playsinline
     class="size-full object-contain"
     onplay={() => (started = true)}
+    onvolumechange={() => { if (video) saveVolume(video.volume, video.muted); }}
     onwaiting={() => (waiting = true)}
     onplaying={() => (waiting = false)}
     oncanplay={() => (waiting = false)}
@@ -350,7 +353,7 @@
           onpicture={typeof document !== "undefined" && document.pictureInPictureEnabled ? togglePicture : undefined}
         >
           {#snippet navigation()}
-            {#if item.kind === "episode" && !locked && !onintent}<EpisodeNavigation {item} />{/if}
+            {#if item.kind === "episode" && !locked}<EpisodeNavigation {item} />{/if}
           {/snippet}
           {#snippet extra()}
             <SubtitleMenu subtitles={engine.subtitles} itemId={item.id} canDownload={canTranscode} bind:open={subtitlesOpen} />

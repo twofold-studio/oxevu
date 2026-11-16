@@ -104,7 +104,7 @@ export const playbackApi = {
 
 export const partiesApi = {
   list: () => request<{ parties: Party[] }>("/parties"),
-  create: (body: { name: string; item_id: string }) =>
+  create: (body: { name: string; item_id?: string | null }) =>
     request<{ party: Party }>("/parties", { method: "POST", body }),
   get: (partyId: string) => request<{ party: Party }>(`/parties/${id(partyId)}`),
   join: (partyId: string) =>

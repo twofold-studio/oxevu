@@ -28,6 +28,8 @@
   onMount(() => {
     void catalog.ensure();
     void parties.load();
+    const timer = setInterval(() => void parties.load(), 5000);
+    return () => clearInterval(timer);
   });
 
   function create() {
@@ -43,7 +45,7 @@
 <Page class="max-w-5xl">
   <PageHeader
     title="Watch parties"
-    description="Watch the same title together. The host controls playback; everyone streams it with their own access."
+    description="Join a party, then browse the library. Anyone can start a title for everyone; volume and subtitles stay personal."
   >
     {#snippet actions()}
       <Button variant="outline" size="sm" onclick={parties.load} aria-label="Refresh parties">
@@ -72,12 +74,12 @@
     {:else}
       <ul class="divide-y rounded-xl border bg-card">
         {#each parties.value ?? [] as party (party.id)}
-          {@const item = catalog.find(party.item_id)}
+          {@const item = party.item_id ? catalog.find(party.item_id) : null}
           <li class="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-4">
             <div class="flex min-w-0 flex-1 flex-col gap-1">
               <span class="truncate font-medium">{party.name}</span>
               <span class="truncate text-xs text-muted-foreground">
-                {item ? itemLabel(item) : "Title"} · {party.paused ? "Paused" : "Playing"}
+                {item ? itemLabel(item) : "Choosing something to watch"}{party.item_id ? ` · ${party.paused ? "Paused" : "Playing"}` : ""}
               </span>
               <span class="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <CrownIcon class="size-3.5" />{hostName(party)} · {plural(party.members.length, "member")}

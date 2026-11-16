@@ -1,67 +1,62 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import UsersRoundIcon from "@lucide/svelte/icons/users-round";
+  import CrownIcon from "@lucide/svelte/icons/crown";
+  import { Button } from "$lib/components/ui/button";
   import { Spinner } from "$lib/components/ui/spinner";
+  import Page from "$lib/components/Page.svelte";
+  import PageHeader from "$lib/components/PageHeader.svelte";
+  import { partySession } from "$lib/party/session.svelte";
   import { session } from "$lib/state/session.svelte";
   import { href, router } from "$lib/state/router.svelte";
-  import { PartyConnection } from "$lib/party/connection.svelte";
-  import PlaybackFailure from "$lib/features/player/PlaybackFailure.svelte";
-  import PartyPlayer from "./PartyPlayer.svelte";
+  import { errorMessage } from "$lib/api/client";
 
   let { id }: { id: string } = $props();
-
-  // svelte-ignore state_referenced_locally
-  const connection = new PartyConnection(id);
-  const item = $derived(connection.item);
-  const itemError = $derived(connection.itemError);
-  const party = $derived(connection.party);
-  const isHost = $derived(party !== null && party.host_user_id === session.user?.id);
-  const ended = $derived(connection.state === "closed" || connection.state === "failed");
-
+  let failure = $state<string | null>(null);
+  let confirmLeave = $state(false);
+  const party = $derived(partySession.connection?.id === id ? partySession.connection.party : null);
+  const isHost = $derived(party?.host_user_id === session.user?.id);
   onMount(() => {
-    void connection.start();
-    // Refresh or tab close: stop polling but stay a member, so a host's
-    // reload doesn't end the party. Idle members are reaped by the server.
-    const onPageHide = () => connection.stop();
-    window.addEventListener("pagehide", onPageHide);
-    return () => {
-      window.removeEventListener("pagehide", onPageHide);
-      // Navigating away inside the app is an explicit leave.
-      if (!ended) connection.leave(true);
-    };
+    void partySession.join(id).catch((error) => (failure = errorMessage(error)));
   });
 
   function leave() {
-    connection.leave();
+    partySession.leave();
     router.go(href.parties());
   }
 </script>
 
-<svelte:head>
-  <title>{party ? `${party.name} · Oxevu` : "Watch party · Oxevu"}</title>
-</svelte:head>
-
-{#if ended}
-  <div class="fixed inset-0 bg-black text-white">
-    <PlaybackFailure
-      title={connection.state === "closed" ? "This party is over" : "Couldn't join the party"}
-      detail={connection.message ?? ""}
-      backHref={href.parties()}
-      backLabel="Back to parties"
-    />
-  </div>
-{:else if itemError}
-  <div class="fixed inset-0 bg-black text-white">
-    <PlaybackFailure title="Couldn't open the party's title" detail={itemError} backHref={href.parties()} backLabel="Back to parties" />
-  </div>
-{:else if item && party && item.id === party.item_id}
-  {#key item.id}
-    <PartyPlayer {item} {connection} {isHost} onleave={leave} />
-  {/key}
-{:else}
-  <div class="fixed inset-0 grid place-items-center bg-black text-white" aria-busy="true">
-    <div class="flex flex-col items-center gap-3">
-      <Spinner class="size-8 text-white/80" />
-      <span class="text-sm text-white/70">{connection.state === "joining" ? "Joining party" : "Loading title"}</span>
-    </div>
-  </div>
-{/if}
+<Page class="max-w-3xl">
+  <PageHeader title={party?.name ?? "Watch party"} description="Browse independently. When anyone starts a movie or episode, everyone opens it together. Playback is shared; volume and subtitles are yours." />
+  {#if failure}
+    <p role="alert" class="text-sm text-destructive">{failure}</p>
+    <Button href={href.parties()} variant="outline">Back to parties</Button>
+  {:else if party}
+    <section class="flex flex-col gap-5 rounded-xl border bg-card p-5" aria-label="Party members">
+      <h2 class="flex items-center gap-2 font-medium"><UsersRoundIcon class="size-4" />Members · {party.members.length}</h2>
+      <ul class="flex flex-col gap-3">
+        {#each party.members as member (member.user_id)}
+          <li class="flex items-center gap-2 text-sm">
+            <span>{member.username}</span>
+            {#if member.user_id === party.host_user_id}<CrownIcon class="size-3.5 text-muted-foreground" aria-label="Creator" />{/if}
+            {#if member.user_id === session.user?.id}<span class="text-xs text-muted-foreground">You</span>{/if}
+          </li>
+        {/each}
+      </ul>
+      <div class="flex flex-wrap gap-2">
+        <Button href={href.home()}>Browse library</Button>
+        {#if party.item_id}<Button variant="outline" href={href.watch(party.item_id)}>Return to playback</Button>{/if}
+        <Button variant="ghost" onclick={() => (confirmLeave = !confirmLeave)}>{isHost ? "End party" : "Leave party"}</Button>
+      </div>
+      {#if confirmLeave}
+        <div class="flex flex-wrap items-center gap-3 text-sm" role="status">
+          <p>{isHost ? "End this party for everyone?" : "Leave this party? You can join again later."}</p>
+          <Button size="sm" variant="outline" onclick={() => (confirmLeave = false)}>Stay</Button>
+          <Button size="sm" variant="destructive" onclick={leave}>{isHost ? "End party" : "Leave"}</Button>
+        </div>
+      {/if}
+    </section>
+  {:else}
+    <div class="flex items-center gap-2 text-sm text-muted-foreground" role="status"><Spinner />Joining party…</div>
+  {/if}
+</Page>

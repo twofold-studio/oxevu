@@ -28,6 +28,7 @@ const party = (overrides: Partial<Party> = {}): Party => ({
   updated_at_ms: 0,
   server_now_ms: 0,
   revision: 1,
+  playback_revision: 1,
   members: [],
   ...overrides,
 });

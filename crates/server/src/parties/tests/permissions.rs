@@ -52,7 +52,7 @@ async fn changed_item_requires_every_members_access_and_listing_hides_private_ro
     .1["party"]
         .clone();
     assert_eq!(changed["item_id"], "two");
-    assert_eq!(changed["paused"], true);
+    assert_eq!(changed["paused"], false);
     assert_eq!(changed["position_seconds"], 0.);
     a.playback.shutdown().await;
 }

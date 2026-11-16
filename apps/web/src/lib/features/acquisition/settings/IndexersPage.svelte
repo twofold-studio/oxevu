@@ -5,24 +5,20 @@
   import * as Empty from "$lib/components/ui/empty";
   import { Button } from "$lib/components/ui/button";
   import { Badge } from "$lib/components/ui/badge";
-  import { Spinner } from "$lib/components/ui/spinner";
   import ResourceGate from "$lib/features/settings/ResourceGate.svelte";
   import SettingsFrame from "$lib/features/settings/layout/SettingsFrame.svelte";
   import { SETTINGS_GROUP } from "$lib/features/settings/layout/group";
   import { createResource } from "$lib/features/settings/resource.svelte";
   import { acquisitionApi } from "$lib/api/acquisition";
   import type { Indexer } from "$lib/api/acquisition-types";
-  import { errorMessage } from "$lib/api/client";
   import IndexerDialog from "./IndexerDialog.svelte";
+  import IndexerTest from "./IndexerTest.svelte";
 
   // Administrators and delegated indexer managers both land here.
   const resource = createResource(async () => (await acquisitionApi.indexers()).indexers);
   let open = $state(false);
   let opening = $state(0);
   let selected = $state<Indexer | null>(null);
-  let testing = $state<string | null>(null);
-  let message = $state("");
-  let error = $state<string | null>(null);
 
   onMount(() => {
     void resource.load();
@@ -32,21 +28,6 @@
     selected = indexer;
     opening++;
     open = true;
-  }
-
-  async function test(indexer: Indexer) {
-    testing = indexer.id;
-    error = null;
-    message = "";
-    try {
-      await acquisitionApi.testIndexer(indexer.id);
-      message = `${indexer.name}: connection and capabilities verified.`;
-      await resource.load();
-    } catch (e) {
-      error = `${indexer.name}: ${errorMessage(e)}`;
-    } finally {
-      testing = null;
-    }
   }
 
   /** Host and path only; the key is never part of the endpoint. */
@@ -94,20 +75,13 @@
                 </div>
                 <p class="truncate font-mono text-xs text-muted-foreground">{endpointLabel(indexer.endpoint)}</p>
               </div>
-              <div class="flex gap-2">
-                <Button size="sm" variant="outline" disabled={testing !== null} onclick={() => test(indexer)}>
-                  {#if testing === indexer.id}<Spinner data-icon="inline-start" />Testing…{:else}Test{/if}
-                </Button>
+              <div class="flex items-start gap-2">
+                <IndexerTest id={indexer.id} name={indexer.name} />
                 <Button size="sm" variant="ghost" onclick={() => edit(indexer)} aria-label={`Edit ${indexer.name}`}>Edit</Button>
               </div>
             </li>
           {/each}
         </ul>
-        {#if error}
-          <p role="alert" class="text-sm text-destructive">{error}</p>
-        {:else if message}
-          <p role="status" class="text-sm text-muted-foreground">{message}</p>
-        {/if}
       </div>
     {/if}
   </ResourceGate>
