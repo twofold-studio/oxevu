@@ -54,6 +54,16 @@ project checks before committing a release.
 
 ## Run the first application
 
+For a managed NixOS installation, import this flake's `nixosModules.default`
+and enable `services.oxevu`. The package builds the web client and embeds it in
+the Rust server. The service defaults to `127.0.0.1:3000`, origin
+`http://localhost:3000`, and state under `/var/lib/oxevu`. Set `mediaDirectories`
+to existing library roots; these are mounted read-only in the service. The
+module also accepts `package`, `user`, `group`, `dataDir`, `bind`, and `origin`.
+When replacing a development instance, retain its data directory to preserve
+accounts, library IDs, progress, and provider settings, and stop the old process
+before activating the system service on the same port.
+
 Build the web app before compiling the server to embed the interface:
 
 ```sh

@@ -25,6 +25,8 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- The flake provides a reproducible server package with embedded web assets and a NixOS service module with persistent state, FFmpeg and read-only media access.
+
 - Accounts can upload and crop avatars with circular previews, zoom and positioning, or choose from 20 presets across abstract, animals, people and space. Avatars are saved per account and shown in the header.
 
 - Title details offer favorites in place of opinions; show and season actions favorite their episodes. Source file stats open from the metadata row beneath the title.

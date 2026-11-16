@@ -1,13 +1,36 @@
 {
   description = "Oxevu server, web and Android development";
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-  outputs = { nixpkgs, ... }:
+  outputs =
+    { self, nixpkgs, ... }:
     let
-      systems = [ "x86_64-linux" "aarch64-linux" "aarch64-darwin" ];
-    in {
-      devShells = nixpkgs.lib.genAttrs systems (system:
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "aarch64-darwin"
+      ];
+    in
+    {
+      nixosModules.default = import ./nix/module.nix self;
+      packages = nixpkgs.lib.genAttrs [ "x86_64-linux" "aarch64-linux" ] (
+        system:
         let
-          pkgs = import nixpkgs { inherit system; config = { allowUnfree = true; android_sdk.accept_license = true; }; };
+          pkgs = import nixpkgs { inherit system; };
+        in
+        {
+          default = pkgs.callPackage ./nix/package.nix { };
+        }
+      );
+      devShells = nixpkgs.lib.genAttrs systems (
+        system:
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            config = {
+              allowUnfree = true;
+              android_sdk.accept_license = true;
+            };
+          };
           android = pkgs.androidenv.composeAndroidPackages {
             platformVersions = [ "35" ];
             buildToolsVersions = [ "35.0.0" ];
@@ -16,12 +39,31 @@
             systemImageTypes = [ "google_apis" ];
             abiVersions = [ (if pkgs.stdenv.hostPlatform.isAarch64 then "arm64-v8a" else "x86_64") ];
           };
-        in {
+        in
+        {
           default = pkgs.mkShell {
             packages = with pkgs; [
-              rustc cargo rustfmt clippy rust-analyzer pkg-config openssl cmake
-              nodejs_22 pnpm ffmpeg sqlite just git curl jq nixfmt direnv python3
-              jdk17 android.androidsdk
+              rustc
+              cargo
+              rustfmt
+              clippy
+              rust-analyzer
+              pkg-config
+              openssl
+              cmake
+              nodejs_22
+              pnpm
+              ffmpeg
+              sqlite
+              just
+              git
+              curl
+              jq
+              nixfmt
+              direnv
+              python3
+              jdk17
+              android.androidsdk
             ];
             ANDROID_HOME = "${android.androidsdk}/libexec/android-sdk";
             ANDROID_SDK_ROOT = "${android.androidsdk}/libexec/android-sdk";
@@ -31,6 +73,7 @@
               echo "Oxevu: Rust, web, FFmpeg and Android SDK ready. See docs/development.md."
             '';
           };
-        });
+        }
+      );
     };
 }
