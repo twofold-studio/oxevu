@@ -14,9 +14,15 @@ pub(crate) async fn profile(a: &App, id: &str) -> Result<Value> {
             .await
             .map_err(db)?;
     let acquisition = crate::acquisition::permissions(a, id).await?;
-    Ok(
-        json!({"id":id,"username":r.get::<String,_>("username"),"is_admin":r.get::<bool,_>("is_admin"),"disabled":r.get::<bool,_>("disabled"),"can_play":r.get::<bool,_>("can_play"),"can_transcode":r.get::<bool,_>("can_transcode"),"syncplay_access":r.get::<String,_>("syncplay_access"),"all_libraries":r.get::<bool,_>("all_libraries"),"library_ids":grants,"acquisition":acquisition}),
-    )
+    let avatar: Option<String> =
+        sqlx::query_scalar("SELECT image FROM user_avatars WHERE user_id=?")
+            .bind(id)
+            .fetch_optional(&a.pool)
+            .await
+            .map_err(db)?;
+    let mut result = json!({"id":id,"username":r.get::<String,_>("username"),"is_admin":r.get::<bool,_>("is_admin"),"disabled":r.get::<bool,_>("disabled"),"can_play":r.get::<bool,_>("can_play"),"can_transcode":r.get::<bool,_>("can_transcode"),"syncplay_access":r.get::<String,_>("syncplay_access"),"all_libraries":r.get::<bool,_>("all_libraries"),"library_ids":grants,"acquisition":acquisition});
+    result["avatar"] = json!(avatar);
+    Ok(result)
 }
 pub(crate) async fn admin(a: &App, h: &HeaderMap) -> Result<Value> {
     let u = user(a, h).await?;

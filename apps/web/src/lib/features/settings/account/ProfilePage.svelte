@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AvatarEditor from "./AvatarEditor.svelte";
   import UserIcon from "@lucide/svelte/icons/user-round";
   import { session } from "$lib/state/session.svelte";
   import SettingsFrame from "../layout/SettingsFrame.svelte";
@@ -23,6 +24,7 @@
 
 <SettingsFrame page="account/profile" description="Who you are signed in as and what this account may do.">
   <div class={SETTINGS_GROUP}>
+    <SettingsRow icon={UserIcon} title="Avatar" description="Choose a preset or crop your own picture."><AvatarEditor /></SettingsRow>
     <SettingsRow
       icon={UserIcon}
       title="Your access"

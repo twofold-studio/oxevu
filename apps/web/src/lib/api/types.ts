@@ -18,6 +18,7 @@ export interface UserAccess {
 }
 
 export interface User extends UserAccess {
+  avatar?: string | null;
   id: string;
   username: string;
 }

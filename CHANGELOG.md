@@ -9,6 +9,8 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Player volume feedback appears in the center with smoother seek/volume animations and new play/pause indicators; reduced-motion preferences remain supported.
+
 - Watch parties opens from the top-right header between the account menu and search, replacing its rail and mobile More links.
 
 ### Fixed
@@ -22,6 +24,8 @@ as available; planned features belong in GOAL.md.
 - Imported titles keep their catalog cover, genres, provider link and rating. Existing imports receive missing cover metadata without replacing owner matches.
 
 ### Added
+
+- Accounts can upload and crop avatars with circular previews, zoom and positioning, or choose from 20 presets across abstract, animals, people and space. Avatars are saved per account and shown in the header.
 
 - Title details offer favorites in place of opinions; show and season actions favorite their episodes. Source file stats open from the metadata row beneath the title.
 

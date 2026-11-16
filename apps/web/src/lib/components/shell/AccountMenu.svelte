@@ -29,10 +29,12 @@
     class={buttonVariants({ variant: "ghost", size: "icon" })}
     aria-label={`Account: ${username}`}
   >
-    <span
+    {#if session.user?.avatar}
+      <img src={session.user.avatar} alt="" class="size-7 rounded-full object-cover" />
+    {:else}<span
       class="grid size-7 place-items-center rounded-full border bg-secondary text-xs font-semibold text-secondary-foreground"
       aria-hidden="true">{initial}</span
-    >
+    >{/if}
   </DropdownMenu.Trigger>
   <DropdownMenu.Content align="end" class="min-w-52">
     <DropdownMenu.Group>

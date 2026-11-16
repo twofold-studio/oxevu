@@ -14,6 +14,7 @@ mod acquisition;
 mod artwork;
 mod assets;
 mod auth;
+mod avatars;
 mod catalog;
 mod episode_title;
 mod integrations;
@@ -126,6 +127,7 @@ async fn main() -> anyhow::Result<()> {
         .merge(acquisition::routes())
         .merge(parties::routes())
         .route("/playback/capabilities", get(playback::capabilities))
+        .route("/account/avatar", axum::routing::put(avatars::save))
         .route("/playback/sessions", post(playback::create))
         .route("/playback/sessions/{id}", get(playback::get))
         .route(

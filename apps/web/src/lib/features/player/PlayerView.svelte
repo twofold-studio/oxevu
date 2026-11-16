@@ -70,12 +70,12 @@
   let saveFailed = $state(false);
   let subtitlesOpen = $state(false);
   let deliveryOpen = $state(false);
-  let feedback = $state<{ id: number; kind: "back" | "forward" | "volume" | "mute"; label: string } | null>(null);
+  let feedback = $state<{ id: number; kind: "back" | "forward" | "volume" | "mute" | "play" | "pause"; label: string } | null>(null);
   let feedbackId = 0;
   let feedbackTimer: ReturnType<typeof setTimeout>;
   onMount(() => () => clearTimeout(feedbackTimer));
 
-  function announce(kind: "back" | "forward" | "volume" | "mute", label: string) {
+  function announce(kind: "back" | "forward" | "volume" | "mute" | "play" | "pause", label: string) {
     feedback = { id: ++feedbackId, kind, label };
     clearTimeout(feedbackTimer);
     feedbackTimer = setTimeout(() => (feedback = null), 850);
@@ -247,13 +247,13 @@
     preload="metadata"
     playsinline
     class="size-full object-contain"
-    onplay={() => (started = true)}
+    onplay={() => { started = true; announce("play", "Play"); }}
     onvolumechange={() => { if (video) saveVolume(video.volume, video.muted); }}
     onwaiting={() => (waiting = true)}
     onplaying={() => (waiting = false)}
     oncanplay={() => (waiting = false)}
     ontimeupdate={onTimeUpdate}
-    onpause={() => settled && reporter.save(engine.absolute, duration || null)}
+    onpause={() => { if (settled) { announce("pause", "Pause"); reporter.save(engine.absolute, duration || null); } }}
     onseeked={() => {
       if (video) engine.mediaTime = video.currentTime;
       if (started && settled) reporter.save(engine.absolute, duration || null);
