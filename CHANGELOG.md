@@ -7,6 +7,10 @@ as available; planned features belong in GOAL.md.
 
 ## Unreleased
 
+### Changed
+
+- Watch parties opens from the top-right header between the account menu and search, replacing its rail and mobile More links.
+
 ### Fixed
 
 - The title-page Watch together action appears only for a joined live party and opens playback in that existing party instead of creating another one.

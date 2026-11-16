@@ -1,14 +1,12 @@
 import HouseIcon from "@lucide/svelte/icons/house";
 import FilmIcon from "@lucide/svelte/icons/film";
 import TvIcon from "@lucide/svelte/icons/tv";
-import UsersRoundIcon from "@lucide/svelte/icons/users-round";
 import CompassIcon from "@lucide/svelte/icons/compass";
 import InboxIcon from "@lucide/svelte/icons/inbox";
 import ListChecksIcon from "@lucide/svelte/icons/list-checks";
 import DownloadIcon from "@lucide/svelte/icons/download";
 import type { Component } from "svelte";
 import type { User } from "$lib/api/types";
-import { canJoinParties } from "$lib/state/access";
 import { href, type Route } from "$lib/state/router.svelte";
 
 export interface NavItem {
@@ -35,12 +33,6 @@ const shows: NavItem = {
   href: href.shows(),
   icon: TvIcon,
   active: (r) => r.name === "shows" || r.name === "show",
-};
-const parties: NavItem = {
-  label: "Parties",
-  href: href.parties(),
-  icon: UsersRoundIcon,
-  active: (r) => r.name === "parties" || r.name === "party",
 };
 /** Role-aware hints; the server still authorizes every page's requests. */
 export function browseNav(user: User | null): NavItem[] {
@@ -71,7 +63,6 @@ export function browseNav(user: User | null): NavItem[] {
       icon: DownloadIcon,
       active: (r) => r.name === "activity",
     });
-  if (canJoinParties(user)) items.push(parties);
   return items;
 }
 // Settings are opened from the account menu and bring their own navigation.

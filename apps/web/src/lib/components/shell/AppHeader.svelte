@@ -6,6 +6,10 @@
   import rustLogo from "../../../../../../assets/logo.png";
   import SearchBox from "./SearchBox.svelte";
   import AccountMenu from "./AccountMenu.svelte";
+  import UsersRoundIcon from "@lucide/svelte/icons/users-round";
+  import { Button } from "$lib/components/ui/button";
+  import { session } from "$lib/state/session.svelte";
+  import { canJoinParties } from "$lib/state/access";
 
   const crumbs = $derived(breadcrumbs(router.route, catalog));
 </script>
@@ -36,8 +40,19 @@
     </ol>
   </nav>
 
-  <SearchBox class="hidden w-56 md:block xl:w-72" />
   <AccountMenu />
+  {#if canJoinParties(session.user)}
+    <Button
+      href={href.parties()}
+      variant="ghost"
+      size="icon"
+      aria-label="Watch parties"
+      title="Watch parties"
+      aria-current={router.route.name === "parties" || router.route.name === "party" ? "page" : undefined}
+      class={router.route.name === "parties" || router.route.name === "party" ? "bg-accent text-foreground" : "text-muted-foreground"}
+    ><UsersRoundIcon /></Button>
+  {/if}
+  <SearchBox class="hidden w-56 md:block xl:w-72" />
 </header>
 
 <!-- Search stays reachable on phones without crowding the header. -->
