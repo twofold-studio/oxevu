@@ -87,3 +87,8 @@ Existing cached releases and job references are preserved; there is no one-off
 cache-deletion migration. Torrent workers, seeding and import publication rules
 remain unchanged. Real-provider availability and long-running transfers still
 depend on those services; the browser review used local fixtures.
+
+After deployment, the original live movie search returned 115 source hits from
+four successful indexers in 3.9 seconds. Grouping matching infohashes produced
+65 torrents with 65 unique IDs; 46 rows listed additional sources. This checked
+search only: no live download was started and no profile setting was changed.
