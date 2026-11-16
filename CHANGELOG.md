@@ -19,6 +19,8 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Title details offer favorites in place of opinions; show and season actions favorite their episodes. Source file stats open from the metadata row beneath the title.
+
 - Subtitle timing controls offer earlier/later adjustments, exact seconds and reset, remembered in this browser per title and track. Personal timing is combined with HLS seek offsets without modifying subtitle files or party playback.
 
 - Library cards, episodes, details and Downloads link to recognized transfers with download status and Play/Resume when streaming is available. Progressive playback shows buffering status, uses a bounded startup wait and retains session leases without rapid heartbeats. Visible library views share a ten-second refresh loop.

@@ -36,7 +36,7 @@
   import HistoryIcon from "@lucide/svelte/icons/history";
   import FileFacts from "./FileFacts.svelte";
   import PlaybackNotice from "./PlaybackNotice.svelte";
-  import ReactionControls from "./ReactionControls.svelte";
+  import FavoriteButton from "$lib/features/library/FavoriteButton.svelte";
   import FindAgainLink from "./FindAgainLink.svelte";
   import RemovalDialog from "./RemovalDialog.svelte";
   import { partySession } from "$lib/party/session.svelte";
@@ -155,6 +155,7 @@
             {item.title}
           </h1>
           <TitleFacts {item}>
+            {#if hasFile}<li><FileFacts {item} /></li>{/if}
             {#if item.completed}
               <MetaFact icon={CheckIcon}>Watched</MetaFact>
             {:else if resume !== null}
@@ -198,6 +199,7 @@
             {/if}
           {/if}
           <IdentifyButton {item} onsaved={(updated) => (fetched = updated)} />
+          <FavoriteButton items={[item]} />
           {#if canParty}
             <Button
               size="lg"
@@ -220,7 +222,6 @@
           {/if}
         </div>
 
-        <ReactionControls {item} />
 
         <MetadataDetails {item} />
 
@@ -268,9 +269,6 @@
         {/if}
     </div>
 
-    <div class="max-w-xl">
-      {#if hasFile}<FileFacts {item} />{/if}
-    </div>
   </DetailLayout>
   {#if admin}
     <RemovalDialog bind:open={removalOpen} itemIds={[item.id]} label={item.title} onremoved={handleRemoved} />

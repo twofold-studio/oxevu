@@ -1,4 +1,5 @@
 <script lang="ts">
+  import FavoriteButton from "./FavoriteButton.svelte";
   import PlayIcon from "@lucide/svelte/icons/play";
   import TrashIcon from "@lucide/svelte/icons/trash-2";
   import { Button } from "$lib/components/ui/button";
@@ -157,6 +158,7 @@
               <FindAgainLink item={target} />
             {/if}
             <IdentifyButton item={target} />
+            <FavoriteButton items={episodes} label={selectedSeason ? "Favorite season" : "Favorite show"} />
             {#if admin}<Button variant="outline" size="lg" disabled={episodes.some((e) => !!e.download)} title={episodes.some((e) => !!e.download) ? "Manage active transfers in Downloads before removing this selection" : undefined} onclick={() => (removalOpen = true)}><TrashIcon data-icon="inline-start" />Remove {selectedSeason ? "season" : "series"}</Button>{/if}
           </div>
         {/if}

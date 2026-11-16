@@ -30,12 +30,12 @@
   ]);
 </script>
 
-<details class="group flex flex-col gap-3">
+<details class="group relative">
   <summary class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-md py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
     Stats for nerds
     <ChevronDownIcon class="size-4 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden="true" />
   </summary>
-  <dl class="divide-y overflow-hidden rounded-xl border text-sm">
+  <dl class="absolute right-0 z-20 mt-2 w-80 max-w-[85vw] divide-y overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-lg text-sm">
     {#each rows as [label, value] (label)}
       <div class="flex items-center justify-between gap-4 px-4 py-2.5">
         <dt class="text-muted-foreground">{label}</dt>
@@ -43,5 +43,4 @@
       </div>
     {/each}
   </dl>
-  <p class="mt-2 text-xs text-muted-foreground">Source file details. Unknown values were not reported by the media probe; rescan older library entries to populate them.</p>
 </details>
