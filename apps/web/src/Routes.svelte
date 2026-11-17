@@ -45,10 +45,6 @@
       <page.default kind={route.kind} id={route.id} />
     {/await}
   {/key}
-{:else if route.name === "requests"}
-  {#await import("$lib/features/acquisition/RequestsPage.svelte") then page}<page.default />{/await}
-{:else if route.name === "wanted"}
-  {#await import("$lib/features/acquisition/WantedPage.svelte") then page}<page.default />{/await}
 {:else if route.name === "activity"}
   {#await import("$lib/features/acquisition/ActivityPage.svelte") then page}<page.default />{/await}
 {:else}

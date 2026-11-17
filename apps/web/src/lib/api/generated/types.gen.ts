@@ -1008,6 +1008,10 @@ export type TorrentStats = {
     uploaded_bytes?: number | null;
 };
 
+export type Trailer = {
+    youtube_id?: string | null;
+};
+
 export type User = {
     acquisition: Permissions;
     all_libraries: boolean;
@@ -1956,6 +1960,30 @@ export type TitleDetailsResponses = {
 };
 
 export type TitleDetailsResponse = TitleDetailsResponses[keyof TitleDetailsResponses];
+
+export type TitleTrailerData = {
+    body?: never;
+    path: {
+        kind: MediaKind;
+        id: number;
+    };
+    query?: never;
+    url: '/acquisition/titles/{kind}/{id}/trailer';
+};
+
+export type TitleTrailerErrors = {
+    400: ErrorBody;
+    401: ErrorBody;
+    500: ErrorBody;
+};
+
+export type TitleTrailerError = TitleTrailerErrors[keyof TitleTrailerErrors];
+
+export type TitleTrailerResponses = {
+    200: Trailer;
+};
+
+export type TitleTrailerResponse = TitleTrailerResponses[keyof TitleTrailerResponses];
 
 export type LoginData = {
     body: Credentials;

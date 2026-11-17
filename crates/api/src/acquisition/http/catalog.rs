@@ -5,6 +5,7 @@ pub(super) fn router() -> OpenApiRouter<App> {
         .routes(routes!(discover))
         .routes(routes!(genres))
         .routes(routes!(title_details))
+        .routes(routes!(title_trailer))
         .routes(routes!(titles_list))
         .routes(routes!(requests_list, request_create))
         .routes(routes!(request_decide))
@@ -47,6 +48,19 @@ async fn title_details(
 ) -> Result<Json<TitleDetails>> {
     let Json(value) = super::super::catalog::details(State(a), h, Path((kind, id))).await?;
     Ok(Json(crate::contract::decode(value)?))
+}
+
+#[utoipa::path(get, path = "/acquisition/titles/{kind}/{id}/trailer", params(("kind" = MediaKind, Path), ("id" = u64, Path)),
+responses((status = 200, body = Trailer), (status = 400, body = ErrorBody),
+(status = 401, body = ErrorBody), (status = 500, body = ErrorBody)))]
+async fn title_trailer(
+    State(a): State<App>,
+    h: HeaderMap,
+    Path((kind, id)): Path<(String, u64)>,
+) -> Result<Json<Trailer>> {
+    Ok(Json(
+        super::super::trailers::lookup(&a, &h, &kind, id).await?,
+    ))
 }
 
 #[utoipa::path(get, path = "/acquisition/titles",

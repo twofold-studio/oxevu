@@ -22,8 +22,8 @@ can still use Torznab, including through a bridge.
    monitoring are not required for this manual flow; completed files use the
    configured default destination when library imports are enabled.
 6. Accounts without download access can still request titles for approval.
-   Administrators manage those under **Requests** and **Wanted**, where they can
-   configure a monitoring scope, destination, profile and automatic acquisition.
+   Review requests on the corresponding Discover title. Administrators can open
+   **Acquisition settings** there to configure monitoring, destination and automation.
 7. Follow transfers in **Activity**. Inspect/select files, pause, retry, or review
    an import. Imports refresh the library and update accessible requests.
 
@@ -68,7 +68,7 @@ changing an entry cap briefly reconnects and rechecks that torrent, keeping file
 and paused intent. Limits survive a server restart.
 
 With automatic imports enabled, the worker checks verified files every 10 seconds.
-The title needs an enabled destination rule in Wanted and missing requested media
+The title needs an enabled destination rule and missing requested media
 that matches the selected files. Activity explains missing prerequisites and
 import errors, then shows when media has entered the library. Imports retain the
 seeding source and never overwrite existing media. Enable cross-filesystem copy

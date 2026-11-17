@@ -9,6 +9,10 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Discover and library details can play available TMDB trailers.
+
+- Removed the standalone Requests and Wanted pages. Request controls and acquisition settings live on each Discover title.
+
 - Discover applies filters as they change, loads more titles as you scroll, and shows skeletons while title details and results load.
 - Series pages offer season and episode searches and let administrators reopen saved Wanted selections.
 - Movie and series browsing restores scroll when returning from details. Movies and episodes count as watched at 90% playback, with clearer in-progress labels on posters.

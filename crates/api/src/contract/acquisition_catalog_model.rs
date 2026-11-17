@@ -1,6 +1,11 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+#[derive(Serialize, ToSchema)]
+pub(crate) struct Trailer {
+    pub youtube_id: Option<String>,
+}
+
 #[derive(Deserialize, Serialize, ToSchema)]
 pub(crate) struct Genre {
     id: u32,

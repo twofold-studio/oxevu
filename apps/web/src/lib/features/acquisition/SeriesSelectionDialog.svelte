@@ -46,7 +46,7 @@
     <Dialog.Header>
       <Dialog.Title>Download selection · {entry.title.title}</Dialog.Title>
       <Dialog.Description>
-        Choose what this series tracks in Wanted. You can change the selection here later.
+        Choose which episodes to track. You can change the selection here later.
         {#if entry.monitor.automatic}This also updates the scope of automatic searches.{/if}
       </Dialog.Description>
     </Dialog.Header>

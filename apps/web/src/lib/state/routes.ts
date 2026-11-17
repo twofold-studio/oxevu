@@ -27,8 +27,6 @@ export type Route =
   | { name: "party"; id: string }
   | { name: "discover"; query: string; kind: "movie" | "tv"; page: number; filters: DiscoverFilters }
   | { name: "discover-title"; kind: "movie" | "tv"; id: number }
-  | { name: "requests" }
-  | { name: "wanted" }
   | { name: "activity" }
   | { name: "not-found" };
 
@@ -62,8 +60,6 @@ export const href = {
   discover: (query = "", kind: "movie" | "tv" = "movie", page = 1, filters: DiscoverFilters = {}) =>
     `#/discover?${discoverQuery(query, kind, page, filters)}`,
   discoverTitle: (kind: "movie" | "tv", id: number) => `#/discover/${kind}/${id}`,
-  requests: () => "#/requests",
-  wanted: () => "#/wanted",
   activity: () => "#/activity",
 };
 
@@ -127,9 +123,8 @@ export function parseRoute(hash: string): Route {
         : { name: "not-found" };
     }
     case "requests":
-      return parts.length === 1 ? { name: "requests" } : { name: "not-found" };
     case "wanted":
-      return parts.length === 1 ? { name: "wanted" } : { name: "not-found" };
+      return parts.length === 1 ? { name: "discover", query: "", kind: "movie", page: 1, filters: {} } : { name: "not-found" };
     case "activity":
       return parts.length === 1 ? { name: "activity" } : { name: "not-found" };
     default:

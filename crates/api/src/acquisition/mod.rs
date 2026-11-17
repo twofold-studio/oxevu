@@ -37,6 +37,7 @@ mod storage;
 pub(crate) mod streaming;
 mod torrent_files;
 mod torznab;
+mod trailers;
 mod transfer;
 mod transfer_source;
 mod wanted;

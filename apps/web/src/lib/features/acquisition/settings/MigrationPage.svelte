@@ -15,7 +15,6 @@
   import { acquisitionApi, externalExport } from "$lib/api/acquisition";
   import type { MigrationInput, MigrationPreview } from "$lib/api/acquisition-types";
   import { errorMessage } from "$lib/api/client";
-  import { href } from "$lib/state/router.svelte";
 
   // Review-then-apply import of Radarr, Sonarr or Seerr exports into monitors.
   const sources = [
@@ -185,7 +184,7 @@
       <SettingsRow
         icon={ListChecksIcon}
         title="Review"
-        description="Nothing is written until you import the reviewed records. Imported titles need a destination and explicit automation under Wanted."
+        description="Nothing is written until you import the reviewed records. Set a destination and enable automation from each title's acquisition settings."
       >
         <div class="flex flex-col gap-4">
           <div>
@@ -218,7 +217,7 @@
           {#if results.length}
             <div role="status" class="flex flex-col gap-2">
               <p class="text-sm">
-                Imported {imported} of {results.length}. <a class="underline underline-offset-4" href={href.wanted()}>Open Wanted</a>
+                Imported {imported} of {results.length}.
               </p>
               <ul class="max-h-72 overflow-y-auto text-sm">
                 {#each results as result (result.key)}

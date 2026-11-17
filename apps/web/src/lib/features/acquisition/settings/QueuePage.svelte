@@ -63,7 +63,7 @@
       <SettingsRow
         icon={SearchIcon}
         title="Missing-title search"
-        description="Applies only to titles with automatic acquisition enabled under Wanted."
+        description="Applies only to titles with automatic acquisition enabled in their acquisition settings."
       >
         <NumberField
           id="acq-search_interval_minutes"

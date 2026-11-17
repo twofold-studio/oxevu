@@ -2,8 +2,6 @@ import HouseIcon from "@lucide/svelte/icons/house";
 import FilmIcon from "@lucide/svelte/icons/film";
 import TvIcon from "@lucide/svelte/icons/tv";
 import CompassIcon from "@lucide/svelte/icons/compass";
-import InboxIcon from "@lucide/svelte/icons/inbox";
-import ListChecksIcon from "@lucide/svelte/icons/list-checks";
 import DownloadIcon from "@lucide/svelte/icons/download";
 import type { Component } from "svelte";
 import type { User } from "$lib/api/types";
@@ -43,19 +41,6 @@ export function browseNav(user: User | null): NavItem[] {
     icon: CompassIcon,
     active: (r) => r.name === "discover" || r.name === "discover-title",
   });
-  items.push({
-    label: "Requests",
-    href: href.requests(),
-    icon: InboxIcon,
-    active: (r) => r.name === "requests",
-  });
-  if (user?.is_admin || user?.acquisition?.manage_requests || user?.acquisition?.manage_downloads)
-    items.push({
-      label: "Wanted",
-      href: href.wanted(),
-      icon: ListChecksIcon,
-      active: (r) => r.name === "wanted",
-    });
   if (user?.is_admin || user?.acquisition?.manage_downloads)
     items.push({
       label: "Activity",

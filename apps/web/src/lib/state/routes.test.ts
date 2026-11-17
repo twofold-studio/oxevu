@@ -2,6 +2,11 @@ import { describe, expect, test } from "vite-plus/test";
 import { href, parseRoute } from "./routes";
 import { settingsPageIds } from "./settings-pages";
 
+test("removed acquisition pages open Discover from old bookmarks", () => {
+  expect(parseRoute("#/requests")).toEqual(parseRoute("#/discover"));
+  expect(parseRoute("#/wanted")).toEqual(parseRoute("#/discover"));
+});
+
 describe("show routes", () => {
   test("links use the readable slug", () => {
     expect(href.show("arcane")).toBe("#/shows/arcane");

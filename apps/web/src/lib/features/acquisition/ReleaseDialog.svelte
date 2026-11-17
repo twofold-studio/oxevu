@@ -50,7 +50,7 @@
   <Dialog.Header>
     <Dialog.Title>Find a release · {title.title}</Dialog.Title>
     <Dialog.Description>
-      {#if onlyWanted}Only missing episodes in Wanted will be selected from the release.
+      {#if onlyWanted}Only missing episodes tracked for this series will be selected from the release.
       {:else if episode !== undefined}Searching Season {season}, Episode {episode}. Review the release contents before downloading.
       {:else if season !== undefined}Searching {season === 0 ? "Specials" : `Season ${season}`}.
       {:else}Choose a release to download. Your configured library import settings apply.{/if}

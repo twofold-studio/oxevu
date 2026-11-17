@@ -15,9 +15,12 @@
   import ResourceGate from "$lib/features/settings/ResourceGate.svelte";
   import { createResource } from "$lib/features/settings/resource.svelte";
   import RequestDialog from "./RequestDialog.svelte";
+  import TrailerButton from "$lib/features/details/TrailerButton.svelte";
+  import TitleRequests from "./TitleRequests.svelte";
   import ReleaseDialog from "./ReleaseDialog.svelte";
   import DiscoverTitleSkeleton from "./DiscoverTitleSkeleton.svelte";
   import SeriesSelectionDialog from "./SeriesSelectionDialog.svelte";
+  import MonitorDialog from "./MonitorDialog.svelte";
   import { newSeriesSelection } from "./series-selection";
   import { errorMessage } from "$lib/api/client";
   import { Skeleton } from "$lib/components/ui/skeleton";
@@ -32,6 +35,7 @@
   let releaseEpisode = $state<number | undefined>(undefined);
   let releaseOpening = $state(0);
   let monitorOpen = $state(false);
+  let advancedOpen = $state(false);
   let monitorEntry = $state<MonitoredTitle | null>(null);
   let monitorError = $state<string | null>(null);
   let monitorLoading = $state(false);
@@ -43,7 +47,7 @@
     releaseOpening++;
     releaseOpen = true;
   }
-  async function loadMonitor(open = false) {
+  async function loadMonitor(open?: "selection" | "advanced") {
     const title = resource.value?.title;
     if (!title || monitorLoading) return;
     monitorLoading = true;
@@ -54,7 +58,8 @@
       if (open && !monitorEntry) {
         monitorEntry = newSeriesSelection(title);
       }
-      if (open) monitorOpen = true;
+      if (open === "selection") monitorOpen = true;
+      if (open === "advanced") advancedOpen = true;
     } catch (error) {
       monitorError = errorMessage(error);
     } finally {
@@ -86,17 +91,24 @@
           </div>
           <p class="max-w-3xl text-sm leading-7 text-muted-foreground">{title.overview || "No description is available."}</p>
           <div class="flex flex-wrap gap-2">
+            <TrailerButton {kind} providerId={title.provider_id} title={title.title} />
             {#if canDownload}<Button onclick={() => find()}>Find</Button>
             {:else if canRequest}<Button onclick={() => { opening++; requestOpen = true; }}>Request {kind === "tv" ? "episodes" : "movie"}</Button>{/if}
             {#if kind === "tv" && session.user?.is_admin}
-              <Button variant="outline" disabled={monitorLoading} onclick={() => loadMonitor(true)}>Manage download selection</Button>
+              <Button variant="outline" disabled={monitorLoading} onclick={() => loadMonitor("selection")}>Manage download selection</Button>
               {#if hasSelection}<Button variant="outline" onclick={() => find(undefined, undefined, true)}>Find selected episodes</Button>{/if}
+            {/if}
+            {#if session.user?.is_admin}
+              <Button variant="ghost" disabled={monitorLoading} onclick={() => loadMonitor("advanced")}>Acquisition settings</Button>
             {/if}
             {#if title.availability?.items[0]}<Button variant="outline" href={href.item(title.availability.items[0].id)}>Open in library</Button>{/if}
           </div>
           {#if monitorLoading}<Skeleton class="h-4 w-44" aria-label="Loading download selection" />{/if}
           {#if monitorError}<p role="alert" class="text-xs text-destructive">{monitorError}</p>{/if}
-          {#if sent}<p role="status" class="text-sm">Request submitted. You can follow it under Requests.</p>{/if}
+          {#if sent}<p role="status" class="text-sm">Request submitted.</p>{/if}
+          {#if canRequest || session.user?.acquisition?.manage_requests || title.availability?.requested || sent}
+            {#key sent}<TitleRequests titleId={title.id} />{/key}
+          {/if}
           {#if title.availability?.offline}<p class="text-sm text-muted-foreground">Some library files are offline. Availability will update when the storage returns.</p>{/if}
           {#if kind === "tv"}
             <section class="rounded-xl border bg-card">
@@ -135,6 +147,9 @@
       {#if monitorOpen && monitorEntry}
         <SeriesSelectionDialog bind:open={monitorOpen} entry={monitorEntry} episodes={resource.value.episodes}
           onsaved={(monitor) => { if (monitorEntry) monitorEntry = { ...monitorEntry, monitor }; }} />
+      {/if}
+      {#if advancedOpen && monitorEntry}
+        <MonitorDialog bind:open={advancedOpen} entry={monitorEntry} onsaved={() => loadMonitor()} />
       {/if}
     {/if}
   </ResourceGate>

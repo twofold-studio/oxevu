@@ -17,6 +17,7 @@
   import RemovalDialog from "$lib/features/details/RemovalDialog.svelte";
   import FindAgainLink from "$lib/features/details/FindAgainLink.svelte";
   import LibrarySeriesSelection from "$lib/features/acquisition/LibrarySeriesSelection.svelte";
+  import TrailerButton from "$lib/features/details/TrailerButton.svelte";
   import type { RemovalResult } from "$lib/api/endpoints";
   import type { Item } from "$lib/api/types";
   import { href, router } from "$lib/state/router.svelte";
@@ -190,6 +191,7 @@
             {/if}
             <IdentifyButton item={target} />
             <FavoriteButton items={episodes} label="Favorite show" />
+            <TrailerButton kind="tv" providerId={tmdbId} title={show.title} />
             {#if admin}
               <Button
                 variant="outline"

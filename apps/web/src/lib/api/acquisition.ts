@@ -28,6 +28,8 @@ export const acquisitionApi = {
   genres: (kind: A.MediaKind) => sdkData(sdk.genres({ ...options(), query: { kind } })),
   title: (kind: A.MediaKind, id: number) =>
     sdkData(sdk.titleDetails({ ...options(), path: { kind, id } })),
+  trailer: (kind: A.MediaKind, id: number, signal: AbortSignal) =>
+    sdkData(sdk.titleTrailer({ ...options(), path: { kind, id }, signal })),
   requests: () => sdkData(sdk.requestsList(options())),
   request: (title: A.DiscoverTitle, scope: A.RequestScope) =>
     sdkData(
