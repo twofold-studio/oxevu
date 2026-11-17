@@ -189,14 +189,20 @@ fn native_request(
     let offset = get("offset").parse::<u32>().unwrap_or(0);
     let limit = get("limit").parse::<u32>().unwrap_or(100).clamp(1, 100);
     match provider {
-        Provider::Knaben => client.post(url).json(&json!({
-            "query": query,
-            "search_field": "title",
-            "from": offset,
-            "size": limit,
-            "hide_unsafe": true,
-            "hide_xxx": true,
-        })),
+        Provider::Knaben => {
+            let mut body = json!({
+                "from": offset,
+                "size": limit,
+                "hide_unsafe": true,
+                "hide_xxx": true,
+            });
+            // An empty query returns no hits. Omit it to request recent releases.
+            if !query.is_empty() {
+                body["query"] = json!(query);
+                body["search_field"] = json!("title");
+            }
+            client.post(url).json(&body)
+        }
         Provider::Nyaa => client
             .get(url)
             .query(&[("page", "rss"), ("q", query), ("c", "1_0")]),
