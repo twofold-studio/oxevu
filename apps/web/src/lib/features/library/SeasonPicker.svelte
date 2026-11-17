@@ -1,108 +1,53 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import CheckIcon from "@lucide/svelte/icons/check";
-  import * as Tabs from "$lib/components/ui/tabs";
+  import Artwork from "$lib/components/Artwork.svelte";
   import SwapView from "$lib/components/SwapView.svelte";
   import { seasonKey, seasonLabel, type Season } from "$lib/media/grouping";
   import { plural } from "$lib/media/format";
   import EpisodeList from "./EpisodeList.svelte";
   import SeasonSummary from "./SeasonSummary.svelte";
 
-  // A series' episodes, one season at a time. Seasons are a compact underline
-  // tab strip directly above the selected season's summary and episodes, so
-  // switching seasons never leaves the episode area. bits-ui supplies the
-  // tablist semantics, roving focus and arrow keys; the strip scrolls
-  // sideways when a long-running series has more seasons than fit. A
-  // single-season series has nothing to choose and shows no strip.
-  // SwapView crossfades the old season out and the new one in without the
-  // section collapsing in between.
-  let {
-    seasons,
-    value,
-    onValueChange,
-    upNextId,
-    seriesPoster,
-    actions,
-  }: {
+  let { seasons, value, onValueChange, upNextId, seriesPoster, actions }: {
     seasons: Season[];
     value: string;
     onValueChange: (value: string) => void;
-    /** The episode the show's Play button targets, marked in its list. */
     upNextId?: string;
     seriesPoster: string | null;
-    /** Season-scoped actions (favorite, remove) beside the season heading. */
     actions?: Snippet<[Season]>;
   } = $props();
-
-  let list = $state<HTMLElement | null>(null);
-
-  // Keep the selected tab visible in a scrolled strip (deep links, Back, and
-  // keyboard selection past the edge). Only the strip scrolls, never the page.
-  $effect(() => {
-    if (!list || !value) return;
-    const active = list.querySelector<HTMLElement>("[data-active]");
-    if (!active) return;
-    const left = active.offsetLeft - (list.clientWidth - active.offsetWidth) / 2;
-    list.scrollTo({ left: Math.max(0, left) });
-  });
-
-  const watchedIn = (season: Season) => season.episodes.filter((e) => e.completed).length;
 </script>
 
-{#snippet panel(key: string)}
-  {@const season = seasons.find((s) => seasonKey(s) === key)}
-  {#if season}
-    <div class="flex flex-col gap-5">
-      <SeasonSummary {season} {seriesPoster} {actions} />
-      <EpisodeList episodes={season.episodes} label={seasonLabel(season.number)} {upNextId} />
-    </div>
-  {/if}
-{/snippet}
-
-{#if seasons.length > 1}
-  <Tabs.Root {value} {onValueChange} class="gap-6">
-    <Tabs.List
-      bind:ref={list}
-      variant="line"
-      aria-label="Seasons"
-      class="relative w-full justify-start gap-1 overflow-x-auto overflow-y-hidden rounded-none p-0 group-data-horizontal/tabs:h-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden shadow-[inset_0_-1px_0_0_var(--color-border)]"
-    >
-      {#each seasons as season (seasonKey(season))}
-        {@const watched = watchedIn(season)}
-        {@const done = watched === season.episodes.length}
-        {@const hasUpNext = upNextId !== undefined && season.episodes.some((e) => e.id === upNextId)}
-        <Tabs.Trigger
-          value={seasonKey(season)}
-          class="h-12 flex-none gap-3 px-3 group-data-horizontal/tabs:after:bottom-0 sm:px-4"
-        >
-          {#if hasUpNext}
-            <span aria-hidden="true" class="size-1.5 shrink-0 rounded-full bg-brand" title="Up next"></span>
-          {/if}
-          {seasonLabel(season.number)}
-          {#if done}
-            <CheckIcon aria-hidden="true" class="size-3.5 text-muted-foreground" />
-          {:else}
-            <span aria-hidden="true" class="rounded-md border px-1.5 py-0.5 text-xs font-normal text-muted-foreground tabular-nums">{plural(season.episodes.length, "episode")}</span>
-          {/if}
-          <span class="sr-only">
-            , {plural(season.episodes.length, "episode")}{watched > 0
-              ? done
-                ? ", all watched"
-                : `, ${watched} watched`
-              : ""}{hasUpNext ? ", has up next" : ""}
-          </span>
-        </Tabs.Trigger>
-      {/each}
-    </Tabs.List>
-    <Tabs.Content
-      {value}
-      class="rounded-xl outline-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
-    >
-      <SwapView key={value}>
-        {#snippet children(key)}{@render panel(key)}{/snippet}
-      </SwapView>
-    </Tabs.Content>
-  </Tabs.Root>
-{:else if seasons.length === 1}
-  {@render panel(seasonKey(seasons[0]))}
-{/if}
+<div class="flex flex-col gap-6">
+  <div class="grid grid-cols-[repeat(auto-fill,minmax(8rem,1fr))] gap-4 sm:grid-cols-[repeat(auto-fill,minmax(10rem,1fr))]" aria-label="Seasons">
+    {#each seasons as season (seasonKey(season))}
+      {@const selected = seasonKey(season) === value}
+      {@const watched = season.episodes.filter((e) => e.completed).length}
+      {@const hasUpNext = season.episodes.some((e) => e.id === upNextId)}
+      <button type="button" aria-pressed={selected} onclick={() => onValueChange(seasonKey(season))}
+        class="max-w-52 overflow-hidden rounded-xl border bg-card text-left transition-colors hover:border-foreground/50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring motion-reduce:transition-none {selected ? 'border-brand ring-1 ring-brand' : 'border-border'}">
+        <Artwork src={season.posterUrl ?? seriesPoster} alt="" class="aspect-[2/3] w-full">
+          {#snippet fallback()}<div class="flex h-full items-center justify-center bg-muted text-muted-foreground">{seasonLabel(season.number)}</div>{/snippet}
+        </Artwork>
+        <div class="space-y-1 p-3">
+          <div class="flex items-center gap-2 font-medium">
+            {#if hasUpNext}<span class="size-1.5 rounded-full bg-brand" aria-label="Up next"></span>{/if}
+            {seasonLabel(season.number)}
+          </div>
+          <p class="text-xs text-muted-foreground">{plural(season.episodes.length, "episode")}</p>
+          {#if watched > 0}<p class="text-xs text-muted-foreground">{watched === season.episodes.length ? "All watched" : `${watched} watched`}</p>{/if}
+        </div>
+      </button>
+    {/each}
+  </div>
+  <SwapView key={value}>
+    {#snippet children(key)}
+      {@const season = seasons.find((s) => seasonKey(s) === key)}
+      {#if season}
+        <div class="flex flex-col gap-5">
+          <SeasonSummary {season} {seriesPoster} {actions} />
+          <EpisodeList episodes={season.episodes} label={seasonLabel(season.number)} {upNextId} />
+        </div>
+      {/if}
+    {/snippet}
+  </SwapView>
+</div>

@@ -120,6 +120,8 @@ pub(crate) struct Item {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub season_overview: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub season_poster_url: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub season_rating: Option<f64>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub content_rating: Option<String>,

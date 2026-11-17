@@ -15,6 +15,7 @@ pub(super) async fn get(a: App, h: HeaderMap, id: String, kind: String) -> Resul
         "poster" => "metadata_poster",
         "backdrop" => "metadata_backdrop",
         "thumbnail" => "metadata_thumbnail",
+        "season_poster" => "metadata_season_poster",
         _ => return Err(bad("unknown artwork kind")),
     };
     let raw: String = sqlx::query_scalar("SELECT data FROM item_metadata WHERE item_id=?")

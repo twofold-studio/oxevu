@@ -33,6 +33,17 @@ function episode(season: number | null, number: number | null, extra: Partial<It
 }
 
 describe("groupShows seasons", () => {
+  test("keeps series artwork separate from provider season posters", () => {
+    const [show] = groupShows([
+      episode(1, 1, { poster_url: art("show"), season_poster_url: art("season1") }),
+      episode(2, 1, { poster_url: art("show"), season_poster_url: art("season2") }),
+    ]);
+    expect(show.posterUrl).toBe(art("show"));
+    expect(show.seasons.map((season) => season.posterUrl)).toEqual([
+      art("season1"),
+      art("season2"),
+    ]);
+  });
   test("counts each season once, whatever the input order", () => {
     const [show] = groupShows([
       episode(2, 1),

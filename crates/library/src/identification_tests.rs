@@ -6,7 +6,7 @@ impl MetadataSource for Provider {
         Box::pin(async move {
             if route.contains("/season/") {
                 return Ok(
-                    json!({"episodes":[{"episode_number":1,"name":"Episode one","overview":"Episode overview","vote_average":8.1}]}),
+                    json!({"poster_path":"/season.jpg","episodes":[{"episode_number":1,"name":"Episode one","overview":"Episode overview","vote_average":8.1}]}),
                 );
             }
             Ok(
@@ -54,6 +54,20 @@ async fn series_larger_than_one_hundred_episodes_uses_season_metadata() {
         .await
         .unwrap();
     assert_eq!(count, 176);
+    let raw: String = sqlx::query_scalar("SELECT data FROM item_metadata WHERE item_id='one'")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    let metadata: Value = serde_json::from_str(&raw).unwrap();
+    assert_eq!(metadata["metadata_season_poster"], "/season.jpg");
+    assert_eq!(
+        metadata["season_poster_url"],
+        "/api/v1/items/one/metadata/artwork/season_poster?v=season.jpg"
+    );
+    assert_ne!(
+        metadata["metadata_poster"],
+        metadata["metadata_season_poster"]
+    );
 }
 
 async fn fixture(tv: bool) -> (tempfile::TempDir, SqlitePool, Value) {

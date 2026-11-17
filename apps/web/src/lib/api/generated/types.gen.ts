@@ -412,6 +412,7 @@ export type Item = {
     reaction?: Reaction | null;
     season_number: number | null;
     season_overview?: string | null;
+    season_poster_url?: string | null;
     season_rating?: number | null;
     show_content_rating?: string | null;
     show_creators?: Array<string> | null;

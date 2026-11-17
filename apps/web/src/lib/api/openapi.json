@@ -7817,6 +7817,12 @@
               "null"
             ]
           },
+          "season_poster_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "season_rating": {
             "type": [
               "number",

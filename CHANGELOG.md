@@ -9,6 +9,8 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Season selectors use poster cards. TMDB season artwork is stored separately from series artwork, with versioned image URLs so refreshed covers replace cached images.
+
 - Series season summaries consistently show a cover, season tabs label episode counts explicitly without visible scrollbars, and the selector sits under Seasons. Watch parties opens in a centered modal from the header, preserving the current library page.
 
 - Stats for nerds uses a dismissible popover with per-account browser pin preferences. Pinned technical attributes appear under title details; series disk usage totals available episode files.

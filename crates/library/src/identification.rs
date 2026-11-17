@@ -202,6 +202,7 @@ async fn apply_inner(
                 if let Some(details) = seasons.get(&season) {
                     data["season_overview"] = details["overview"].clone();
                     data["season_rating"] = details["vote_average"].clone();
+                    data["metadata_season_poster"] = json!(image(&details["poster_path"]));
                 }
                 let episode = seasons.get(&season)
                     .and_then(|details| super::episode_metadata::resolve(details, &source))
@@ -221,10 +222,16 @@ async fn apply_inner(
             ("metadata_poster", "poster"),
             ("metadata_backdrop", "backdrop"),
             ("metadata_thumbnail", "thumbnail"),
+            ("metadata_season_poster", "season_poster"),
         ] {
             if data[field].is_string() {
-                data[format!("{kind}_url")] =
-                    json!(format!("/api/v1/items/{item_id}/metadata/artwork/{kind}"));
+                let version = data[field]
+                    .as_str()
+                    .unwrap_or_default()
+                    .trim_start_matches('/');
+                data[format!("{kind}_url")] = json!(format!(
+                    "/api/v1/items/{item_id}/metadata/artwork/{kind}?v={version}"
+                ));
             }
         }
         data["studio_images"]=json!(data["studios"].as_array().into_iter().flatten().filter_map(|s|s.as_str()).map(|name|json!({"name":name,"url":format!("/api/v1/items/{item_id}/metadata/studios/{}",slug(name))})).collect::<Vec<_>>());

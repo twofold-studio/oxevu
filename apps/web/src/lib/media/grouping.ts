@@ -74,7 +74,10 @@ export function groupShows(items: Item[]): Show[] {
     }
     const showPoster = episodes.find((e) => e.poster_url)?.poster_url ?? null;
     for (const season of seasons) {
-      season.posterUrl = season.episodes.find((e) => e.poster_url)?.poster_url ?? showPoster;
+      season.posterUrl =
+        season.episodes.find((e) => e.season_poster_url)?.season_poster_url ??
+        season.episodes.find((e) => e.poster_url)?.poster_url ??
+        showPoster;
     }
     shows.push({
       key,
