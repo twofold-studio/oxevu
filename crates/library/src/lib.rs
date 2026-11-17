@@ -1,6 +1,7 @@
 //! Library application services. HTTP adapters stay at the API boundary.
 pub mod automatic_metadata;
 pub mod catalog;
+mod episode_metadata;
 pub mod identification;
 pub mod roots;
 pub mod scanner;

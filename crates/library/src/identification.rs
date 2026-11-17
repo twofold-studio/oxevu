@@ -187,7 +187,7 @@ async fn apply_inner(
             data["show_title"] = source["show_title"].clone();
             data["title"] = source["title"].clone();
             if m.provider == "tmdb"
-                && let (Some(season), Some(episode)) = (
+                && let (Some(season), Some(_)) = (
                     source["season_number"].as_u64(),
                     source["episode_number"].as_u64(),
                 )
@@ -203,8 +203,8 @@ async fn apply_inner(
                     data["season_overview"] = details["overview"].clone();
                     data["season_rating"] = details["vote_average"].clone();
                 }
-                let episode = seasons.get(&season).and_then(|s| s["episodes"].as_array())
-                    .and_then(|episodes| episodes.iter().find(|e| e["episode_number"].as_u64() == Some(episode)))
+                let episode = seasons.get(&season)
+                    .and_then(|details| super::episode_metadata::resolve(details, &source))
                     .ok_or_else(|| bad("provider has no metadata for a local episode; identify the series or numbering manually"))?;
                 data["title"] = episode["name"].clone();
                 data["overview"] = episode["overview"].clone();

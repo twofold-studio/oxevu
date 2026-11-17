@@ -23,6 +23,8 @@ as available; planned features belong in GOAL.md.
 
 ### Fixed
 
+- Series identification prefers unique episode titles over release numbering, covering combined releases such as House season six whose local episode 22 corresponds to TMDB episode 21.
+
 - The title-page Watch together action appears only for a joined live party and opens playback in that existing party instead of creating another one.
 
 - Wide search-result dialogs allow more horizontal space, keep their grid content within the viewport, and wrap long subtitle release names without pushing Download controls off screen.
