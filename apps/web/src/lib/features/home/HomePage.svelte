@@ -1,5 +1,6 @@
 <script lang="ts">
   import LibraryIcon from "@lucide/svelte/icons/library-big";
+  import ArrowRight from "@lucide/svelte/icons/arrow-right";
   import { Button } from "$lib/components/ui/button";
   import { Skeleton } from "$lib/components/ui/skeleton";
   import Page from "$lib/components/Page.svelte";
@@ -17,13 +18,14 @@
   const PREVIEW = 12;
 </script>
 
-{#snippet sectionHeader(title: string, link?: { href: string; label: string })}
-  <div class="flex items-baseline justify-between gap-4">
-    <h2 class="text-base font-medium">{title}</h2>
-    {#if link}
-      <Button href={link.href} variant="link" size="sm" class="px-0 text-muted-foreground">{link.label}</Button>
-    {/if}
-  </div>
+{#snippet libraryLink(url: string, title: string, count: number)}
+  <Button href={url} variant="outline" class="h-auto min-w-0 justify-between gap-4 px-4 py-3">
+    <span class="flex min-w-0 flex-col items-start gap-1">
+      <span>{title}</span>
+      <span class="text-xs font-normal text-muted-foreground">{count.toLocaleString()} in your library</span>
+    </span>
+    <ArrowRight aria-hidden="true" />
+  </Button>
 {/snippet}
 
 <Page>
@@ -45,20 +47,24 @@
       />
     {:else}
       <div class="flex flex-col gap-10">
+        <nav aria-labelledby="home-library" class="flex flex-col gap-3">
+          <h2 id="home-library" class="text-base font-medium">Your library</h2>
+          <div class="grid grid-cols-2 gap-3">
+            {@render libraryLink(href.movies(), "All movies", catalog.movies.length)}
+            {@render libraryLink(href.shows(), "All series", catalog.shows.length)}
+          </div>
+        </nav>
         {#if catalog.inProgress.length > 0}
           <section class="flex flex-col gap-3">
-            {@render sectionHeader("Continue watching")}
+            <h2 class="text-base font-medium">Continue watching</h2>
             <EpisodeList episodes={catalog.inProgress} label="Continue watching" showContext />
           </section>
         {/if}
 
         {#if catalog.movies.length > 0}
           <section class="flex flex-col gap-3">
-            {@render sectionHeader(
-              "Movies",
-              catalog.movies.length > PREVIEW ? { href: href.movies(), label: `All ${catalog.movies.length}` } : undefined,
-            )}
-            <PlateGrid label="Movies">
+            <h2 class="text-base font-medium">Movies preview <span class="text-sm font-normal text-muted-foreground">· {Math.min(PREVIEW, catalog.movies.length)} of {catalog.movies.length.toLocaleString()}</span></h2>
+            <PlateGrid label="Movies preview">
               {#each catalog.movies.slice(0, PREVIEW) as item (item.id)}<MoviePlate {item} />{/each}
             </PlateGrid>
           </section>
@@ -66,11 +72,8 @@
 
         {#if catalog.shows.length > 0}
           <section class="flex flex-col gap-3">
-            {@render sectionHeader(
-              "Shows",
-              catalog.shows.length > PREVIEW ? { href: href.shows(), label: `All ${catalog.shows.length}` } : undefined,
-            )}
-            <PlateGrid label="Shows">
+            <h2 class="text-base font-medium">Series preview <span class="text-sm font-normal text-muted-foreground">· {Math.min(PREVIEW, catalog.shows.length)} of {catalog.shows.length.toLocaleString()}</span></h2>
+            <PlateGrid label="Series preview">
               {#each catalog.shows.slice(0, PREVIEW) as show (show.key)}<ShowPlate {show} />{/each}
             </PlateGrid>
           </section>
