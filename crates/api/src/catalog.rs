@@ -70,8 +70,22 @@ pub(crate) async fn stream(
     Path(id): Path<String>,
     r: Request,
 ) -> Result<Response> {
+    serve_media(a, h, id, r, false).await
+}
+
+pub(crate) async fn download(a: App, h: HeaderMap, id: String, r: Request) -> Result<Response> {
+    serve_media(a, h, id, r, true).await
+}
+
+async fn serve_media(
+    a: App,
+    h: HeaderMap,
+    id: String,
+    r: Request,
+    attachment: bool,
+) -> Result<Response> {
     users::authorize_item(&a, &h, &id, true).await?;
-    if let Some(source) = acquisition::streaming::for_item(&a, &id).await? {
+    if !attachment && let Some(source) = acquisition::streaming::for_item(&a, &id).await? {
         return source.response(a, r).await;
     }
     let row = oxevu_db::catalog::source(&a.pool, &id)
@@ -84,6 +98,9 @@ pub(crate) async fn stream(
     }
     use tower_http::services::ServeFile;
     let data: Value = serde_json::from_str(&row.data).map_err(bad)?;
+    if attachment && data["file_available"] == false {
+        return Err(bad("no local file to download"));
+    }
     let container = data["container"].as_str().unwrap_or("");
     let mime = if path.extension().is_some_and(|ext| ext == "webm") {
         "video/webm"
@@ -96,11 +113,34 @@ pub(crate) async fn stream(
     } else {
         "application/octet-stream"
     };
-    Ok(ServeFile::new_with_mime(path, &mime.parse().map_err(bad)?)
+    let disposition = if attachment {
+        let name = path
+            .file_name()
+            .ok_or_else(|| bad("filename unavailable"))?
+            .to_string_lossy();
+        let encoded: String = name.bytes().map(|byte| format!("%{byte:02X}")).collect();
+        Some(
+            axum::http::HeaderValue::from_str(&format!("attachment; filename*=UTF-8''{encoded}"))
+                .map_err(bad)?,
+        )
+    } else {
+        None
+    };
+    let mut response = ServeFile::new_with_mime(path, &mime.parse().map_err(bad)?)
         .try_call(r)
         .await
         .map_err(bad)?
-        .into_response())
+        .into_response();
+    if let Some(disposition) = disposition {
+        response
+            .headers_mut()
+            .insert(axum::http::header::CONTENT_DISPOSITION, disposition);
+        response.headers_mut().insert(
+            axum::http::header::CACHE_CONTROL,
+            axum::http::HeaderValue::from_static("no-store"),
+        );
+    }
+    Ok(response)
 }
 #[cfg(test)]
 mod favorite_tests {

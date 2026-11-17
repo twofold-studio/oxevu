@@ -1,6 +1,7 @@
 <script lang="ts">
   import PlayIcon from "@lucide/svelte/icons/play";
-  import CheckIcon from "@lucide/svelte/icons/check";
+  import WatchedBadge from "./WatchedBadge.svelte";
+  import DownloadFileButton from "./DownloadFileButton.svelte";
   import HardDriveOffIcon from "@lucide/svelte/icons/hard-drive";
   import FilmIcon from "@lucide/svelte/icons/film";
   import { Button } from "$lib/components/ui/button";
@@ -44,13 +45,11 @@
   const playable = $derived(itemPlayable(item));
   const finish = $derived(endsAt(item.duration_seconds, resume, now()));
   const status = $derived(
-    item.completed
-      ? "Watched"
-      : resume !== null && item.duration_seconds
-        ? `${formatRuntime(item.duration_seconds - resume) ?? "<1m"} left`
-        : resume !== null
-          ? `Stopped at ${formatClock(resume)}`
-          : null,
+    resume !== null && item.duration_seconds
+      ? `${formatRuntime(item.duration_seconds - resume) ?? "<1m"} left`
+      : resume !== null
+        ? `Stopped at ${formatClock(resume)}`
+        : null,
   );
 </script>
 
@@ -63,13 +62,16 @@
   ]}
 >
   <!-- The title beside it names the episode, so the still is decorative. -->
-  <Artwork src={still} alt="" class="aspect-video w-28 shrink-0 rounded-md border sm:w-44 lg:w-52">
-    {#snippet fallback()}
-      <span aria-hidden="true" class="absolute inset-0 flex items-center justify-center text-muted-foreground/50">
-        <FilmIcon class="size-4" />
-      </span>
-    {/snippet}
-  </Artwork>
+  <div class="relative w-28 shrink-0 sm:w-44 lg:w-52">
+    <Artwork src={still} alt="" class="aspect-video w-full rounded-md border">
+      {#snippet fallback()}
+        <span aria-hidden="true" class="absolute inset-0 flex items-center justify-center text-muted-foreground/50">
+          <FilmIcon class="size-4" />
+        </span>
+      {/snippet}
+    </Artwork>
+    {#if item.completed}<WatchedBadge />{/if}
+  </div>
   <a
     href={href.item(item.id)}
     class="flex min-w-0 flex-1 flex-col gap-0.5 max-sm:basis-[calc(100%-7.75rem)] after:absolute after:inset-0 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
@@ -89,7 +91,7 @@
       </ul>
     {/if}
     {#if item.overview}<span class="line-clamp-2 text-sm text-muted-foreground">{item.overview}</span>{/if}
-    <!-- Phones hide the status column; keep watched/remaining visible here. -->
+    <!-- Phones hide the status column; keep remaining time visible here. -->
     {#if !hasFile && item.download}
       <DownloadBadge download={item.download} />
     {:else if !hasFile}
@@ -100,13 +102,11 @@
     {/if}
     {#if status}
       <span class="flex items-center gap-1 text-xs text-muted-foreground sm:hidden">
-        {#if item.completed}<CheckIcon class="size-3" />{/if}
         {status}
       </span>
     {/if}
   </a>
   <span class="hidden shrink-0 items-center gap-1.5 text-sm text-muted-foreground sm:flex">
-    {#if item.completed}<CheckIcon class="size-3.5" />{/if}
     {status ?? formatRuntime(item.duration_seconds) ?? ""}
   </span>
   <!-- Sits above the row link overlay so it stays independently clickable.
@@ -114,12 +114,13 @@
        and facts keep the width beside the still. -->
   <div class="ms-auto flex shrink-0 items-center sm:ms-0">
     <ItemActions {item} />
+    <DownloadFileButton {item} compact />
     {#if playable}
       <Button
         href={href.watch(item.id)}
         variant="ghost"
         size="icon"
-        class="relative z-10 shrink-0"
+        class="relative z-10 shrink-0 cursor-pointer"
         aria-label={`${resume !== null ? "Resume" : "Play"} ${name}`}
       >
         <PlayIcon />

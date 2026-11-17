@@ -37,6 +37,7 @@
   import PlaybackNotice from "./PlaybackNotice.svelte";
   import FavoriteButton from "$lib/features/library/FavoriteButton.svelte";
   import TrailerButton from "./TrailerButton.svelte";
+  import DownloadFileButton from "$lib/features/library/DownloadFileButton.svelte";
   import FindAgainLink from "./FindAgainLink.svelte";
   import RemovalDialog from "./RemovalDialog.svelte";
   import { partySession } from "$lib/party/session.svelte";
@@ -239,6 +240,7 @@
           {/if}
           <IdentifyButton {item} onsaved={(updated) => (fetched = updated)} />
           <FavoriteButton items={[item]} />
+          <DownloadFileButton {item} />
           {#if item.kind === "movie"}
             <TrailerButton kind="movie" providerId={item.provider_ids?.tmdb} title={item.title} />
           {/if}

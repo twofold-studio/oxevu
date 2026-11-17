@@ -1,4 +1,56 @@
 use super::*;
+
+#[tokio::test]
+async fn seek_preview_uses_the_requested_time_and_requires_playback_access() {
+    let (a, headers, root) = fixture().await;
+    let denied = crate::seek_preview::serve(a.clone(), HeaderMap::new(), "i".into(), 0).await;
+    assert!(denied.is_err());
+    let mut frames = Vec::new();
+    for seconds in [0, 5] {
+        let response = crate::seek_preview::serve(a.clone(), headers.clone(), "i".into(), seconds)
+            .await
+            .unwrap();
+        assert_eq!(response.headers()[header::CONTENT_TYPE], "image/jpeg");
+        frames.push(
+            axum::body::to_bytes(response.into_body(), 128 * 1024)
+                .await
+                .unwrap(),
+        );
+    }
+    assert_ne!(frames[0], frames[1]);
+    assert!(
+        crate::seek_preview::serve(a, headers, "i".into(), 8)
+            .await
+            .is_err()
+    );
+    tokio::fs::remove_dir_all(root).await.unwrap();
+}
+
+#[tokio::test]
+async fn file_download_keeps_original_filename_and_supports_ranges() {
+    let (a, headers, root) = fixture().await;
+    let request = axum::http::Request::builder()
+        .header(header::RANGE, "bytes=0-31")
+        .body(axum::body::Body::empty())
+        .unwrap();
+    let response = crate::catalog::download(a, headers, "i".into(), request)
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::PARTIAL_CONTENT);
+    assert_eq!(
+        response.headers()[header::CONTENT_DISPOSITION],
+        "attachment; filename*=UTF-8''%73%6F%75%72%63%65%2E%6D%6B%76"
+    );
+    assert_eq!(
+        axum::body::to_bytes(response.into_body(), 32)
+            .await
+            .unwrap()
+            .len(),
+        32
+    );
+    tokio::fs::remove_dir_all(root).await.unwrap();
+}
+
 async fn fixture() -> (App, HeaderMap, PathBuf) {
     let a = crate::tests::app().await;
     let h = crate::tests::account(&a, "owner", true).await;

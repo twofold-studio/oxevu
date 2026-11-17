@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatClock } from "$lib/media/format";
+  import { itemsApi } from "$lib/api/endpoints";
   import { mergeReadyRanges } from "$lib/playback/ready-ranges";
 
   // Scrubbing updates a local value and seeks once on release, so dragging
@@ -11,6 +12,7 @@
     readyRanges = [],
     onseek,
     disabled = false,
+    previewItemId,
   }: {
     current: number;
     duration: number;
@@ -18,12 +20,34 @@
     readyRanges?: { start: number; end: number }[];
     onseek: (time: number) => void;
     disabled?: boolean;
+    previewItemId?: string;
   } = $props();
 
   let scrub = $state<number | null>(null);
+  let hover = $state<number | null>(null);
+  let frame = $state<{ id: string; second: number } | null>(null);
+  let loaded = $state(false);
   const shown = $derived(scrub ?? current);
+  const previewTime = $derived(disabled ? null : scrub ?? hover);
+  const previewSecond = $derived(previewTime === null ? null : Math.floor(Math.min(previewTime, Math.max(0, duration - 0.1)) / 5) * 5);
   const merged = $derived(mergeReadyRanges(readyRanges, duration));
   const pct = (value: number) => (duration > 0 ? Math.min(Math.max(value / duration, 0), 1) * 100 : 0);
+
+  $effect(() => {
+    const second = previewSecond;
+    const id = previewItemId;
+    frame = null;
+    loaded = false;
+    if (!id || second === null) return;
+    const timer = setTimeout(() => { frame = { id, second }; }, 150);
+    return () => clearTimeout(timer);
+  });
+
+  function pointerTime(event: PointerEvent & { currentTarget: HTMLInputElement }) {
+    if (event.pointerType === "touch" || disabled || !duration) return;
+    const { left, width } = event.currentTarget.getBoundingClientRect();
+    if (width > 0) hover = Math.min(1, Math.max(0, (event.clientX - left) / width)) * duration;
+  }
 </script>
 
 <div class="group/seek relative flex h-5 items-center">
@@ -43,17 +67,35 @@
     aria-label="Seek"
     aria-valuetext={`${formatClock(shown)} of ${formatClock(duration)}`}
     class="seek relative h-5 w-full cursor-pointer appearance-none bg-transparent disabled:cursor-default"
+    onpointermove={pointerTime}
+    onpointerleave={() => hover = null}
+    onpointercancel={() => { hover = null; scrub = null; }}
     oninput={(event) => (scrub = event.currentTarget.valueAsNumber)}
     onchange={(event) => {
       onseek(event.currentTarget.valueAsNumber);
       scrub = null;
     }}
   />
-  {#if scrub !== null}
-    <span
-      class="pointer-events-none absolute bottom-6 -translate-x-1/2 rounded bg-black/80 px-1.5 py-0.5 font-mono text-xs tabular-nums"
-      style:left="{pct(scrub)}%">{formatClock(scrub)}</span
+  {#if previewTime !== null}
+    <div
+      class="pointer-events-none absolute bottom-6 z-10 flex w-40 -translate-x-1/2 flex-col items-center gap-1"
+      style:left={`clamp(5rem, ${pct(previewTime)}%, calc(100% - 5rem))`}
+      aria-hidden="true"
     >
+      {#if frame}
+        {#key `${frame.id}:${frame.second}`}
+          <img
+            src={itemsApi.seekPreviewUrl(frame.id, frame.second)}
+            alt=""
+            class="aspect-video w-full rounded-md border border-white/20 bg-black object-contain"
+            class:invisible={!loaded}
+            onload={() => loaded = true}
+            onerror={() => frame = null}
+          />
+        {/key}
+      {/if}
+      <span class="rounded bg-black/90 px-1.5 py-0.5 font-mono text-xs tabular-nums">{formatClock(previewTime)}</span>
+    </div>
   {/if}
 </div>
 

@@ -4,9 +4,11 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 pub(crate) fn router() -> OpenApiRouter<App> {
     OpenApiRouter::new()
         .routes(routes!(media_stream))
+        .routes(routes!(media_download))
         .routes(routes!(media_hls))
         .routes(routes!(media_subtitle))
         .routes(routes!(media_artwork))
+        .routes(routes!(media_seek_preview))
         .routes(routes!(metadata_artwork))
         .routes(routes!(studio_artwork))
 }
@@ -23,6 +25,20 @@ async fn media_stream(
     request: Request,
 ) -> Result<Response> {
     crate::catalog::stream(State(a), h, Path(id), request).await
+}
+
+#[utoipa::path(get, path = "/items/{id}/download", params(("id" = String, Path)),
+responses((status = 200, description = "Original media file attachment"),
+(status = 206, description = "Partial file bytes"), (status = 400, body = ErrorBody),
+(status = 401, body = ErrorBody), (status = 403, body = ErrorBody), (status = 404, body = ErrorBody),
+(status = 416, body = ErrorBody), (status = 500, body = ErrorBody)))]
+async fn media_download(
+    State(a): State<App>,
+    h: HeaderMap,
+    Path(id): Path<String>,
+    request: Request,
+) -> Result<Response> {
+    crate::catalog::download(a, h, id, request).await
 }
 
 #[utoipa::path(get, path = "/playback/sessions/{id}/hls/{file}", params(("id" = String, Path), ("file" = String, Path)),
@@ -63,6 +79,17 @@ async fn media_artwork(
     Path((id, kind)): Path<(String, String)>,
 ) -> Result<Response> {
     crate::artwork::serve(State(a), h, Path((id, kind))).await
+}
+
+#[utoipa::path(get, path = "/items/{id}/seek-preview/{seconds}", params(("id" = String, Path), ("seconds" = u32, Path)),
+responses((status = 200, description = "JPEG seek preview frame"), (status = 400, body = ErrorBody),
+(status = 401, body = ErrorBody), (status = 403, body = ErrorBody), (status = 429, body = ErrorBody), (status = 500, body = ErrorBody)))]
+async fn media_seek_preview(
+    State(a): State<App>,
+    h: HeaderMap,
+    Path((id, seconds)): Path<(String, u32)>,
+) -> Result<Response> {
+    crate::seek_preview::serve(a, h, id, seconds).await
 }
 
 #[utoipa::path(get, path = "/items/{id}/metadata/artwork/{kind}", params(("id" = String, Path), ("kind" = String, Path)),

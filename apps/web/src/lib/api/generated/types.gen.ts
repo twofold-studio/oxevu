@@ -2216,6 +2216,37 @@ export type MediaArtworkResponses = {
     206: unknown;
 };
 
+export type MediaDownloadData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/items/{id}/download';
+};
+
+export type MediaDownloadErrors = {
+    400: ErrorBody;
+    401: ErrorBody;
+    403: ErrorBody;
+    404: ErrorBody;
+    416: ErrorBody;
+    500: ErrorBody;
+};
+
+export type MediaDownloadError = MediaDownloadErrors[keyof MediaDownloadErrors];
+
+export type MediaDownloadResponses = {
+    /**
+     * Original media file attachment
+     */
+    200: unknown;
+    /**
+     * Partial file bytes
+     */
+    206: unknown;
+};
+
 export type FavoriteData = {
     body: FavoriteUpdate;
     path: {
@@ -2402,6 +2433,33 @@ export type ReactionUpdateResponses = {
 };
 
 export type ReactionUpdateResponse = ReactionUpdateResponses[keyof ReactionUpdateResponses];
+
+export type MediaSeekPreviewData = {
+    body?: never;
+    path: {
+        id: string;
+        seconds: number;
+    };
+    query?: never;
+    url: '/items/{id}/seek-preview/{seconds}';
+};
+
+export type MediaSeekPreviewErrors = {
+    400: ErrorBody;
+    401: ErrorBody;
+    403: ErrorBody;
+    429: ErrorBody;
+    500: ErrorBody;
+};
+
+export type MediaSeekPreviewError = MediaSeekPreviewErrors[keyof MediaSeekPreviewErrors];
+
+export type MediaSeekPreviewResponses = {
+    /**
+     * JPEG seek preview frame
+     */
+    200: unknown;
+};
 
 export type MediaStreamData = {
     body?: never;

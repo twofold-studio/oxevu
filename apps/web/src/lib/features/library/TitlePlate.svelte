@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import CheckIcon from "@lucide/svelte/icons/check";
+  import WatchedBadge from "./WatchedBadge.svelte";
   import HardDriveOffIcon from "@lucide/svelte/icons/hard-drive";
   import Artwork from "$lib/components/Artwork.svelte";
   import DownloadBadge from "./DownloadBadge.svelte";
@@ -62,7 +62,7 @@
             aria-hidden="true"
             class="absolute inset-0 flex flex-col justify-between bg-[radial-gradient(120%_80%_at_0%_100%,oklch(1_0_0/0.05),transparent_60%)] p-4"
           >
-            <span class={cn("truncate font-mono text-[0.7rem] text-muted-foreground", watched && "pr-20")}>
+            <span class={cn("truncate font-mono text-[0.7rem] text-muted-foreground", watched && "pe-6")}>
               {facts.join("  ")}
             </span>
             <span
@@ -90,14 +90,7 @@
           <DownloadBadge {download} compact />
         </span>
       {/if}
-      {#if watched}
-        <span
-          class="absolute top-2 right-2 flex items-center gap-1 rounded-md bg-background/80 px-1.5 py-0.5 text-[0.7rem] text-foreground backdrop-blur-sm"
-        >
-          <CheckIcon class="size-3" />
-          Watched
-        </span>
-      {/if}
+      {#if watched}<WatchedBadge />{/if}
       {#if progress !== null && !watched}
         <ProgressLine value={progress} class="absolute inset-x-0 bottom-0 h-1 bg-background/60" />
       {/if}

@@ -12,6 +12,7 @@ use std::{path::PathBuf, sync::Arc};
 use tokio::sync::Semaphore;
 mod acquisition;
 mod artwork;
+mod seek_preview;
 use oxevu_web as assets;
 mod auth;
 mod avatars;

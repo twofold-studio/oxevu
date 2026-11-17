@@ -345,6 +345,7 @@
           {volume}
           {fullscreen}
           {locked}
+          previewItemId={item.file_available !== false ? item.id : undefined}
           ontoggle={toggle}
           onseek={seek}
           onskip={skip}

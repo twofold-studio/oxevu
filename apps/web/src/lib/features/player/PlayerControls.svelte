@@ -23,6 +23,7 @@
     volume,
     fullscreen,
     locked = false,
+    previewItemId,
     seekSeconds = 5,
     extra,
     navigation,
@@ -44,6 +45,7 @@
     fullscreen: boolean;
     /** Watch-party guests follow the host: no play, pause or seek. */
     locked?: boolean;
+    previewItemId?: string;
     seekSeconds?: number;
     extra?: Snippet;
     navigation?: Snippet;
@@ -60,7 +62,7 @@
 </script>
 
 <div class="flex flex-col gap-2">
-  <SeekBar {current} {duration} {bufferedEnd} {readyRanges} {onseek} disabled={locked} />
+  <SeekBar {current} {duration} {bufferedEnd} {readyRanges} {onseek} {previewItemId} disabled={locked} />
   <div class="flex flex-wrap items-center gap-1">
     {#if !locked}
       <Button variant="ghost" size="icon-lg" onclick={ontoggle} aria-label={paused ? "Play (k)" : "Pause (k)"}>

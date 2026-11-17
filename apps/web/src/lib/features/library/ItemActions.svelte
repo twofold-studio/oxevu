@@ -25,7 +25,7 @@
 </script>
 
 <div class="relative z-10 flex shrink-0 items-center">
-  <Button variant="ghost" size="icon" disabled={busy} aria-label="Watched" aria-pressed={item.completed} onclick={() => change(false)}><CheckIcon class={item.completed ? "text-brand" : "text-muted-foreground"} /></Button>
-  <Button variant="ghost" size="icon" disabled={busy} aria-label="Favorite" aria-pressed={!!item.favorite} onclick={() => change(true)}><HeartIcon class={item.favorite ? "fill-current text-brand" : "text-muted-foreground"} /></Button>
+  <Button variant="ghost" size="icon" class="cursor-pointer" disabled={busy} aria-label="Watched" aria-pressed={item.completed} onclick={() => change(false)}><CheckIcon class={item.completed ? "text-brand" : "text-muted-foreground"} /></Button>
+  <Button variant="ghost" size="icon" class="cursor-pointer" disabled={busy} aria-label="Favorite" aria-pressed={!!item.favorite} onclick={() => change(true)}><HeartIcon class={item.favorite ? "fill-current text-brand" : "text-muted-foreground"} /></Button>
   {#if error}<span role="status" class="text-xs text-destructive">Could not save</span>{/if}
 </div>

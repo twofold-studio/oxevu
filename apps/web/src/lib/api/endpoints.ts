@@ -7,6 +7,8 @@ import type { PartyControl, PlaybackSessionRequest } from "./playback-types";
 
 const id = (value: string) => encodeURIComponent(value);
 const streamRoute: import("./generated/types.gen").MediaStreamData["url"] = "/items/{id}/stream";
+const downloadRoute: import("./generated/types.gen").MediaDownloadData["url"] = "/items/{id}/download";
+const seekPreviewRoute: import("./generated/types.gen").MediaSeekPreviewData["url"] = "/items/{id}/seek-preview/{seconds}";
 
 export const authApi = {
   status: () => sdkData(generated.status({ client: sdkClient(), throwOnError: true })),
@@ -107,6 +109,9 @@ export const itemsApi = {
   },
   /** Byte-range original file. The session cookie authorizes the <video> request. */
   streamUrl: (itemId: string) => `${API_BASE}${streamRoute.replace("{id}", id(itemId))}`,
+  downloadUrl: (itemId: string) => `${API_BASE}${downloadRoute.replace("{id}", id(itemId))}`,
+  seekPreviewUrl: (itemId: string, seconds: number) =>
+    `${API_BASE}${seekPreviewRoute.replace("{id}", id(itemId)).replace("{seconds}", String(seconds))}`,
   reaction: (itemId: string, value: "like" | "dislike" | null) =>
     sdkData(
       generated.reactionUpdate({

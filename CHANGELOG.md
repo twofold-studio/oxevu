@@ -9,6 +9,12 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Movies and episodes with local media offer an original-file download to viewers with playback access.
+
+- The player shows a frame and timestamp above the seek bar while hovering or scrubbing local videos.
+
+- Watched covers use a compact checkmark. Episode actions show a pointer when hovered.
+
 - Discover and library details can play available TMDB trailers.
 
 - Removed the standalone Requests and Wanted pages. Request controls and acquisition settings live on each Discover title.
