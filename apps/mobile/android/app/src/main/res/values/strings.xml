@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Oxevu</string>
+    <string name="title_activity_main">Oxevu</string>
+    <string name="package_name">xyz.fractal_tess.oxevu</string>
+    <string name="custom_url_scheme">xyz.fractal_tess.oxevu</string>
+</resources>

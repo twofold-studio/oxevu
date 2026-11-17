@@ -9,6 +9,8 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Android packaging uses Capacitor and the shared Svelte interface, with server selection, native cookie-backed API requests and streaming media forwarding. Android development now uses JDK 21 and SDK 36. Physical-device playback and iOS packaging remain unverified.
+
 - Season selectors use poster cards. TMDB season artwork is stored separately from series artwork, with versioned image URLs so refreshed covers replace cached images.
 
 - Series season summaries consistently show a cover, season tabs label episode counts explicitly without visible scrollbars, and the selector sits under Seasons. Watch parties opens in a centered modal from the header, preserving the current library page.

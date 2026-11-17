@@ -1,6 +1,6 @@
 # Architecture
 
-Status: local server and web client include managed FFmpeg/NVIDIA playback, settings, user access and watch parties. Hardware decoding, HDR conversion and mobile packaging remain pending.
+Status: local server and web client include managed FFmpeg/NVIDIA playback, settings, user access and watch parties. An Android Capacitor prototype shares the web interface; physical-device acceptance and iOS packaging remain pending. HDR conversion remains pending.
 
 Oxevu is one Rust service with a bundled web UI. FFmpeg and ffprobe are external executable dependencies; the server supervises their jobs. Application data and media remain outside the executable. Mobile apps connect to the same server and do not run a second media server.
 
@@ -41,13 +41,13 @@ apps/web/
   src/lib/api/       # generated types and request client
   src/lib/components/
   src/lib/features/  # sign-in, library, player and settings
-apps/mobile/         # reserved until packaging spike is complete
+apps/mobile/android/ # Capacitor Android container for the shared Svelte UI
 fixtures/            # small legal media fixtures and their provenance
 scripts/             # build, packaging and development helpers
 docs/               # architecture, playback and operational guides
 ```
 
-Create directories when they contain working code. The mobile folder is reserved, not a commitment to a wrapper framework.
+Create directories when they contain working code. Android packaging uses Capacitor; iOS packaging follows when macOS build access is available.
 
 `oxevu-server` depends on `oxevu-api`, which composes the lower-level libraries.
 No library depends back on the API. Playback depends on configuration and
@@ -115,7 +115,7 @@ Dark mode is the default, as requested. Use the Gitadel reference study in `docs
 
 ## Mobile decision gate
 
-Build the responsive web player first. Then compare a thin web wrapper (Capacitor or Tauri) with a native playback bridge on Android and iOS. Test seeking, track selection, subtitles, resume, server connection, background behavior and HTTPS on real devices. Choose the wrapper after this spike. Reusing the Svelte UI does not guarantee that a WebView player meets playback requirements.
+The owner selected Capacitor to share the existing Svelte frontend across web, Android and later iOS. The Android package bundles the web build and uses native transport for strict-cookie authentication and streaming media; see [mobile](mobile.md). Test seeking, track selection, subtitles, resume, server connection, background behavior and HTTPS on real devices. Reusing the Svelte UI does not guarantee that a WebView player meets playback requirements; a native playback plugin remains an option after device evidence.
 
 ## Decisions still needed
 

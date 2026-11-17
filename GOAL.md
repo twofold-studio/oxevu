@@ -84,6 +84,10 @@ This is a working plan, not a list of features that exist today. Favor the small
 
 ### 7. Web, Android, and iOS clients
 
+Android now has a Capacitor prototype using the shared Svelte build, server
+selection and native authenticated transport. Physical-device acceptance and
+iOS packaging remain pending; see [mobile development](docs/mobile.md).
+
 **Goal:** Use the same Oxevu experience across browser and mobile.
 
 - Build a responsive Svelte interface shared between the web and packaged Android/iOS apps. Keep platform-specific code limited to capabilities the web layer cannot provide.

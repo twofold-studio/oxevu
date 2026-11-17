@@ -1,5 +1,8 @@
 # Development environment
 
+For the Capacitor Android build, server selection and device acceptance steps, see
+[mobile development](mobile.md). The development shell provides JDK 21 and Android SDK 36.
+
 Run `direnv allow` from the project root, or enter with `nix develop`. The first activation downloads the SDK and emulator images and can be large. The flake explicitly enables Android SDK license acceptance and unfree packages; review the Android SDK terms before entering it.
 
 The shell provides Rust/Cargo/rustfmt/Clippy/rust-analyzer, Node.js/pnpm, pkg-config/OpenSSL, FFmpeg/ffprobe, SQLite, Java 17, Android API 35/build tools, adb, avdmanager and an Android emulator with a Google APIs system image matching the host architecture. Versions are pinned by flake.lock. Mobile framework-specific NDK or native bridge dependencies will be added when that framework is chosen.

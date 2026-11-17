@@ -8,6 +8,7 @@
   import { href, router } from "$lib/state/router.svelte";
   import { errorMessage } from "$lib/api/client";
   import { toast } from "svelte-sonner";
+  import { isMobileApp, requestServerPicker } from "$lib/mobile/connection";
 
   const username = $derived(session.user?.username ?? "");
   const initial = $derived(username.slice(0, 1).toUpperCase() || "?");
@@ -46,6 +47,9 @@
     </DropdownMenu.Group>
     <DropdownMenu.Separator />
     <DropdownMenu.Group>
+      {#if isMobileApp}
+        <DropdownMenu.Item onSelect={requestServerPicker}>Change server</DropdownMenu.Item>
+      {/if}
       <DropdownMenu.Item onSelect={() => router.go(href.settings())}>
         <SettingsIcon />
         Settings

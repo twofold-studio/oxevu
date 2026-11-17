@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "mobile:sync": "pnpm build && cap sync android",
+    "mobile:build": "pnpm mobile:sync && ../../apps/mobile/android/gradlew -p ../mobile/android assembleDebug",
     "gen:api": "openapi-ts",
     "dev": "vp dev",
     "build": "pnpm gen:api && pnpm check && vp build",
@@ -15,6 +17,8 @@
     "test": "vp test run"
   },
   "devDependencies": {
+    "@capacitor/android": "8.6.2",
+    "@capacitor/cli": "8.6.2",
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
     "@hey-api/openapi-ts": "0.99.0",
@@ -44,5 +48,9 @@
       "version": "12.18.0",
       "onFail": "download"
     }
+  },
+  "dependencies": {
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.6.2"
   }
 }

@@ -1,5 +1,6 @@
 import { createClient } from "./generated/client";
 import { API_BASE, ApiError, notifyUnauthorized, readError } from "./client";
+import { isMobileApp, mobileFetch } from "$lib/mobile/connection";
 
 /** Keep session/error policy outside generated files so regeneration is safe. */
 export function sdkClient(ignoreUnauthorized = false) {
@@ -9,7 +10,7 @@ export function sdkClient(ignoreUnauthorized = false) {
     fetch: async (input, init) => {
       let response: Response;
       try {
-        response = await fetch(input, init);
+        response = await (isMobileApp ? mobileFetch(input, init) : fetch(input, init));
       } catch (error) {
         const signal = input instanceof Request ? input.signal : init?.signal;
         if (signal?.aborted) throw error;

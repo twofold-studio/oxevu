@@ -30,7 +30,7 @@ let
       pname = "oxevu-web";
       inherit (final) version src sourceRoot;
       fetcherVersion = 5;
-      hash = "sha256-pE1ca+eKNuv57yr3evprJLgnc/1ATJSbybFlogWXQkY=";
+      hash = "sha256-S17n/BJ3/0hmRawHEXUfSrjhPtkfbZQ9XIHqoDsMtd0=";
     };
     buildPhase = "pnpm build";
     installPhase = "cp -r dist $out";

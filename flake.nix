@@ -32,8 +32,11 @@
             };
           };
           android = pkgs.androidenv.composeAndroidPackages {
-            platformVersions = [ "35" ];
-            buildToolsVersions = [ "35.0.0" ];
+            platformVersions = [ "36" ];
+            buildToolsVersions = [
+              "35.0.0"
+              "36.0.0"
+            ];
             includeEmulator = true;
             includeSystemImages = true;
             systemImageTypes = [ "google_apis" ];
@@ -62,12 +65,13 @@
               nixfmt
               direnv
               python3
-              jdk17
+              jdk21
               android.androidsdk
             ];
             ANDROID_HOME = "${android.androidsdk}/libexec/android-sdk";
             ANDROID_SDK_ROOT = "${android.androidsdk}/libexec/android-sdk";
-            JAVA_HOME = "${pkgs.jdk17}";
+            JAVA_HOME = "${pkgs.jdk21}";
+            GRADLE_OPTS = "-Dorg.gradle.project.android.aapt2FromMavenOverride=${android.androidsdk}/libexec/android-sdk/build-tools/36.0.0/aapt2";
             shellHook = ''
               export PATH="$ANDROID_HOME/emulator:$ANDROID_HOME/platform-tools:$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
               echo "Oxevu: Rust, web, FFmpeg and Android SDK ready. See docs/development.md."
