@@ -6,6 +6,13 @@ pub struct Candidate {
     pub data: String,
 }
 
+pub async fn metadata(pool: &SqlitePool, id: &str) -> Result<Option<String>, sqlx::Error> {
+    sqlx::query_scalar("SELECT data FROM item_metadata WHERE item_id=?")
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+}
+
 pub async fn candidates(
     pool: &SqlitePool,
     id: &str,

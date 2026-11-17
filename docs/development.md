@@ -36,6 +36,14 @@ The Rust contract snapshot test and native Nix package build reject a stale
 OpenAPI artifact. `pnpm build` regenerates the SDK and runs actual type checking
 before bundling; Vite alone does not provide that gate.
 
+## Network access
+
+For a configured server, set `services.oxevu.bind` to `0.0.0.0:8096` and
+allow TCP 8096 on the intended interfaces. `origin` is the primary browser URL;
+`allowedOrigins` lists additional explicit LAN/mesh URLs. The equivalent runtime
+variable `OXEVU_ALLOWED_ORIGINS` is a JSON array. Other browser origins remain
+rejected for mutations, and first-time setup still requires a loopback bind.
+
 ## Metadata enrichment
 
 The supervised metadata worker checks all enabled libraries for records without

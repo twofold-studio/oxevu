@@ -48,6 +48,7 @@ impl Fixture {
             pool,
             token: "fixture".into(),
             origin: "http://localhost:3000".into(),
+            allowed_origins: Vec::new(),
             scan: Arc::new(Semaphore::new(1)),
             artwork_jobs: Arc::new(Semaphore::new(1)),
             artwork_cache: data.join("artwork"),

@@ -14,6 +14,7 @@ pub(super) async fn app(root: &std::path::Path) -> App {
         parties: Arc::new(parties::Store::default()),
         token: "fixture".into(),
         origin: "http://localhost:3000".into(),
+        allowed_origins: Vec::new(),
         scan: Arc::new(Semaphore::new(1)),
         artwork_jobs: Arc::new(Semaphore::new(1)),
         artwork_cache: root.join("artwork"),

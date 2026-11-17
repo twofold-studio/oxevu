@@ -15,6 +15,74 @@ impl MetadataSource for Offline {
     }
 }
 
+struct KnownIdentity;
+impl MetadataSource for KnownIdentity {
+    fn tmdb<'a>(
+        &'a self,
+        route: &'a str,
+        _: &'a [(&'a str, String)],
+    ) -> identification::MetadataFuture<'a> {
+        Box::pin(async move {
+            match route {
+                "find/tt123" => Ok(json!({"movie_results":[{"id":123}]})),
+                "movie/123" => Ok(
+                    json!({"title":"Correct movie","overview":"Fresh provider overview","release_date":"2020-01-01","vote_average":8.0,"poster_path":"/poster.jpg"}),
+                ),
+                _ => Err(bad(
+                    "Filename search must not be needed for a known provider ID",
+                )),
+            }
+        })
+    }
+    fn omdb<'a>(&'a self, _: &'a [(&'a str, String)]) -> identification::MetadataFuture<'a> {
+        Box::pin(async { Err(bad("OMDb fallback should not be needed")) })
+    }
+}
+
+#[tokio::test]
+async fn sidecar_free_regeneration_reuses_retained_imdb_identity() {
+    let root = tempfile::tempdir().unwrap();
+    let pool = oxevu_db::open(root.path()).await.unwrap();
+    let path = root.path().join("ambiguous-release.mkv");
+    tokio::fs::write(&path, b"fixture").await.unwrap();
+    sqlx::query("INSERT INTO libraries VALUES('library','Movies',?,'movies')")
+        .bind(root.path().to_string_lossy().as_ref())
+        .execute(&pool)
+        .await
+        .unwrap();
+    oxevu_db::scanning::upsert(
+        &pool,
+        "one",
+        "library",
+        path.to_string_lossy().as_ref(),
+        &json!({"id":"one","library_id":"library","kind":"movie","title":"Ambiguous release"})
+            .to_string(),
+    )
+    .await
+    .unwrap();
+    oxevu_db::identification::publish(
+        &pool,
+        &[(
+            "one".into(),
+            json!({"provider_ids":{"imdb":"tt123"},"metadata_source":"regenerating"}).to_string(),
+        )],
+    )
+    .await
+    .unwrap();
+    let job = repository::next(&pool).await.unwrap().unwrap();
+    enrich(&pool, &job, &KnownIdentity, true, true)
+        .await
+        .unwrap();
+    let data = oxevu_db::identification::metadata(&pool, "one")
+        .await
+        .unwrap()
+        .unwrap();
+    let value: Value = serde_json::from_str(&data).unwrap();
+    assert_eq!(value["title"], "Correct movie");
+    assert_eq!(value["metadata_poster"], "/poster.jpg");
+    assert!(repository::next(&pool).await.unwrap().is_none());
+}
+
 #[test]
 fn release_names_become_conservative_title_and_year_queries() {
     for (raw, expected, year) in [

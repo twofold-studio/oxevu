@@ -59,6 +59,7 @@ struct App {
     pool: SqlitePool,
     token: String,
     origin: String,
+    allowed_origins: Vec<String>,
     scan: Arc<Semaphore>,
     artwork_jobs: Arc<Semaphore>,
     artwork_cache: PathBuf,
@@ -94,6 +95,9 @@ pub async fn run() -> std::result::Result<(), StartupError> {
         return Err(StartupError::SetupRequiresLoopback);
     }
     let origin = std::env::var("OXEVU_ORIGIN").unwrap_or_else(|_| "http://localhost:3000".into());
+    let allowed_origins = routes::parse_origins(
+        &std::env::var("OXEVU_ALLOWED_ORIGINS").unwrap_or_else(|_| "[]".into()),
+    )?;
     let playback = playback::Runtime::new(&dir, &pool)
         .await
         .map_err(|e| StartupError::Playback(e.1.0.to_string()))?;
@@ -104,6 +108,7 @@ pub async fn run() -> std::result::Result<(), StartupError> {
         playback,
         token,
         origin,
+        allowed_origins,
         scan: Arc::new(Semaphore::new(1)),
         artwork_jobs: Arc::new(Semaphore::new(1)),
         artwork_cache: dir.join("artwork"),

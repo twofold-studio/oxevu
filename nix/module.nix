@@ -35,6 +35,11 @@ in
       type = lib.types.str;
       default = "http://localhost:3000";
     };
+    allowedOrigins = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "Additional explicit browser origins allowed to make authenticated changes.";
+    };
     mediaDirectories = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [ ];
@@ -58,6 +63,7 @@ in
         OXEVU_DATA_DIR = cfg.dataDir;
         OXEVU_BIND = cfg.bind;
         OXEVU_ORIGIN = cfg.origin;
+        OXEVU_ALLOWED_ORIGINS = builtins.toJSON cfg.allowedOrigins;
       };
       serviceConfig = {
         ExecStart = "${cfg.package}/bin/oxevu-server";

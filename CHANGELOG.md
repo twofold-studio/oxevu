@@ -27,6 +27,8 @@ as available; planned features belong in GOAL.md.
 
 ### Fixed
 
+- Automatic enrichment reuses retained TMDB/IMDb identities before filename search, including resolving IMDb IDs through TMDB, so metadata and artwork can be regenerated after removing legacy sidecars.
+
 - OMDb matches now expose authenticated poster artwork, including existing matches such as Superman and Underwater. Jellyfin season-specific poster filenames are recognized before series artwork.
 
 - Library scans ignore explicitly named sample videos. Verified catalog-only duplicate merges preserve user state and metadata and persist source exclusions so rescans cannot recreate the same duplicates; media files are retained.
@@ -43,6 +45,8 @@ as available; planned features belong in GOAL.md.
 - Imported titles keep their catalog cover, genres, provider link and rating. Existing imports receive missing cover metadata without replacing owner matches.
 
 ### Added
+
+- Explicit additional trusted browser origins allow the same authenticated server to be used through configured LAN and NetBird addresses without relaxing checks for unrelated websites.
 
 - Automatic metadata enrichment for existing and newly imported library items: read bounded local NFO sidecars, then try configured TMDB/OMDb providers with conservative title/year matching. Unmatched titles show Needs identification and retry after six hours; manual matches take priority. Identify also accepts TMDB IDs/URLs and IMDb IDs/URLs for OMDb.
 

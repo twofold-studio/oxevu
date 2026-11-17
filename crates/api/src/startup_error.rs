@@ -13,6 +13,8 @@ pub enum StartupError {
     InvalidAddress(#[from] std::net::AddrParseError),
     #[error("initial setup requires a loopback OXEVU_BIND")]
     SetupRequiresLoopback,
+    #[error("OXEVU_ALLOWED_ORIGINS must contain at most 32 explicit HTTP(S) origins")]
+    InvalidOrigins,
     #[error("{0}")]
     Playback(String),
 }

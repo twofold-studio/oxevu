@@ -61,6 +61,64 @@ pub async fn enrich(
         repository::publish_unmatched(pool, &job.id, &data.to_string()).await?;
         return Ok(());
     }
+    // A provider identity retained from a prior import is stronger than a
+    // filename. This also lets sidecar-free libraries regenerate metadata.
+    if let Some(raw) = oxevu_db::identification::metadata(pool, &job.id).await? {
+        let seed: Value =
+            serde_json::from_str(&raw).map_err(|_| bad("invalid matched metadata"))?;
+        let ids = &seed["provider_ids"];
+        let tmdb_id = ids["tmdb"]
+            .as_u64()
+            .map(|n| n.to_string())
+            .or_else(|| ids["tmdb"].as_str().map(str::to_owned));
+        let imdb = ids["imdb"].as_str().filter(|id| {
+            id.starts_with("tt")
+                && (3..=20).contains(&id.len())
+                && id[2..].bytes().all(|b| b.is_ascii_digit())
+        });
+        let tmdb_id = if tmdb
+            && tmdb_id.is_none()
+            && let Some(imdb) = imdb
+        {
+            let found = provider
+                .tmdb(
+                    &format!("find/{imdb}"),
+                    &[("external_source", "imdb_id".into())],
+                )
+                .await
+                .ok();
+            found
+                .as_ref()
+                .and_then(|v| v[if tv { "tv_results" } else { "movie_results" }].as_array())
+                .filter(|rows| rows.len() == 1)
+                .and_then(|rows| rows[0]["id"].as_u64())
+                .map(|n| n.to_string())
+        } else {
+            tmdb_id
+        };
+        for (enabled, name, id) in [
+            (tmdb, "tmdb", tmdb_id),
+            (omdb, "omdb", imdb.map(str::to_owned)),
+        ] {
+            if enabled
+                && let Some(id) = id
+                && identification::apply_automatic(
+                    pool,
+                    &job.id,
+                    item.clone(),
+                    Selection {
+                        provider: name.into(),
+                        id,
+                    },
+                    provider,
+                )
+                .await
+                .is_ok()
+            {
+                return Ok(());
+            }
+        }
+    }
     let (title, year) = title(&item, path);
     if title.is_empty() {
         return Err(bad("Cannot infer a title; use Identify"));
