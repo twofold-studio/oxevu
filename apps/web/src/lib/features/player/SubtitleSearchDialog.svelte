@@ -4,10 +4,11 @@
   import { Input } from "$lib/components/ui/input";
   import { Button } from "$lib/components/ui/button";
   import { Spinner } from "$lib/components/ui/spinner";
-  import { request, errorMessage } from "$lib/api/client";
-  import type { Subtitles, SubtitleTrack } from "$lib/playback/subtitles.svelte";
+  import { errorMessage } from "$lib/api/client";
+  import { subtitlesApi } from "$lib/api/endpoints";
+  import type { Subtitles } from "$lib/playback/subtitles.svelte";
 
-  interface Result { id: string; label: string; language: string; hearing_impaired: boolean; download_count: number }
+  type Result = import("$lib/api/generated/types.gen").SubtitleResult;
   let { open = $bindable(false), subtitles, itemId, canDownload }: {
     open: boolean; subtitles: Subtitles; itemId: string; canDownload: boolean;
   } = $props();
@@ -27,7 +28,7 @@
     failure = null;
     results = null;
     try {
-      const data = await request<{ results: Result[] }>(`/items/${encodeURIComponent(itemId)}/subtitles/search?language=${encodeURIComponent(language.trim())}`);
+      const data = await subtitlesApi.search(itemId, language.trim());
       results = data.results;
     } catch (error) { failure = errorMessage(error); }
     finally { busy = false; }
@@ -38,9 +39,7 @@
     busy = true;
     failure = null;
     try {
-      const { track } = await request<{ track: SubtitleTrack }>(`/items/${encodeURIComponent(itemId)}/subtitles/download`, {
-        method: "POST", body: { id: result.id, language: result.language },
-      });
+      const { track } = await subtitlesApi.download(itemId, result.id, result.language);
       if (!(await subtitles.load(itemId, false))) {
         throw new Error(subtitles.error ?? "The subtitle downloaded, but the track list could not be refreshed.");
       }

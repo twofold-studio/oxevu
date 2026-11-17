@@ -2,8 +2,9 @@ use super::*;
 use import_plan::File;
 use std::os::unix::fs::MetadataExt;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 #[serde(deny_unknown_fields)]
+#[schema(as = AdoptionInput)]
 pub(super) struct Input {
     pub source_root: String,
     pub token: Option<String>,

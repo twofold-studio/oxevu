@@ -1,6 +1,5 @@
-//! Bounded indexer XML parsing and credential-preserving HTTP redirect policy.
+//! Bounded indexer XML parsing.
 use serde_json::{Value, json};
-pub mod http;
 pub mod torznab;
 #[derive(Debug, thiserror::Error)]
 #[error("{0}")]

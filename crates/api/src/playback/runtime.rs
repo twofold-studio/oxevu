@@ -214,22 +214,34 @@ struct SessionObserver<'a> {
     id: &'a str,
 }
 impl oxevu_playback::process::Observer for SessionObserver<'_> {
-    fn started(&self, pid: Option<u32>) -> oxevu_playback::process::ObserverFuture<'_, ()> {
+    fn started(&self, pid: u32) -> oxevu_playback::process::ObserverFuture<'_, ()> {
         Box::pin(async move {
             if let Some(entry) = self.app.playback.sessions.lock().await.get_mut(self.id) {
-                entry.pid = pid;
+                entry.pid = Some(pid);
             }
         })
     }
-    fn check(
+    fn finished(&self) -> oxevu_playback::process::ObserverFuture<'_, ()> {
+        Box::pin(async move {
+            if let Some(entry) = self.app.playback.sessions.lock().await.get_mut(self.id) {
+                entry.pid = None;
+            }
+        })
+    }
+    fn tick(
         &self,
         ready: bool,
-    ) -> oxevu_playback::process::ObserverFuture<'_, std::result::Result<(), String>> {
+    ) -> oxevu_playback::process::ObserverFuture<
+        '_,
+        std::result::Result<(), oxevu_playback::process::PolicyError>,
+    > {
         Box::pin(async move {
             let mut sessions = self.app.playback.sessions.lock().await;
-            let entry = sessions.get_mut(self.id).ok_or("Playback stopped")?;
+            let entry = sessions
+                .get_mut(self.id)
+                .ok_or(oxevu_playback::process::PolicyError::Stopped)?;
             if entry.touched.elapsed().as_secs() > u64::from(entry.idle) {
-                return Err("Playback idle lease expired".into());
+                return Err(oxevu_playback::process::PolicyError::IdleExpired);
             }
             if ready {
                 entry.value["status"] = json!("ready");
@@ -246,7 +258,7 @@ impl oxevu_playback::process::Observer for SessionObserver<'_> {
                 _ => false,
             };
             if !authorized {
-                return Err("Playback permission revoked".into());
+                return Err(oxevu_playback::process::PolicyError::PermissionRevoked);
             }
             Ok(())
         })
@@ -260,7 +272,7 @@ pub async fn run_process(
     ready: &std::path::Path,
     app: &App,
     id: &str,
-) -> std::result::Result<(), String> {
+) -> std::result::Result<(), oxevu_playback::process::ProcessError> {
     oxevu_playback::process::run(
         command,
         cancel,
@@ -270,7 +282,6 @@ pub async fn run_process(
         &SessionObserver { app, id },
     )
     .await
-    .map_err(|error| error.to_string())
 }
 pub use oxevu_playback::process::parent_death;
 

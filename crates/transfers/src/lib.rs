@@ -1,7 +1,6 @@
 //! Torrent engine lifecycle, torrent validation and release identity.
 use serde_json::{Value, json};
 pub mod engine;
-pub mod release_identity;
 pub mod torrent_files;
 #[derive(Debug, thiserror::Error)]
 #[error("{0}")]

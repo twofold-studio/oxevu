@@ -28,15 +28,6 @@ pub(crate) async fn user(a: &App, h: &HeaderMap) -> Result<Value> {
     }
     Ok(u)
 }
-pub(crate) async fn status(State(a): State<App>, h: HeaderMap) -> Result<Json<Value>> {
-    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM users")
-        .fetch_one(&a.pool)
-        .await
-        .map_err(db)?;
-    Ok(Json(
-        json!({"setup_required":count==0,"user":user(&a,&h).await.ok()}),
-    ))
-}
 pub(crate) async fn setup(
     State(a): State<App>,
     h: HeaderMap,
@@ -177,7 +168,9 @@ pub(crate) async fn session(a: &App, id: String, _name: &str) -> Result<Response
                 "oxevu_session={token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=604800{secure}"
             ),
         )],
-        Json(json!({"user":users::profile(a,&id).await?})),
+        Json(crate::contract::UserEnvelope {
+            user: crate::contract::decode(users::profile(a, &id).await?)?,
+        }),
     )
         .into_response())
 }

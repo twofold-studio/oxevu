@@ -1,13 +1,19 @@
 use super::*;
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, utoipa::ToSchema)]
 #[serde(default, deny_unknown_fields)]
 pub(crate) struct Permissions {
+    #[schema(required)]
     pub can_request: bool,
+    #[schema(required)]
     pub auto_approve: bool,
+    #[schema(required)]
     pub manage_requests: bool,
+    #[schema(required)]
     pub manage_downloads: bool,
+    #[schema(required)]
     pub manage_indexers: bool,
+    #[schema(required)]
     pub request_limit: u32,
 }
 

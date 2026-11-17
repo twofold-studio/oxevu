@@ -10,7 +10,7 @@ pub fn infohash(raw: &Value) -> Option<String> {
     ["magneturl", "guid", "download_url", "link"]
         .into_iter()
         .find_map(|field| {
-            librqbit::Magnet::parse(raw[field].as_str()?)
+            librqbit_core::magnet::Magnet::parse(raw[field].as_str()?)
                 .ok()?
                 .as_id20()
                 .map(|id| id.as_string())

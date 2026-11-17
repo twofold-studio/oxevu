@@ -1,10 +1,11 @@
 use crate::*;
-use oxevu_indexers::http;
+mod http;
 use serde::{Deserialize, Serialize};
 mod metadata;
 pub(crate) use metadata::tmdb;
 mod opensubtitles;
 mod studios;
+pub(crate) use metadata::{Match, Search};
 pub(crate) use metadata::{apply, artwork as metadata_artwork, search};
 pub(crate) use opensubtitles::{subtitle_download, subtitle_search};
 pub(crate) use studios::studio;

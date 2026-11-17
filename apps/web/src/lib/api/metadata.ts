@@ -1,52 +1,26 @@
-import { request } from "./client";
-import type { Item } from "./types";
+import * as generated from "./generated/sdk.gen";
+import { sdkClient, sdkData } from "./sdk";
 
-export type MetadataProvider = "tmdb" | "omdb";
-export interface MetadataResult {
-  provider: MetadataProvider;
-  id: string;
-  title: string;
-  year: string | number | null;
-  kind: "movie" | "tv";
-  overview: string | null;
-  poster_url: string | null;
-}
-
-export interface MetadataFields {
-  favorite?: boolean;
-  overview?: string | null;
-  year?: number | null;
-  end_year?: number | null;
-  rating?: number | null;
-  rating_source?: string | null;
-  season_overview?: string | null;
-  season_rating?: number | null;
-  content_rating?: string | null;
-  genres?: string[];
-  studios?: string[];
-  studio_images?: { name: string; url: string }[];
-  creators?: string[];
-  provider_ids?: { tmdb?: string | number; imdb?: string };
-  external_urls?: { tmdb?: string; imdb?: string };
-  show_overview?: string | null;
-  show_year?: number | null;
-  show_end_year?: number | null;
-  show_content_rating?: string | null;
-  show_rating?: number | null;
-  show_rating_source?: string | null;
-  show_genres?: string[];
-  show_studios?: string[];
-  show_creators?: string[];
-}
+export type { MetadataProvider, MetadataResult } from "./generated/types.gen";
+import type { MetadataProvider, MetadataResult } from "./generated/types.gen";
 
 export const metadataApi = {
   search: (id: string, provider: MetadataProvider, query: string) =>
-    request<{ results: MetadataResult[] }>(
-      `/items/${encodeURIComponent(id)}/metadata/search?${new URLSearchParams({ provider, query })}`,
+    sdkData(
+      generated.metadataSearch({
+        client: sdkClient(),
+        throwOnError: true,
+        path: { id },
+        query: { provider, query },
+      }),
     ),
   match: (id: string, result: MetadataResult) =>
-    request<{ item: Item }>(`/items/${encodeURIComponent(id)}/metadata/match`, {
-      method: "POST",
-      body: { provider: result.provider, id: result.id },
-    }),
+    sdkData(
+      generated.metadataMatch({
+        client: sdkClient(),
+        throwOnError: true,
+        path: { id },
+        body: { provider: result.provider, id: result.id },
+      }),
+    ),
 };

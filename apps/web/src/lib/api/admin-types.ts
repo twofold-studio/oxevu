@@ -2,61 +2,34 @@
 import type { SyncplayAccess, UserAccess } from "./types";
 
 /** A user as administrators see and edit it. */
-export interface UserSettings extends UserAccess {
-  id: string;
-  username: string;
-  all_libraries: boolean;
-  library_ids: string[];
-}
+export type UserSettings = import("./generated/types.gen").User;
 
-export interface UserInput extends UserAccess {
-  username: string;
-  /** Required on create; omit on update to keep the current password. */
-  password?: string;
-  all_libraries: boolean;
-  library_ids: string[];
-}
+type WireInput = import("./generated/types.gen").UserInput;
+/** The editor fills all permission flags; the REST input also accepts defaults. */
+export type UserInput = {
+  [
+    K in
+      | "username"
+      | "is_admin"
+      | "disabled"
+      | "can_play"
+      | "can_transcode"
+      | "all_libraries"
+      | "syncplay_access"
+      | "library_ids"
+  ]: NonNullable<WireInput[K]>;
+} & Pick<WireInput, "password"> &
+  Pick<UserAccess, "acquisition">;
 
 export type { SyncplayAccess };
 
-export type HardwareAcceleration = "none" | "nvenc";
+export type HardwareAcceleration = import("./generated/types.gen").HardwareAcceleration;
 
-export interface Settings {
-  transcoding_enabled: boolean;
-  hardware_acceleration: HardwareAcceleration;
-  hardware_encoding: boolean;
-  hardware_decoding: boolean;
-  gpu_index: number;
-  allow_cpu_fallback: boolean;
-  max_concurrent_transcodes: number;
-  max_video_bitrate_mbps: number;
-  max_height: number;
-  cpu_crf: number;
-  scratch_limit_gb: number;
-  cache_enabled: boolean;
-  cache_limit_gb: number;
-  session_idle_seconds: number;
-  resume_min_percent: number;
-  resume_max_percent: number;
-  resume_min_duration_seconds: number;
-}
+export type Settings = import("./generated/types.gen").Settings;
 
 /** Runtime probe results; paths come from server environment, not settings. */
-export interface Capabilities {
-  ffmpeg_available: boolean;
-  nvenc_available: boolean;
-  hardware_decode_available: boolean;
-  ffmpeg_path: string | null;
-  scratch_path: string | null;
-  notes: string[];
-}
+export type Capabilities = import("./generated/types.gen").Capabilities;
 
-export interface SettingsEnvelope {
-  settings: Settings;
-  capabilities: Capabilities;
-}
+export type SettingsEnvelope = import("./generated/types.gen").SettingsEnvelope;
 
-export interface PasswordChange {
-  current_password: string;
-  new_password: string;
-}
+export type PasswordChange = import("./generated/types.gen").PasswordChange;

@@ -1,25 +1,44 @@
 use super::*;
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, utoipa::ToSchema)]
 #[serde(default, deny_unknown_fields)]
+#[schema(as = AcquisitionConfig)]
 pub(super) struct Config {
+    #[schema(required)]
     pub enabled: bool,
+    #[schema(required)]
     pub download_dir: String,
+    #[schema(required)]
     pub listen_port: u16,
+    #[schema(required)]
     pub bind_interface: Option<String>,
+    #[schema(required)]
     pub dht: bool,
+    #[schema(required)]
     pub max_active_downloads: u32,
+    #[schema(required)]
     pub download_limit_kib: u32,
+    #[schema(required)]
     pub upload_limit_kib: u32,
+    #[schema(required)]
     pub min_free_gb: u32,
+    #[schema(required)]
     pub storage_limit_gb: u32,
+    #[schema(required)]
     pub seed_ratio: f64,
+    #[schema(required)]
     pub seed_hours: u32,
+    #[schema(required)]
     pub search_interval_minutes: u32,
+    #[schema(required)]
     pub import_enabled: bool,
+    #[schema(required)]
     pub copy_fallback: bool,
+    #[schema(required)]
     pub auto_identify: bool,
+    #[schema(required)]
     pub movie_destination: Option<destinations::Destination>,
+    #[schema(required)]
     pub series_destination: Option<destinations::Destination>,
 }
 impl Default for Config {

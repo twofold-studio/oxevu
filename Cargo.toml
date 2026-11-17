@@ -1,5 +1,9 @@
 [workspace]
-members = ["crates/*"]
+members = [
+  "crates/acquisition", "crates/api", "crates/config", "crates/db",
+  "crates/filesystem", "crates/indexers", "crates/library", "crates/media", "crates/playback",
+  "crates/server", "crates/transfers", "crates/web",
+]
 resolver = "2"
 
 [workspace.package]
@@ -25,6 +29,7 @@ quick-xml = "0.38"
 futures-util = "0.3"
 sha2 = "0.10"
 librqbit = { version = "=9.1.0", default-features = false, features = ["rust-tls"] }
+librqbit-core = { version = "=9.1.0", default-features = false }
 tempfile = "3"
 thiserror = "2"
 tower = { version = "0.5", features = ["util"] }

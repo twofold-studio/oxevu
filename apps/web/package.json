@@ -4,8 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "gen:api": "openapi-ts",
     "dev": "vp dev",
-    "build": "vp build",
+    "build": "pnpm gen:api && pnpm check && vp build",
     "preview": "vp preview",
     "check": "svelte-check --tsconfig ./tsconfig.app.json && tsc -p tsconfig.node.json",
     "lint": "vp lint",
@@ -16,6 +17,7 @@
   "devDependencies": {
     "@fontsource-variable/geist": "^5.3.0",
     "@fontsource-variable/geist-mono": "^5.3.0",
+    "@hey-api/openapi-ts": "0.99.0",
     "@internationalized/date": "^3.12.4",
     "@lucide/svelte": "^1.72.0",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",

@@ -1,5 +1,4 @@
-// Thin fetch wrapper for /api/v1. The session is an HTTP-only cookie, so the
-// browser attaches it to same-origin requests; nothing here touches tokens.
+// Shared session and error policy for generated REST clients.
 
 export const API_BASE = "/api/v1";
 
@@ -29,46 +28,7 @@ export function setUnauthorizedListener(listener: UnauthorizedListener | null) {
   onUnauthorized = listener;
 }
 
-interface RequestOptions {
-  method?: "GET" | "POST" | "PUT";
-  body?: unknown;
-  /** Survive page unload; used for the final progress write. */
-  keepalive?: boolean;
-  /** Auth endpoints report bad credentials as 401 without ending a session. */
-  ignoreUnauthorized?: boolean;
-  headers?: Record<string, string>;
-  signal?: AbortSignal;
-}
-
-export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, keepalive, ignoreUnauthorized, headers: extra } = options;
-  const headers: Record<string, string> = { Accept: "application/json", ...extra };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
-  let response: Response;
-  try {
-    response = await fetch(`${API_BASE}${path}`, {
-      method,
-      credentials: "same-origin",
-      keepalive,
-      headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
-      signal: options.signal,
-    });
-  } catch (error) {
-    if (options.signal?.aborted) throw error;
-    throw new ApiError(0, "Oxevu server is unreachable. Check that it is running.");
-  }
-
-  if (!response.ok) {
-    const message = await readError(response);
-    if (response.status === 401 && !ignoreUnauthorized) onUnauthorized?.();
-    throw new ApiError(response.status, message);
-  }
-  if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
-}
-
-async function readError(response: Response): Promise<string> {
+export async function readError(response: Response): Promise<string> {
   try {
     const data: unknown = await response.json();
     if (data && typeof data === "object" && "error" in data && typeof data.error === "string") {
@@ -82,6 +42,11 @@ async function readError(response: Response): Promise<string> {
   if (response.status >= 500)
     return `The server failed to handle the request (${response.status}).`;
   return `Request failed (${response.status}).`;
+}
+
+/** Shared session policy for generated clients. */
+export function notifyUnauthorized() {
+  onUnauthorized?.();
 }
 
 export function errorMessage(error: unknown): string {

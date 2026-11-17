@@ -2,3 +2,5 @@
 pub mod cache_index;
 pub mod command;
 pub mod process;
+#[cfg(test)]
+mod process_tests;

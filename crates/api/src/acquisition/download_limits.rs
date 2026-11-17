@@ -2,8 +2,9 @@ use super::*;
 use librqbit::limits::LimitsConfig;
 use std::num::NonZeroU32;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 #[serde(deny_unknown_fields)]
+#[schema(as = DownloadLimit)]
 pub(super) struct Input {
     pub download_limit_kib: u32,
 }

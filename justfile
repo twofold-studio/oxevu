@@ -1,4 +1,10 @@
 # Validate changelog history against the current project version.
+api-generate:
+    node scripts/generate-api.mjs
+
+api-check:
+    node scripts/generate-api.mjs --check
+
 changelog-check:
     python3 scripts/changelog.py check
 

@@ -2,8 +2,9 @@ use super::*;
 use base64::{Engine, engine::general_purpose::STANDARD};
 use librqbit::{ManagedTorrent, Session};
 
-#[derive(Clone, Deserialize, Serialize, Default)]
+#[derive(Clone, Deserialize, Serialize, Default, utoipa::ToSchema)]
 #[serde(default, deny_unknown_fields)]
+#[schema(as = DownloadInput)]
 pub(super) struct Input {
     pub release_id: Option<String>,
     pub title_id: Option<String>,
@@ -250,8 +251,9 @@ pub(super) async fn read(
     Ok(Json(json!({"download":view(&a,&id).await?})))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 #[serde(deny_unknown_fields)]
+#[schema(as = DownloadAction)]
 pub(super) struct Action {
     pub action: String,
     pub selected_files: Option<Vec<usize>>,

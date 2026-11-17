@@ -1,4 +1,4 @@
-pub fn client() -> reqwest::Result<reqwest::Client> {
+pub(super) fn client() -> reqwest::Result<reqwest::Client> {
     reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(20))
         .redirect(reqwest::redirect::Policy::custom(|attempt| {

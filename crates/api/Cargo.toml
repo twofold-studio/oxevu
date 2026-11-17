@@ -4,6 +4,9 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+oxevu-library = { path = "../library" }
+utoipa = { version = "6", features = ["axum_extras"] }
+utoipa-axum = "0.3"
 oxevu-acquisition = { path = "../acquisition" }
 oxevu-indexers = { path = "../indexers" }
 oxevu-transfers = { path = "../transfers" }
@@ -33,5 +36,6 @@ sha2.workspace = true
 librqbit.workspace = true
 
 [dev-dependencies]
+oxevu-transfers = { path = "../transfers", features = ["test-support"] }
 tower.workspace = true
 tempfile.workspace = true

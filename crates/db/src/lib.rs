@@ -1,4 +1,8 @@
 //! Database initialization and the single authoritative migration history.
+pub mod catalog;
+pub mod identification;
+pub mod libraries;
+pub mod scanning;
 use sqlx::SqlitePool;
 use std::path::Path;
 

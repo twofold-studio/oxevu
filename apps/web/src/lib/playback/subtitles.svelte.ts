@@ -1,18 +1,10 @@
-import { request, errorMessage } from "$lib/api/client";
+import { errorMessage } from "$lib/api/client";
+import { subtitlesApi } from "$lib/api/endpoints";
 import { offsetVtt } from "./subtitle-timing";
 import { normalizeSubtitleDelay, readSubtitleDelay, saveSubtitleDelay } from "./subtitle-delay";
 import { readSubtitlePreference, saveSubtitlePreference } from "./personal-preferences";
 
-export interface SubtitleTrack {
-  id: string;
-  label: string;
-  language: string | null;
-  codec: string;
-  default: boolean;
-  forced: boolean;
-  supported: boolean;
-  url: string | null;
-}
+export type SubtitleTrack = import("$lib/api/generated/types.gen").SubtitleTrack;
 
 export class Subtitles {
   tracks = $state<SubtitleTrack[]>([]);
@@ -42,9 +34,7 @@ export class Subtitles {
       this.selected = "off";
     }
     try {
-      const { tracks } = await request<{ tracks: SubtitleTrack[] }>(
-        `/items/${encodeURIComponent(itemId)}/subtitles`,
-      );
+      const { tracks } = await subtitlesApi.list(itemId);
       if (this.itemId !== itemId) return false;
       this.tracks = tracks;
       const preference = readSubtitlePreference();

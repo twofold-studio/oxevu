@@ -2,10 +2,12 @@ use super::*;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, utoipa::ToSchema)]
 #[serde(deny_unknown_fields)]
+#[schema(as = MigrationInput)]
 pub(super) struct Input {
     pub source: String,
+    #[schema(value_type = crate::contract::acquisition_catalog_model::ExternalExport)]
     pub records: Value,
     #[serde(default)]
     pub users: BTreeMap<String, String>,

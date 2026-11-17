@@ -1,14 +1,5 @@
 use super::*;
-pub(super) fn slug(name: &str) -> String {
-    name.to_lowercase()
-        .chars()
-        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
-        .collect::<String>()
-        .split('-')
-        .filter(|s| !s.is_empty())
-        .collect::<Vec<_>>()
-        .join("-")
-}
+use crate::library::identification::slug;
 pub(crate) async fn studio(
     State(a): State<App>,
     h: HeaderMap,

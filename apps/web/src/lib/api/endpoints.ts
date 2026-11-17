@@ -1,164 +1,223 @@
-import { API_BASE, request } from "./client";
-import type {
-  AuthStatus,
-  Credentials,
-  Item,
-  Library,
-  LibraryInput,
-  ProgressUpdate,
-  ScanResult,
-  User,
-} from "./types";
-import type {
-  Capabilities,
-  PasswordChange,
-  Settings,
-  SettingsEnvelope,
-  UserInput,
-  UserSettings,
-} from "./admin-types";
-import type {
-  Party,
-  PartyControl,
-  PlaybackSession,
-  PlaybackSessionRequest,
-} from "./playback-types";
+import { API_BASE } from "./client";
+import * as generated from "./generated/sdk.gen";
+import { sdkClient, sdkData } from "./sdk";
+import type { Credentials, LibraryInput, ProgressUpdate } from "./types";
+import type { PasswordChange, Settings, UserInput } from "./admin-types";
+import type { PartyControl, PlaybackSessionRequest } from "./playback-types";
 
 const id = (value: string) => encodeURIComponent(value);
+const streamRoute: import("./generated/types.gen").MediaStreamData["url"] = "/items/{id}/stream";
 
 export const authApi = {
-  status: () => request<AuthStatus>("/auth/status"),
+  status: () => sdkData(generated.status({ client: sdkClient(), throwOnError: true })),
   /**
    * First-admin bootstrap. The one-time token proves local access to the
    * server's data directory (OXEVU_DATA_DIR/setup-token). It is sent once in
    * a header and never stored by the client.
    */
   setup: (body: Credentials, setupToken: string) =>
-    request<{ user: User }>("/auth/setup", {
-      method: "POST",
-      body,
-      ignoreUnauthorized: true,
-      headers: { "X-Oxevu-Setup-Token": setupToken },
-    }),
+    sdkData(
+      generated.setup({
+        client: sdkClient(true),
+        throwOnError: true,
+        body,
+        headers: { "X-Oxevu-Setup-Token": setupToken },
+      }),
+    ),
   login: (body: Credentials) =>
-    request<{ user: User }>("/auth/login", { method: "POST", body, ignoreUnauthorized: true }),
-  logout: () => request<void>("/auth/logout", { method: "POST", ignoreUnauthorized: true }),
+    sdkData(generated.login({ client: sdkClient(true), throwOnError: true, body })),
+  logout: async () => {
+    await generated.logout({ client: sdkClient(true), throwOnError: true });
+  },
   /** Own account; a wrong current password is reported as 401 or 403, not a lost session. */
   changePassword: (body: PasswordChange) =>
-    request<void>("/auth/password", { method: "PUT", body, ignoreUnauthorized: true }),
+    (async () => {
+      await generated.password({ client: sdkClient(true), throwOnError: true, body });
+    })(),
 };
 
 export const librariesApi = {
   suggestPaths: (path: string) =>
-    request<{ paths: { name: string; path: string }[]; truncated: boolean }>(
-      "/libraries/paths/suggest",
-      { method: "POST", body: { path } },
-    ),
-  list: () => request<{ libraries: Library[] }>("/libraries"),
+    sdkData(generated.pathsSuggest({ client: sdkClient(), throwOnError: true, body: { path } })),
+  list: () => sdkData(generated.list({ client: sdkClient(), throwOnError: true })),
   create: (body: LibraryInput) =>
-    request<{ library: Library }>("/libraries", { method: "POST", body }),
+    sdkData(generated.create({ client: sdkClient(), throwOnError: true, body })),
   update: (libraryId: string, body: LibraryInput) =>
-    request<{ library: Library }>(`/libraries/${id(libraryId)}`, { method: "PUT", body }),
+    sdkData(
+      generated.update({ client: sdkClient(), throwOnError: true, path: { id: libraryId }, body }),
+    ),
   /** Removes catalog configuration only; media files are never touched. */
-  remove: (libraryId: string) =>
-    request<void>(`/libraries/${id(libraryId)}/remove`, { method: "POST" }),
+  remove: async (libraryId: string) => {
+    await generated.remove({ client: sdkClient(), throwOnError: true, path: { id: libraryId } });
+  },
   scan: (libraryId: string) =>
-    request<ScanResult>(`/libraries/${id(libraryId)}/scan`, { method: "POST" }),
+    sdkData(generated.scan({ client: sdkClient(), throwOnError: true, path: { id: libraryId } })),
 };
 
 // --- Media removal types ---------------------------------------------------
 
-export interface RemovalPreviewItem {
-  id: string;
-  title: string;
-  size_bytes: number | null;
-  local_file: boolean;
-  shared_links: number;
-}
+export type RemovalPreviewItem = import("./generated/types.gen").RemovalPreviewItem;
 
-export interface RemovalPreview {
-  token: string;
-  count: number;
-  keep_metadata: boolean;
-  bytes_selected: number;
-  shared_files_count: number;
-  items: RemovalPreviewItem[];
-  notice: string;
-}
+export type RemovalPreview = import("./generated/types.gen").RemovalPreview;
 
-export interface RemovalResult {
-  deleted_files?: number;
-  removed_ids: string[];
-  kept_metadata: boolean;
-  failures: { id: string; message: string }[];
-  bytes_freed_estimate: number;
-  shared_files_count: number;
-}
+export type RemovalResult = import("./generated/types.gen").RemovalResult;
 
 export const removalApi = {
   preview: (item_ids: string[], keep_metadata: boolean) =>
-    request<RemovalPreview>("/library/removals/preview", {
-      method: "POST",
-      body: { item_ids, keep_metadata },
-    }),
+    sdkData(
+      generated.removalPreview({
+        client: sdkClient(),
+        throwOnError: true,
+        body: { item_ids, keep_metadata },
+      }),
+    ),
   remove: (item_ids: string[], keep_metadata: boolean, token: string) =>
-    request<RemovalResult>("/library/removals", {
-      method: "POST",
-      body: { item_ids, keep_metadata, token, confirm: true },
-    }),
+    sdkData(
+      generated.removalApply({
+        client: sdkClient(),
+        throwOnError: true,
+        body: { item_ids, keep_metadata, token, confirm: true },
+      }),
+    ),
 };
 
 export const itemsApi = {
-  favorite: (itemId: string, favorite: boolean) =>
-    request<void>(`/items/${id(itemId)}/favorite`, { method: "PUT", body: { favorite } }),
-  list: (signal?: AbortSignal) => request<{ items: Item[] }>("/items", { signal }),
+  favorite: async (itemId: string, favorite: boolean) => {
+    await generated.favorite({
+      client: sdkClient(),
+      throwOnError: true,
+      path: { id: itemId },
+      body: { favorite },
+    });
+  },
+  list: (signal?: AbortSignal) =>
+    sdkData(generated.items({ client: sdkClient(), throwOnError: true, signal })),
   get: (itemId: string, signal?: AbortSignal) =>
-    request<{ item: Item }>(`/items/${id(itemId)}`, { signal }),
-  saveProgress: (itemId: string, body: ProgressUpdate, keepalive = false) =>
-    request<void>(`/items/${id(itemId)}/progress`, { method: "PUT", body, keepalive }),
+    sdkData(
+      generated.item({ client: sdkClient(), throwOnError: true, path: { id: itemId }, signal }),
+    ),
+  saveProgress: async (itemId: string, body: ProgressUpdate, keepalive = false) => {
+    await generated.progress({
+      client: sdkClient(),
+      throwOnError: true,
+      path: { id: itemId },
+      body,
+      keepalive,
+    });
+  },
   /** Byte-range original file. The session cookie authorizes the <video> request. */
-  streamUrl: (itemId: string) => `${API_BASE}/items/${id(itemId)}/stream`,
+  streamUrl: (itemId: string) => `${API_BASE}${streamRoute.replace("{id}", id(itemId))}`,
   reaction: (itemId: string, value: "like" | "dislike" | null) =>
-    request<{ value: "like" | "dislike" | null }>(`/items/${id(itemId)}/reaction`, {
-      method: "PUT",
-      body: { value },
-    }),
+    sdkData(
+      generated.reactionUpdate({
+        client: sdkClient(),
+        throwOnError: true,
+        path: { id: itemId },
+        body: { value },
+      }),
+    ),
 };
 
 export const usersApi = {
-  list: () => request<{ users: UserSettings[] }>("/users"),
-  create: (body: UserInput) => request<{ user: UserSettings }>("/users", { method: "POST", body }),
+  avatar: (image: string) =>
+    sdkData(generated.avatarSave({ client: sdkClient(), throwOnError: true, body: { image } })),
+  list: () => sdkData(generated.usersList({ client: sdkClient(), throwOnError: true })),
+  create: (body: UserInput) =>
+    sdkData(generated.usersCreate({ client: sdkClient(), throwOnError: true, body })),
   update: (userId: string, body: UserInput) =>
-    request<{ user: UserSettings }>(`/users/${id(userId)}`, { method: "PUT", body }),
+    sdkData(
+      generated.usersUpdate({
+        client: sdkClient(),
+        throwOnError: true,
+        path: { id: userId },
+        body,
+      }),
+    ),
 };
 
 export const settingsApi = {
-  get: () => request<SettingsEnvelope>("/settings"),
-  save: (body: Settings) => request<SettingsEnvelope>("/settings", { method: "PUT", body }),
+  get: () => sdkData(generated.settingsGet({ client: sdkClient(), throwOnError: true })),
+  save: (body: Settings) =>
+    sdkData(generated.settingsPut({ client: sdkClient(), throwOnError: true, body })),
 };
 
 export const playbackApi = {
-  capabilities: () => request<{ capabilities: Capabilities }>("/playback/capabilities"),
+  capabilities: () =>
+    sdkData(generated.playbackCapabilities({ client: sdkClient(), throwOnError: true })),
   create: (body: PlaybackSessionRequest) =>
-    request<{ session: PlaybackSession }>("/playback/sessions", { method: "POST", body }),
+    sdkData(generated.playbackCreate({ client: sdkClient(), throwOnError: true, body })),
   get: (sessionId: string) =>
-    request<{ session: PlaybackSession }>(`/playback/sessions/${id(sessionId)}`),
-  heartbeat: (sessionId: string) =>
-    request<void>(`/playback/sessions/${id(sessionId)}/heartbeat`, { method: "POST" }),
+    sdkData(
+      generated.playbackGet({ client: sdkClient(), throwOnError: true, path: { id: sessionId } }),
+    ),
+  heartbeat: async (sessionId: string) => {
+    await generated.playbackHeartbeat({
+      client: sdkClient(),
+      throwOnError: true,
+      path: { id: sessionId },
+    });
+  },
   /** keepalive lets the stop reach the server while the page unloads. */
-  stop: (sessionId: string, keepalive = false) =>
-    request<void>(`/playback/sessions/${id(sessionId)}/stop`, { method: "POST", keepalive }),
+  stop: async (sessionId: string, keepalive = false) => {
+    await generated.playbackStop({
+      client: sdkClient(),
+      throwOnError: true,
+      path: { id: sessionId },
+      keepalive,
+    });
+  },
 };
 
 export const partiesApi = {
-  list: () => request<{ parties: Party[] }>("/parties"),
+  list: () => sdkData(generated.partyList({ client: sdkClient(), throwOnError: true })),
   create: (body: { name: string; item_id?: string | null }) =>
-    request<{ party: Party }>("/parties", { method: "POST", body }),
-  get: (partyId: string) => request<{ party: Party }>(`/parties/${id(partyId)}`),
+    sdkData(generated.partyCreate({ client: sdkClient(), throwOnError: true, body })),
+  get: (partyId: string) =>
+    sdkData(
+      generated.partyRead({ client: sdkClient(), throwOnError: true, path: { id: partyId } }),
+    ),
   join: (partyId: string) =>
-    request<{ party: Party }>(`/parties/${id(partyId)}/join`, { method: "POST" }),
-  leave: (partyId: string, keepalive = false) =>
-    request<void>(`/parties/${id(partyId)}/leave`, { method: "POST", keepalive }),
+    sdkData(
+      generated.partyJoin({ client: sdkClient(), throwOnError: true, path: { id: partyId } }),
+    ),
+  leave: async (partyId: string, keepalive = false) => {
+    await generated.partyLeave({
+      client: sdkClient(),
+      throwOnError: true,
+      path: { id: partyId },
+      keepalive,
+    });
+  },
   control: (partyId: string, body: PartyControl) =>
-    request<{ party: Party }>(`/parties/${id(partyId)}/control`, { method: "POST", body }),
+    sdkData(
+      generated.partyControl({
+        client: sdkClient(),
+        throwOnError: true,
+        path: { id: partyId },
+        body,
+      }),
+    ),
+};
+
+export const subtitlesApi = {
+  list: (id: string) =>
+    sdkData(generated.subtitlesList({ client: sdkClient(), throwOnError: true, path: { id } })),
+  search: (id: string, language: string) =>
+    sdkData(
+      generated.subtitlesSearch({
+        client: sdkClient(),
+        throwOnError: true,
+        path: { id },
+        query: { language },
+      }),
+    ),
+  download: (id: string, subtitleId: string, language: string) =>
+    sdkData(
+      generated.subtitlesDownload({
+        client: sdkClient(),
+        throwOnError: true,
+        path: { id },
+        body: { id: subtitleId, language },
+      }),
+    ),
 };

@@ -1,17 +1,28 @@
 use super::*;
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, utoipa::ToSchema)]
 #[serde(default, deny_unknown_fields)]
+#[schema(as = AcquisitionProfile)]
 pub(super) struct Profile {
+    #[schema(required)]
     pub name: String,
+    #[schema(required)]
     pub min_height: u32,
+    #[schema(required)]
     pub max_height: u32,
+    #[schema(required)]
     pub min_size_mb: u32,
+    #[schema(required)]
     pub max_size_mb: u32,
+    #[schema(required)]
     pub min_seeders: u32,
+    #[schema(required)]
     pub codecs: Vec<String>,
+    #[schema(required)]
     pub sources: Vec<String>,
+    #[schema(required)]
     pub languages: Vec<String>,
+    #[schema(required)]
     pub allow_hdr: bool,
 }
 impl Default for Profile {

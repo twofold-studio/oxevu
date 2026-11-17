@@ -1,65 +1,7 @@
 use crate::*;
 
 pub(crate) fn router(app: App) -> Router {
-    let api = Router::new()
-        .merge(acquisition::routes())
-        .merge(parties::routes())
-        .route("/playback/capabilities", get(playback::capabilities))
-        .route("/account/avatar", axum::routing::put(avatars::save))
-        .route("/playback/sessions", post(playback::create))
-        .route("/playback/sessions/{id}", get(playback::get))
-        .route(
-            "/playback/sessions/{id}/heartbeat",
-            post(playback::heartbeat),
-        )
-        .route("/playback/sessions/{id}/stop", post(playback::stop))
-        .route("/playback/sessions/{id}/hls/{file}", get(playback::hls))
-        .route("/users", get(users::list).post(users::create))
-        .route("/users/{id}", put(users::update))
-        .route("/auth/password", put(auth::password))
-        .route("/libraries/{id}", put(libraries::update))
-        .route("/libraries/paths/suggest", post(library_paths::suggest))
-        .route("/libraries/{id}/remove", post(libraries::remove))
-        .route("/settings", get(settings::get).put(settings::put))
-        .route(
-            "/integrations",
-            get(integrations::get).put(integrations::put),
-        )
-        .route("/items/{id}/metadata/search", get(integrations::search))
-        .route("/items/{id}/metadata/match", post(integrations::apply))
-        .route(
-            "/items/{id}/metadata/artwork/{kind}",
-            get(integrations::metadata_artwork),
-        )
-        .route(
-            "/items/{id}/metadata/studios/{name}",
-            get(integrations::studio),
-        )
-        .route(
-            "/items/{id}/subtitles/search",
-            get(integrations::subtitle_search),
-        )
-        .route(
-            "/items/{id}/subtitles/download",
-            post(integrations::subtitle_download),
-        )
-        .route("/auth/status", get(status))
-        .route("/auth/setup", post(setup))
-        .route("/auth/login", post(login))
-        .route("/auth/logout", post(logout))
-        .route("/libraries", get(libraries).post(add_library))
-        .route("/libraries/{id}/scan", post(scan::scan))
-        .route("/items", get(items))
-        .route("/items/{id}", get(item))
-        .route("/items/{id}/favorite", put(catalog::favorite))
-        .route("/items/{id}/reaction", put(media_files::reaction))
-        .route("/library/removals/preview", post(media_files::preview))
-        .route("/library/removals", post(media_files::apply))
-        .route("/items/{id}/stream", get(stream))
-        .route("/items/{id}/subtitles", get(subtitles::list))
-        .route("/items/{id}/subtitles/{track}", get(subtitles::serve))
-        .route("/items/{id}/artwork/{kind}", get(artwork::serve))
-        .route("/items/{id}/progress", put(progress));
+    let api = contract::router().split_for_parts().0;
     Router::new()
         .nest("/api/v1", api)
         .route("/healthz", get(|| async { "ok" }))

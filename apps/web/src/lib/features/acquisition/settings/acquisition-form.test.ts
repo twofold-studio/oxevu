@@ -18,6 +18,9 @@ const valid: AcquisitionConfig = {
   search_interval_minutes: 60,
   import_enabled: false,
   copy_fallback: false,
+  auto_identify: true,
+  movie_destination: null,
+  series_destination: null,
 };
 
 describe("acquisition settings validation", () => {

@@ -1,10 +1,12 @@
 use super::*;
 use scope::Scope;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, utoipa::ToSchema)]
 #[serde(deny_unknown_fields)]
+#[schema(as = MonitorInput)]
 pub(super) struct Input {
     pub enabled: bool,
+    #[schema(value_type = crate::contract::acquisition_catalog_model::RequestScope)]
     pub scope: Scope,
     pub library_id: Option<String>,
     pub root: Option<String>,

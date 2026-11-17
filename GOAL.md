@@ -131,6 +131,16 @@ The order of the later modules may change as implementation reveals dependencies
 
 ## Open decisions
 
+The REST contract uses Utoipa/utoipa-axum and a pinned Hey API SDK. JSON endpoint
+groups use explicit wire types and the real registered OpenAPI router; the
+frontend's generic response-casting request helper is removed. Native media
+responses and foreign migration export rows remain distinct validation cases.
+Continue backend layering where workflows still mix SQL and coordination:
+acquisition/playback repository extraction is a further architectural step.
+Library roots, catalog, scanning and identification already have service and
+repository boundaries, with services in `oxevu-library`. Contract checking does
+not replace behavioral tests.
+
 - Mobile packaging and playback technology, especially iOS codec and background-playback constraints.
 - Metadata providers and their terms, rate limits, and credentials.
 - Which existing watch history, users, and library metadata should migrate from Jellyfin.

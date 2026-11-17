@@ -2,15 +2,18 @@ use super::*;
 use scope::Episode;
 use std::path::Path;
 
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, utoipa::ToSchema)]
 #[serde(deny_unknown_fields)]
+#[schema(as = ImportMapping)]
 pub(super) struct Mapping {
     pub file_index: usize,
     #[serde(default)]
+    #[schema(value_type = Vec<crate::contract::acquisition_catalog_model::EpisodeRef>)]
     pub episodes: Vec<Episode>,
 }
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, utoipa::ToSchema)]
 #[serde(deny_unknown_fields)]
+#[schema(as = ImportInput)]
 pub(super) struct Input {
     pub library_id: String,
     pub root: String,
@@ -18,12 +21,14 @@ pub(super) struct Input {
     #[serde(default)]
     pub token: Option<String>,
 }
-#[derive(Clone, Deserialize, Serialize)]
+#[derive(Clone, Deserialize, Serialize, utoipa::ToSchema)]
+#[schema(as = ImportFile)]
 pub(super) struct File {
     pub file_index: usize,
     pub source: String,
     pub destination: String,
     pub size: u64,
+    #[schema(value_type = Vec<crate::contract::acquisition_catalog_model::EpisodeRef>)]
     pub coverage: Vec<Episode>,
     pub title_id: String,
     pub root_device: u64,

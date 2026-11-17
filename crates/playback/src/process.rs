@@ -7,8 +7,18 @@ use tokio::{io::AsyncReadExt, process::Command, sync::watch};
 pub type ObserverFuture<'a, T> = Pin<Box<dyn Future<Output = T> + Send + 'a>>;
 /// Session lifecycle callbacks. Authentication and persistence stay in the application.
 pub trait Observer: Sync {
-    fn started(&self, pid: Option<u32>) -> ObserverFuture<'_, ()>;
-    fn check(&self, ready: bool) -> ObserverFuture<'_, Result<(), String>>;
+    fn started(&self, pid: u32) -> ObserverFuture<'_, ()>;
+    fn finished(&self) -> ObserverFuture<'_, ()>;
+    fn tick(&self, ready: bool) -> ObserverFuture<'_, Result<(), PolicyError>>;
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, thiserror::Error)]
+pub enum PolicyError {
+    #[error("Playback stopped")]
+    Stopped,
+    #[error("Playback idle lease expired")]
+    IdleExpired,
+    #[error("Playback permission revoked")]
+    PermissionRevoked,
 }
 #[derive(Debug, thiserror::Error)]
 pub enum ProcessError {
@@ -23,7 +33,7 @@ pub enum ProcessError {
     #[error("Scratch storage limit reached")]
     DiskLimit,
     #[error("{0}")]
-    Policy(String),
+    Policy(#[from] PolicyError),
 }
 pub async fn run(
     mut command: Command,
@@ -44,7 +54,9 @@ pub async fn run(
         .kill_on_drop(true)
         .spawn()
         .map_err(|_| ProcessError::Start)?;
-    observer.started(child.id()).await;
+    if let Some(pid) = child.id() {
+        observer.started(pid).await;
+    }
     let stderr = child.stderr.take();
     let drain = tokio::spawn(async move {
         let mut kept = Vec::new();
@@ -60,19 +72,24 @@ pub async fn run(
         }
         kept
     });
-    let start = std::time::Instant::now();
+    let start = tokio::time::Instant::now();
     let mut tick = tokio::time::interval(std::time::Duration::from_millis(100));
     let result = loop {
         tokio::select! {
-         status=child.wait()=>{break match status {Ok(status) if status.success()=>Ok(()),_=>Err(ProcessError::Encoding)}},
-         _=cancel.changed()=>{break Err(ProcessError::Stopped)},
-         _=tick.tick()=>{
-          if *cancel.borrow() {break Err(ProcessError::Stopped);}
-          let ready=tokio::fs::try_exists(ready).await.unwrap_or(false);
-          if let Err(error)=observer.check(ready).await {break Err(ProcessError::Policy(error));}
-          if !ready && start.elapsed().as_secs()>30 {break Err(ProcessError::Timeout);}
-          if disk_usage(root).await.unwrap_or(u64::MAX)>=limit {break Err(ProcessError::DiskLimit);}
-         }
+            status = child.wait() => {
+                break match status {
+                    Ok(status) if status.success() => Ok(()),
+                    _ => Err(ProcessError::Encoding),
+                };
+            }
+            _ = cancel.changed() => break Err(ProcessError::Stopped),
+            _ = tick.tick() => {
+                if *cancel.borrow() { break Err(ProcessError::Stopped); }
+                let ready = tokio::fs::try_exists(ready).await.unwrap_or(false);
+                if let Err(error) = observer.tick(ready).await { break Err(ProcessError::Policy(error)); }
+                if !ready && start.elapsed().as_secs() > 30 { break Err(ProcessError::Timeout); }
+                if disk_usage(root).await.unwrap_or(u64::MAX) >= limit { break Err(ProcessError::DiskLimit); }
+            }
         }
     };
     if result.is_err() {
@@ -80,8 +97,17 @@ pub async fn run(
     }
     let _ = child.wait().await;
     let _ = drain.await;
-    observer.started(None).await;
+    observer.finished().await;
     result
+}
+
+impl ProcessError {
+    pub fn retryable_encoding_failure(&self) -> bool {
+        matches!(self, Self::Start | Self::Encoding | Self::Timeout)
+    }
+    pub fn stopped(&self) -> bool {
+        matches!(self, Self::Stopped | Self::Policy(PolicyError::Stopped))
+    }
 }
 
 // Linux kills children if the server crashes, before stale scratch is removed on restart.

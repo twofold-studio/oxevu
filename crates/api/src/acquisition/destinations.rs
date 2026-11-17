@@ -1,8 +1,9 @@
 use super::*;
 use std::os::unix::fs::MetadataExt;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, utoipa::ToSchema)]
 #[serde(deny_unknown_fields)]
+#[schema(as = ImportDestination)]
 pub(super) struct Destination {
     pub library_id: String,
     pub root: String,

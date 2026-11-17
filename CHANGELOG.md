@@ -9,7 +9,11 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
-- The backend is now an eleven-crate Cargo workspace, separating the server executable and API workflows from configuration, database/migrations, media inspection, acquisition rules, indexer parsing, torrent lifecycle, safe filesystem publication, playback processes/cache and embedded web assets. Libraries take explicit inputs rather than shared application state; API behavior, migration checksums and service defaults are preserved.
+- Catalog, library-root updates, scanning and identification now separate SQL repositories, HTTP adapters and an independent library service crate. Playback fallback and cancellation use typed process errors; acquisition owns workflow coordination, and the torrent test hook is feature-gated.
+
+- REST routes now register their OpenAPI contracts alongside the real handlers. All frontend JSON API calls use a pinned Hey API TypeScript SDK generated from Rust wire types; the generic response-casting client is removed. Production builds regenerate bindings and type-check before bundling, while contract drift checks reject stale artifacts. Native media stays on HTTP; foreign migration rows retain explicit source-specific validation.
+
+- The backend is now a twelve-crate Cargo workspace, separating the server executable and API workflows from library services, configuration, database/migrations, media inspection, acquisition rules, indexer parsing, torrent lifecycle, safe filesystem publication, playback processes/cache and embedded web assets. Libraries take explicit inputs rather than shared application state; migration checksums and service defaults are preserved.
 
 - Series pages are one compact page: the series hero (Play/Resume, Identify, Favorite, Remove, overview) is followed by a full-width Episodes section whose season tabs sit directly above the selected season's summary and episodes. Season covers and separate season pages are replaced by the tab strip; `?season=` links open that tab, and season favorites and removal sit beside the season heading. Continue watching stays beside the title on wide screens. Movie and episode pages share the same hero scale and action sizes; episodes show a Series › Season › Episode trail and full-width previous/next links.
 

@@ -1,25 +1,14 @@
-import { request } from "./client";
+import * as generated from "./generated/sdk.gen";
+import { sdkClient, sdkData } from "./sdk";
 
-export type Provider = "tmdb" | "omdb" | "opensubtitles";
-export interface ProviderStatus {
-  enabled: boolean;
-  configured: boolean;
-  api_key_set: boolean;
-  username?: string;
-  password_set?: boolean;
-}
-export interface IntegrationEnvelope {
-  integrations: Record<Provider, ProviderStatus> & { studio_images: { enabled: boolean } };
-}
-export interface ProviderUpdate {
-  enabled?: boolean;
-  api_key?: string;
-  username?: string;
-  password?: string;
-  clear_credentials?: boolean;
-}
+export type Provider = keyof Omit<
+  import("./generated/types.gen").IntegrationStatuses,
+  "studio_images"
+>;
+export type { ProviderStatus, ProviderUpdate, IntegrationEnvelope } from "./generated/types.gen";
+
 export const integrationsApi = {
-  get: () => request<IntegrationEnvelope>("/integrations"),
-  update: (body: Partial<Record<Provider | "studio_images", ProviderUpdate>>) =>
-    request<IntegrationEnvelope>("/integrations", { method: "PUT", body }),
+  get: () => sdkData(generated.integrationsGet({ client: sdkClient(), throwOnError: true })),
+  update: (body: import("./generated/types.gen").IntegrationUpdates) =>
+    sdkData(generated.integrationsPut({ client: sdkClient(), throwOnError: true, body })),
 };

@@ -12,7 +12,7 @@
   import SettingsFrame from "$lib/features/settings/layout/SettingsFrame.svelte";
   import SettingsRow from "$lib/features/settings/layout/SettingsRow.svelte";
   import { SETTINGS_GROUP } from "$lib/features/settings/layout/group";
-  import { acquisitionApi } from "$lib/api/acquisition";
+  import { acquisitionApi, externalExport } from "$lib/api/acquisition";
   import type { MigrationInput, MigrationPreview } from "$lib/api/acquisition-types";
   import { errorMessage } from "$lib/api/client";
   import { href } from "$lib/state/router.svelte";
@@ -72,7 +72,7 @@
     try {
       const input: MigrationInput = {
         source,
-        records,
+        records: externalExport(records),
         users: JSON.parse(users),
         tmdb_ids: JSON.parse(mappings),
         profile_id: profile,

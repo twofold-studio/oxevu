@@ -83,35 +83,8 @@ pub(crate) async fn search(
     };
     Ok(Json(json!({"results":result})))
 }
-fn strings(v: &Value, key: &str) -> Vec<String> {
-    v.as_array()
-        .into_iter()
-        .flatten()
-        .filter_map(|v| v[key].as_str().map(str::to_owned))
-        .collect()
-}
-fn csv(v: &Value) -> Vec<String> {
-    v.as_str()
-        .filter(|s| *s != "N/A")
-        .map(|s| s.split(", ").map(str::to_owned).collect())
-        .unwrap_or_default()
-}
-fn date_year(v: &Value) -> Option<u32> {
-    v.as_str()?.get(..4)?.parse().ok()
-}
-fn rating(v: &Value) -> Option<f64> {
-    v.as_str()?.parse().ok()
-}
-fn image(v: &Value) -> Option<String> {
-    v.as_str()
-        .filter(|p| p.starts_with('/') && !p.contains("..") && p.len() < 200)
-        .map(str::to_owned)
-}
-#[derive(Deserialize)]
-pub(crate) struct Match {
-    provider: String,
-    id: String,
-}
+pub(crate) use crate::library::identification::Selection as Match;
+use crate::library::identification::image;
 pub(crate) async fn apply(
     State(a): State<App>,
     h: HeaderMap,
@@ -130,139 +103,35 @@ async fn apply_inner(a: App, h: HeaderMap, id: String, m: Match) -> Result<Json<
         .try_acquire_owned()
         .map_err(|_| bad("metadata or scan job already running"))?;
     let item = item_data(&a, &h, &id).await?;
-    let tv = item["kind"] == "episode";
-    let c = load(&a).await?;
-    let mut enrichment = match m.provider.as_str() {
-        "tmdb" => {
-            let number = m.id.parse::<u64>().map_err(|_| bad("invalid TMDB id"))?;
-            let data = tmdb(
-                &c,
-                &format!("{}/{number}", if tv { "tv" } else { "movie" }),
-                &[(
-                    "append_to_response",
-                    "credits,external_ids,release_dates,content_ratings".into(),
-                )],
-            )
-            .await?;
-            let imdb = data["imdb_id"]
-                .as_str()
-                .or_else(|| data["external_ids"]["imdb_id"].as_str());
-            let creators = if tv {
-                strings(&data["created_by"], "name")
-            } else {
-                data["credits"]["crew"]
-                    .as_array()
-                    .into_iter()
-                    .flatten()
-                    .filter(|v| v["job"] == "Director")
-                    .filter_map(|v| v["name"].as_str().map(str::to_owned))
-                    .collect()
-            };
-            json!({"title":if tv{&data["name"]}else{&data["title"]},"overview":data["overview"],"year":date_year(if tv{&data["first_air_date"]}else{&data["release_date"]}),"end_year":date_year(&data["last_air_date"]),"rating":data["vote_average"],"genres":strings(&data["genres"],"name"),"studios":strings(&data["production_companies"],"name"),"creators":creators,"provider_ids":{"tmdb":number,"imdb":imdb},"external_urls":{"tmdb":format!("https://www.themoviedb.org/{}/{number}",if tv{"tv"}else{"movie"}),"imdb":imdb.map(|s|format!("https://www.imdb.com/title/{s}/"))},"metadata_poster":image(&data["poster_path"]),"metadata_backdrop":image(&data["backdrop_path"]),"metadata_attribution":"This product uses the TMDB API but is not endorsed or certified by TMDB."})
-        }
-        "omdb" => {
-            if !m.id.starts_with("tt")
-                || !m.id[2..].bytes().all(|b| b.is_ascii_digit())
-                || m.id.len() > 20
-            {
-                return Err(bad("invalid IMDb id"));
-            }
-            let data = omdb(&c, &[("i", m.id.clone()), ("plot", "full".into())]).await?;
-            json!({"title":data["Title"],"overview":data["Plot"],"year":date_year(&data["Year"]),"rating":rating(&data["imdbRating"]),"content_rating":data["Rated"],"genres":csv(&data["Genre"]),"studios":csv(&data["Production"]),"creators":csv(&data["Director"]),"provider_ids":{"imdb":m.id},"external_urls":{"imdb":format!("https://www.imdb.com/title/{}/",m.id)}})
-        }
-        _ => return Err(bad("unsupported metadata provider")),
-    };
-    enrichment["rating_source"] = json!(if m.provider == "tmdb" { "TMDB" } else { "IMDb" });
-    if tv {
-        for field in [
-            "overview",
-            "year",
-            "end_year",
-            "rating",
-            "rating_source",
-            "genres",
-            "studios",
-            "creators",
-            "content_rating",
-        ] {
-            enrichment[format!("show_{field}")] = enrichment[field].clone();
-        }
-    }
-    let rows = if tv {
-        sqlx::query("SELECT id,data FROM items WHERE library_id=? AND json_extract(data,'$.show_title')=? ORDER BY id LIMIT 101").bind(item["library_id"].as_str()).bind(item["show_title"].as_str()).fetch_all(&a.pool).await.map_err(db)?
-    } else {
-        sqlx::query("SELECT id,data FROM items WHERE id=?")
-            .bind(&id)
-            .fetch_all(&a.pool)
-            .await
-            .map_err(db)?
-    };
-    if rows.len() > 100 {
-        return Err(bad("series metadata limit is 100 episodes per match"));
-    }
-    let mut updates = Vec::new();
-    let mut seasons = std::collections::HashMap::<u64, Value>::new();
-    for row in rows {
-        let source: Value =
-            serde_json::from_str(row.get("data")).map_err(|_| bad("invalid item metadata"))?;
-        if tv && source["show_title"] != item["show_title"] {
-            continue;
-        }
-        if updates.len() >= 100 {
-            return Err(bad("series metadata limit is 100 episodes per match"));
-        }
-        let mut data = enrichment.clone();
-        if tv {
-            data["rating"] = Value::Null;
-            data["rating_source"] = Value::Null;
-            data["show_title"] = source["show_title"].clone();
-            data["title"] = source["title"].clone();
-            if m.provider == "tmdb"
-                && let (Some(season), Some(episode)) = (
-                    source["season_number"].as_u64(),
-                    source["episode_number"].as_u64(),
-                )
-            {
-                if let std::collections::hash_map::Entry::Vacant(entry) = seasons.entry(season) {
-                    entry.insert(tmdb(&c, &format!("tv/{}/season/{season}", m.id), &[]).await?);
-                }
-                if let Some(details) = seasons.get(&season) {
-                    data["season_overview"] = details["overview"].clone();
-                    data["season_rating"] = details["vote_average"].clone();
-                }
-                let episode = tmdb(
-                    &c,
-                    &format!("tv/{}/season/{season}/episode/{episode}", m.id),
-                    &[],
-                )
-                .await?;
-                data["title"] = episode["name"].clone();
-                data["overview"] = episode["overview"].clone();
-                data["rating"] = episode["vote_average"].clone();
-                data["rating_source"] = json!("TMDB");
-                data["metadata_thumbnail"] = json!(image(&episode["still_path"]));
-            }
-        }
-        let item_id: String = row.get("id");
-        for (field, kind) in [
-            ("metadata_poster", "poster"),
-            ("metadata_backdrop", "backdrop"),
-            ("metadata_thumbnail", "thumbnail"),
-        ] {
-            if data[field].is_string() {
-                data[format!("{kind}_url")] =
-                    json!(format!("/api/v1/items/{item_id}/metadata/artwork/{kind}"));
-            }
-        }
-        data["studio_images"]=json!(data["studios"].as_array().into_iter().flatten().filter_map(|s|s.as_str()).map(|name|json!({"name":name,"url":format!("/api/v1/items/{item_id}/metadata/studios/{}",studios::slug(name))})).collect::<Vec<_>>());
-        updates.push((item_id, data));
-    }
-    let mut tx = a.pool.begin().await.map_err(db)?;
-    for (item_id, data) in updates {
-        sqlx::query("INSERT INTO item_metadata VALUES(?,?) ON CONFLICT(item_id) DO UPDATE SET data=excluded.data").bind(item_id).bind(data.to_string()).execute(&mut *tx).await.map_err(db)?;
-    }
-    tx.commit().await.map_err(db)?;
+    let provider = ProviderSource(load(&a).await?);
+    crate::library::identification::apply(&a.pool, &id, item, m, &provider)
+        .await
+        .map_err(crate::library::response)?;
     catalog::item(State(a), h, Path(id)).await
+}
+struct ProviderSource(Config);
+fn provider_error(error: crate::Error) -> crate::library::Error {
+    crate::library::Error::Invalid(
+        error.1.0["error"]
+            .as_str()
+            .unwrap_or("metadata provider failed")
+            .to_owned(),
+    )
+}
+impl crate::library::identification::MetadataSource for ProviderSource {
+    fn tmdb<'a>(
+        &'a self,
+        route: &'a str,
+        query: &'a [(&'a str, String)],
+    ) -> crate::library::identification::MetadataFuture<'a> {
+        Box::pin(async move { tmdb(&self.0, route, query).await.map_err(provider_error) })
+    }
+    fn omdb<'a>(
+        &'a self,
+        query: &'a [(&'a str, String)],
+    ) -> crate::library::identification::MetadataFuture<'a> {
+        Box::pin(async move { omdb(&self.0, query).await.map_err(provider_error) })
+    }
 }
 pub(crate) async fn artwork(
     State(a): State<App>,

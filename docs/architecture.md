@@ -21,16 +21,19 @@ These are project defaults, not claims of validated playback or mobile compatibi
 crates/server/        # oxevu-server: Tokio entry point and optional torrent harness
 crates/api/           # oxevu-api: application lifecycle, HTTP authorization and workflow orchestration
   src/routes.rs      # HTTP composition and origin middleware
+  src/contract/      # wire DTOs, documented route registration and offline OpenAPI export
+  src/library/       # maps library service errors into HTTP responses
   src/acquisition/   # requests, indexers, transfers and import supervision
   src/playback/      # sessions, FFmpeg supervision and delivery
   src/parties/       # watch parties
 crates/config/       # oxevu-config: serialized settings, defaults and validation
+crates/library/      # oxevu-library: catalog, root rules, scanning and identification services
 crates/acquisition/  # oxevu-acquisition: request scopes and release matching rules
-crates/indexers/     # oxevu-indexers: bounded Torznab parsing and safe HTTP redirects
-crates/transfers/    # oxevu-transfers: torrent engine lifecycle, validation and identity
+crates/indexers/     # oxevu-indexers: bounded Torznab parsing
+crates/transfers/    # oxevu-transfers: torrent engine lifecycle and validation
 crates/filesystem/   # oxevu-filesystem: safe publication, checksums and disk accounting
 crates/playback/     # oxevu-playback: encoding commands, child supervision and HLS cache manifests
-crates/db/           # oxevu-db: SQLite initialization and embedded migration history
+crates/db/           # oxevu-db: SQLite initialization, migrations and library repositories
   migrations/        # original numbered migrations, contents unchanged
 crates/media/        # oxevu-media: bounded ffprobe and episode title parsing
 crates/web/          # oxevu-web: web asset embedding and serving
@@ -68,6 +71,32 @@ the torrent harness remains available through `oxevu-server`'s `torrent-spike`
 feature. One binary, database, service port and deployment remain in use.
 
 ## Boundaries and data
+
+The REST contract lives in `crates/api/src/contract` and acquisition's
+`http` adapters. Utoipa's
+`OpenApiRouter` registers each migrated HTTP operation and collects its schema
+in the same step. Wire DTOs are distinct from stored JSON records and domain
+configuration. During migration, adapters invoke existing operations and decode
+their results into the wire DTO before serialization; invalid internal results
+fail with a server error rather than escaping as falsely typed JSON.
+
+`just api-generate` exports the contract offline and runs the pinned Hey API
+generator. Commit `apps/web/src/lib/api/openapi.json` and `generated/` together.
+`just api-check` regenerates both and rejects drift, including new generated
+files. Rust tests compare the exported schema with the committed artifact.
+Frontend production builds regenerate the SDK and run Svelte/TypeScript checks
+before bundling. Native Nix builds also compare the compiled server's exported
+contract with the one used to build the frontend. Generated files are excluded
+from stylistic linting but remain included in TypeScript checking.
+
+All frontend JSON API calls use the generated SDK. Foreign migration export
+rows deliberately retain opaque vendor-specific values; their outer structure
+is checked in the browser and source-specific content is validated on import.
+Native media routes document parameters/statuses without claiming a JSON body.
+Type checking
+does not establish authorization, behavioral compatibility, runtime validation
+of all network responses, or the correctness of media ranges. Existing HTTP and
+playback tests remain necessary.
 
 HTTP handlers validate input, authorize the caller and invoke domain operations.
 Storage owns queries; playback owns child processes and temporary files.

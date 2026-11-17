@@ -3,6 +3,9 @@ name = "oxevu-transfers"
 version.workspace = true
 edition.workspace = true
 
+[features]
+test-support = []
+
 [dependencies]
 librqbit.workspace = true
 tokio.workspace = true

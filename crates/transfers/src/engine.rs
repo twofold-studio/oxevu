@@ -1,6 +1,5 @@
 use crate::*;
-use std::{path::PathBuf, sync::Arc};
-use tokio::sync::Semaphore;
+use std::sync::Arc;
 
 pub const MAX_READERS: usize = 8;
 /// Torrent engine configuration; independent of request/import policy.
@@ -19,23 +18,15 @@ use std::num::NonZeroU32;
 use tokio::sync::Mutex;
 
 pub struct Runtime {
-    pub directory: PathBuf,
-    pub gate: Mutex<()>,
-    pub import_jobs: Arc<Semaphore>,
-    pub streams: Arc<Semaphore>,
     engine: Mutex<Option<Arc<Session>>>,
     stopping: std::sync::atomic::AtomicBool,
 }
 impl Runtime {
-    pub fn new(data_dir: PathBuf) -> Arc<Self> {
-        Arc::new(Self {
-            directory: data_dir.join("acquisition"),
-            gate: Mutex::new(()),
+    pub fn new() -> Self {
+        Self {
             engine: Mutex::new(None),
             stopping: std::sync::atomic::AtomicBool::new(false),
-            import_jobs: Arc::new(Semaphore::new(1)),
-            streams: Arc::new(Semaphore::new(MAX_READERS)),
-        })
+        }
     }
     pub async fn engine(&self, c: &EngineOptions) -> Result<Arc<Session>> {
         if !c.enabled || self.is_stopping() {
@@ -53,7 +44,7 @@ impl Runtime {
             upload_bps: NonZeroU32::new(c.upload_limit_kib.saturating_mul(1024)),
         };
         let session = Session::new_with_opts(
-            PathBuf::from(&c.download_dir),
+            std::path::PathBuf::from(&c.download_dir),
             SessionOptions {
                 // SQLite owns job intent. Re-add paused and recheck files after a
                 // restart instead of letting engine persistence start unbounded jobs.
@@ -96,6 +87,7 @@ impl Runtime {
     pub async fn current(&self) -> Option<Arc<Session>> {
         self.engine.lock().await.clone()
     }
+    #[cfg(feature = "test-support")]
     pub async fn use_test_engine(&self, session: Arc<Session>) {
         *self.engine.lock().await = Some(session);
     }
@@ -106,5 +98,11 @@ impl Runtime {
         self.stopping
             .store(true, std::sync::atomic::Ordering::SeqCst);
         self.stop_engine().await;
+    }
+}
+
+impl Default for Runtime {
+    fn default() -> Self {
+        Self::new()
     }
 }

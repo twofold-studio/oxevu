@@ -15,6 +15,7 @@ mod download_limits;
 mod downloading;
 mod downloads;
 mod feeds;
+pub(crate) mod http;
 mod import_io;
 mod import_plan;
 mod imports;
@@ -25,7 +26,7 @@ mod monitoring;
 mod profiles;
 mod recognition;
 mod release_facts;
-use oxevu_transfers::release_identity;
+use oxevu_acquisition::release_identity;
 mod releases;
 mod request_status;
 mod requests;
@@ -38,71 +39,16 @@ mod torznab;
 mod transfer;
 mod transfer_source;
 mod wanted;
-pub(crate) use access::permissions;
+pub(crate) use access::{Permissions, permissions};
 pub(crate) use auto_import::run as import_worker;
 pub(crate) use downloading::annotate as annotate_downloads;
 pub(crate) use jobs::run;
 pub(crate) use monitoring::run as monitor;
 pub(crate) use runtime::Runtime;
 
+#[cfg(test)]
 pub(crate) fn routes() -> Router<App> {
-    Router::new()
-        .route("/acquisition/release-sources", get(indexers::sources))
-        .route(
-            "/acquisition/downloads/{id}/limits",
-            put(download_limits::put),
-        )
-        .route(
-            "/acquisition/downloads/{id}",
-            get(downloads::read).put(downloads::control),
-        )
-        .route("/acquisition/access", get(access::get))
-        .route("/acquisition/migration/preview", post(migration::preview))
-        .route("/acquisition/migration", post(migration::apply))
-        .route("/acquisition/events", get(events))
-        .route("/acquisition/settings", get(config::get).put(config::put))
-        .route("/acquisition/import-defaults", get(destinations::get))
-        .route(
-            "/acquisition/downloads/{id}/identity",
-            put(recognition::associate),
-        )
-        .route("/acquisition/profiles", get(profiles::list))
-        .route("/acquisition/profiles/{id}", put(profiles::put))
-        .route("/acquisition/indexers", get(indexers::list))
-        .route(
-            "/acquisition/downloads",
-            get(downloads::list).post(downloads::create).layer(
-                axum::extract::DefaultBodyLimit::max(3 * 1024 * 1024 + 65536),
-            ),
-        )
-        .route(
-            "/acquisition/downloads/{id}/adoption/preview",
-            post(adoption::preview),
-        )
-        .route(
-            "/acquisition/downloads/{id}/adoption",
-            post(adoption::apply),
-        )
-        .route(
-            "/acquisition/downloads/{id}/imports/preview",
-            post(imports::preview),
-        )
-        .route("/acquisition/downloads/{id}/imports", post(imports::apply))
-        .route("/acquisition/indexers/{id}", put(indexers::put))
-        .route("/acquisition/indexers/{id}/test", post(indexers::test))
-        .route("/acquisition/titles/{id}/releases", post(releases::search))
-        .route("/acquisition/access/{id}", put(access::put))
-        .route("/acquisition/discover", get(catalog::discover))
-        .route("/acquisition/artwork/{file}", get(catalog::artwork))
-        .route("/acquisition/titles", get(catalog::list))
-        .route("/acquisition/monitored", get(monitoring::list))
-        .route("/acquisition/monitored/{id}", put(monitoring::put))
-        .route("/acquisition/titles/{kind}/{id}", get(catalog::details))
-        .route(
-            "/acquisition/requests",
-            get(requests::list).post(requests::create),
-        )
-        .route("/acquisition/requests/{id}", put(requests::update))
+    http::router().split_for_parts().0
 }
 
 async fn events(State(a): State<App>, h: HeaderMap) -> Result<Json<Value>> {

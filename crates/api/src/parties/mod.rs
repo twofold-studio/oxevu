@@ -8,13 +8,9 @@ fn missing() -> Error {
         Json(json!({"error":"party unavailable"})),
     )
 }
+#[cfg(test)]
 pub(crate) fn routes() -> Router<App> {
-    Router::new()
-        .route("/parties", get(list).post(create))
-        .route("/parties/{id}", get(read))
-        .route("/parties/{id}/join", post(join))
-        .route("/parties/{id}/leave", post(leave))
-        .route("/parties/{id}/control", post(control))
+    crate::contract::parties::router().split_for_parts().0
 }
 pub(crate) async fn list(State(a): State<App>, h: HeaderMap) -> Result<Json<Value>> {
     let u = user(&a, &h).await?;

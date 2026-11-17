@@ -1,99 +1,92 @@
-import { request } from "./client";
+import * as sdk from "./generated/sdk.gen";
+import { sdkClient, sdkData } from "./sdk";
 import type * as A from "./acquisition-types";
-const path = (value: string) => encodeURIComponent(value);
-const put = <T>(route: string, body: unknown) =>
-  request<T>(`/acquisition${route}`, { method: "PUT", body });
-const post = <T>(route: string, body?: unknown) =>
-  request<T>(`/acquisition${route}`, { method: "POST", body });
-const get = <T>(route: string) => request<T>(`/acquisition${route}`);
 
+/** Validate the outer shape of foreign exports; the server validates each vendor's rows. */
+export function externalExport(value: unknown): import("./generated/types.gen").ExternalExport {
+  const record = (row: unknown): row is Record<string, unknown> =>
+    row !== null && typeof row === "object" && !Array.isArray(row);
+  if (Array.isArray(value) && value.every(record)) return value;
+  if (record(value) && Array.isArray(value.results) && value.results.every(record)) {
+    return { results: value.results };
+  }
+  throw new Error("Export must contain an array of records or a results object.");
+}
+
+const options = () => ({ client: sdkClient(), throwOnError: true as const });
 export const acquisitionApi = {
   previewMigration: (body: A.MigrationInput) =>
-    post<A.MigrationPreview>("/migration/preview", body),
-  migrate: (body: A.MigrationInput) =>
-    post<{ results: { key: string; imported: boolean; error?: string }[] }>("/migration", body),
+    sdkData(sdk.migrationPreview({ ...options(), body })),
+  migrate: (body: A.MigrationInput) => sdkData(sdk.migrationApply({ ...options(), body })),
   previewAdoption: (id: string, source_root: string) =>
-    post<{ files: A.ImportFile[]; token: string; notice: string }>(
-      `/downloads/${path(id)}/adoption/preview`,
-      { source_root },
-    ),
+    sdkData(sdk.adoptionPreview({ ...options(), path: { id }, body: { source_root } })),
   adopt: (id: string, source_root: string, token: string) =>
-    post<{ copied_files: number }>(`/downloads/${path(id)}/adoption`, { source_root, token }),
+    sdkData(sdk.adoptionApply({ ...options(), path: { id }, body: { source_root, token } })),
   discover: (query: string, kind: A.MediaKind, page = 1) =>
-    get<{ results: A.DiscoverTitle[]; page: number; total_pages: number; attribution: string }>(
-      `/discover?${new URLSearchParams({ query, kind, page: String(page) })}`,
-    ),
+    sdkData(sdk.discover({ ...options(), query: { query, kind, page } })),
   title: (kind: A.MediaKind, id: number) =>
-    get<{ title: A.DiscoverTitle; episodes: A.CatalogEpisode[] }>(`/titles/${kind}/${id}`),
-  requests: () => get<{ requests: A.MediaRequest[] }>("/requests"),
+    sdkData(sdk.titleDetails({ ...options(), path: { kind, id } })),
+  requests: () => sdkData(sdk.requestsList(options())),
   request: (title: A.DiscoverTitle, scope: A.RequestScope) =>
-    post<{ request: A.MediaRequest }>("/requests", {
-      kind: title.kind,
-      provider_id: title.provider_id,
-      scope,
-    }),
+    sdkData(
+      sdk.requestCreate({
+        ...options(),
+        body: { kind: title.kind, provider_id: title.provider_id, scope },
+      }),
+    ),
   decide: (id: string, status: string, note = "") =>
-    put<{ request: A.MediaRequest }>(`/requests/${path(id)}`, { status, note }),
-  monitored: () => get<{ titles: A.MonitoredTitle[] }>("/monitored"),
+    sdkData(sdk.requestDecide({ ...options(), path: { id }, body: { status, note } })),
+  monitored: () => sdkData(sdk.monitoredList(options())),
   monitor: (id: string, value: A.Monitor) =>
-    put<{ monitor: A.Monitor }>(`/monitored/${path(id)}`, {
-      enabled: value.enabled,
-      scope: value.scope,
-      library_id: value.library_id,
-      root: value.root,
-      profile_id: value.profile_id,
-      automatic: value.automatic,
-    }),
+    sdkData(
+      sdk.monitorPut({
+        ...options(),
+        path: { id },
+        body: {
+          enabled: value.enabled,
+          scope: value.scope,
+          library_id: value.library_id,
+          root: value.root,
+          profile_id: value.profile_id,
+          automatic: value.automatic,
+        },
+      }),
+    ),
   releases: (
     id: string,
-    options: {
-      season?: number;
-      episode?: number;
-      profile_id?: string;
-      offset?: number;
-      indexer_ids?: string[];
-    },
+    body: import("./generated/types.gen").ReleaseSearch,
     signal?: AbortSignal,
-  ) =>
-    request<A.ReleaseResults>(`/acquisition/titles/${path(id)}/releases`, {
-      method: "POST",
-      body: options,
-      signal,
-    }),
-  releaseSources: () => get<{ sources: A.ReleaseSource[] }>("/release-sources"),
-  downloads: () => get<{ downloads: A.Download[]; import_enabled: boolean }>("/downloads"),
-  download: (input: A.DownloadInput) => post<{ download: A.Download }>("/downloads", input),
-  downloadStatus: (id: string) => get<{ download: A.Download }>(`/downloads/${path(id)}`),
+  ) => sdkData(sdk.releasesSearch({ ...options(), path: { id }, body, signal })),
+  releaseSources: () => sdkData(sdk.releaseSources(options())),
+  downloads: () => sdkData(sdk.downloadsList(options())),
+  download: (body: A.DownloadInput) => sdkData(sdk.downloadCreate({ ...options(), body })),
+  downloadStatus: (id: string) => sdkData(sdk.downloadGet({ ...options(), path: { id } })),
   downloadLimit: (id: string, download_limit_kib: number) =>
-    put<{ download: A.Download }>(`/downloads/${path(id)}/limits`, { download_limit_kib }),
+    sdkData(sdk.downloadLimit({ ...options(), path: { id }, body: { download_limit_kib } })),
   control: (id: string, action: string, selected_files?: number[]) =>
-    put<{ download: A.Download }>(`/downloads/${path(id)}`, { action, selected_files }),
+    sdkData(sdk.downloadControl({ ...options(), path: { id }, body: { action, selected_files } })),
   previewImport: (id: string, body: A.ImportInput) =>
-    post<{ files: A.ImportFile[]; token: string; copy_fallback: boolean }>(
-      `/downloads/${path(id)}/imports/preview`,
-      body,
-    ),
+    sdkData(sdk.importPreview({ ...options(), path: { id }, body })),
   import: (id: string, body: A.ImportInput) =>
-    post<{ imports: unknown[] }>(`/downloads/${path(id)}/imports`, body),
-  importDefaults: () => get<A.ImportDefaults>("/import-defaults"),
+    sdkData(sdk.importApply({ ...options(), path: { id }, body })),
+  importDefaults: () => sdkData(sdk.importDefaults(options())),
   identify: (id: string, kind: A.MediaKind, provider_id: number) =>
-    put<{ download: A.Download }>(`/downloads/${path(id)}/identity`, { kind, provider_id }),
-  settings: () =>
-    get<{ settings: A.AcquisitionConfig; engine: string; network_policy: string }>("/settings"),
+    sdkData(sdk.downloadIdentity({ ...options(), path: { id }, body: { kind, provider_id } })),
+  settings: () => sdkData(sdk.acquisitionSettingsGet(options())),
   configure: (body: A.AcquisitionConfig) =>
-    put<{ settings: A.AcquisitionConfig }>("/settings", body),
-  profiles: () => get<{ profiles: A.ProfileRecord[] }>("/profiles"),
-  profile: (id: string, profile: A.AcquisitionProfile) =>
-    put<A.ProfileRecord>(`/profiles/${path(id)}`, profile),
-  indexers: () => get<{ indexers: A.Indexer[] }>("/indexers"),
+    sdkData(sdk.acquisitionSettingsPut({ ...options(), body })),
+  profiles: () => sdkData(sdk.profilesList(options())),
+  profile: (id: string, body: A.AcquisitionProfile) =>
+    sdkData(sdk.profilePut({ ...options(), path: { id }, body })),
+  indexers: () => sdkData(sdk.indexersList(options())),
   indexer: (
     id: string,
-    input: Pick<A.Indexer, "name" | "endpoint" | "enabled" | "download_hosts"> & {
+    body: Pick<A.Indexer, "name" | "endpoint" | "enabled" | "download_hosts"> & {
       api_key?: string;
     },
-  ) => put<{ indexer: A.Indexer }>(`/indexers/${path(id)}`, input),
-  testIndexer: (id: string) => post<{ indexer: A.Indexer }>(`/indexers/${path(id)}/test`),
+  ) => sdkData(sdk.indexerPut({ ...options(), path: { id }, body })),
+  testIndexer: (id: string) => sdkData(sdk.indexerTest({ ...options(), path: { id } })),
   permissions: (id: string, body: A.AcquisitionPermissions) =>
-    put<{ permissions: A.AcquisitionPermissions }>(`/access/${path(id)}`, body),
-  events: () => get<{ events: A.AcquisitionEvent[] }>("/events"),
+    sdkData(sdk.accessPut({ ...options(), path: { id }, body })),
+  events: () => sdkData(sdk.eventsList(options())),
 };

@@ -2,6 +2,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 pub mod release_facts;
+pub mod release_identity;
 pub mod scope;
 #[derive(Debug, thiserror::Error)]
 #[error("{0}")]

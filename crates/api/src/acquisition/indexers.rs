@@ -2,14 +2,16 @@ use super::*;
 
 static HTTP_JOBS: Semaphore = Semaphore::const_new(3);
 
-#[derive(Clone, Deserialize, Serialize, Default)]
+#[derive(Clone, Deserialize, Serialize, Default, utoipa::ToSchema)]
 #[serde(default, deny_unknown_fields)]
+#[schema(as = IndexerInput)]
 pub(super) struct Indexer {
     pub name: String,
     pub endpoint: String,
     pub api_key: String,
     pub enabled: bool,
     pub download_hosts: Vec<String>,
+    #[schema(value_type = Option<crate::contract::acquisition_transfer_model::IndexerCapabilities>)]
     pub capabilities: Value,
 }
 impl Indexer {

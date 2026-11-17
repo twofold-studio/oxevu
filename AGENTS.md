@@ -9,7 +9,7 @@ Read [goal](GOAL.md), [architecture](docs/architecture.md),
 
 ## Stack and layout
 
-- Rust / Tokio / Axum / SQLite / SQLx in `crates/server`.
+- Rust / Tokio / Axum / SQLite / SQLx across `crates/`: executable in `server`, HTTP adapters and coordination in `api`, library services in `library`, repositories and migrations in `db`.
 - Vite Plus / Svelte 5 / TypeScript / shadcn-svelte / Tailwind v4 in `apps/web`.
 - Embed release web assets; supervise external FFmpeg/ffprobe. No Node server.
 - Use dark mode, semantic tokens and `ft-ui-style`.

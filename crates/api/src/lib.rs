@@ -4,7 +4,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::{get, post, put},
+    routing::get,
 };
 use serde_json::{Value, json};
 use sqlx::{Row, SqlitePool};
@@ -16,9 +16,10 @@ use oxevu_web as assets;
 mod auth;
 mod avatars;
 mod catalog;
-use oxevu_media::episode_title;
+pub mod contract;
 mod integrations;
 mod libraries;
+mod library;
 mod library_paths;
 mod media_files;
 mod media_probe;
@@ -31,8 +32,10 @@ mod startup_error;
 mod subtitles;
 mod users;
 use auth::*;
+#[cfg(test)]
 use catalog::*;
-use libraries::*;
+#[cfg(test)]
+use libraries::{add_library, libraries};
 #[cfg(test)]
 use routes::origin_check;
 pub use startup_error::StartupError;

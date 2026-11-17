@@ -6,9 +6,4 @@ edition.workspace = true
 [dependencies]
 serde_json.workspace = true
 quick-xml.workspace = true
-reqwest.workspace = true
 thiserror.workspace = true
-
-[dev-dependencies]
-axum.workspace = true
-tokio.workspace = true

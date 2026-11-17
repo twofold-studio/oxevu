@@ -1,8 +1,8 @@
 <script lang="ts">
   import * as Dialog from "$lib/components/ui/dialog";
   import { Button } from "$lib/components/ui/button";
-  import { request, errorMessage } from "$lib/api/client";
-  import type { User } from "$lib/api/types";
+  import { errorMessage } from "$lib/api/client";
+  import { usersApi } from "$lib/api/endpoints";
   import { session } from "$lib/state/session.svelte";
   import { categories, preset } from "./avatar-presets";
 
@@ -63,7 +63,7 @@
       const context = canvas.getContext("2d");
       if (!context) throw new Error("Image editing is unavailable");
       context.drawImage(image, 128 + x - image.width * scale / 2, 128 + y - image.height * scale / 2, image.width * scale, image.height * scale);
-      const result = await request<{ user: User }>("/account/avatar", { method: "PUT", body: { image: canvas.toDataURL("image/png") } });
+      const result = await usersApi.avatar(canvas.toDataURL("image/png"));
       session.user = result.user;
       open = false;
     } catch (error) { failure = errorMessage(error); }

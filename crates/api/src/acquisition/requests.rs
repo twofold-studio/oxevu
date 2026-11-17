@@ -1,12 +1,14 @@
 use super::scope::Scope;
 use super::*;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 #[serde(deny_unknown_fields)]
+#[schema(as = RequestInput)]
 pub(super) struct Input {
     pub kind: String,
     pub provider_id: u64,
     #[serde(default)]
+    #[schema(value_type = crate::contract::acquisition_catalog_model::RequestScope)]
     pub scope: Scope,
 }
 
@@ -149,8 +151,9 @@ pub(super) async fn view(a: &App, id: &str, h: &HeaderMap) -> Result<Value> {
     )
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 #[serde(deny_unknown_fields)]
+#[schema(as = RequestDecision)]
 pub(super) struct Decision {
     pub status: String,
     #[serde(default)]

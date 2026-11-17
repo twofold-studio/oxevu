@@ -8,6 +8,34 @@ The optional [torrent engine harness](torrent-engine.md) uses CMake, also provid
 by the shell, to build its native TLS dependency. It does not enable downloads in
 the application.
 
+## REST contracts
+
+Register API handlers through Utoipa's `OpenApiRouter` and `routes!`, using named
+Rust wire types. Keep domain services independent of Axum; `oxevu-library` is
+the library example. SQL belongs in domain repositories in `oxevu-db`.
+
+After changing a route, request or response:
+
+```sh
+just api-generate
+just api-check
+cd apps/web
+pnpm check
+pnpm build
+```
+
+Commit the OpenAPI JSON and generated SDK alongside the Rust change. Do not edit
+`src/lib/api/generated` by hand. Frontend endpoint wrappers call generated SDK
+functions through the shared session/error transport; response types must be
+inferred, not asserted with a generic fetch helper. Negative type examples are
+compiled with the application. Native media reads have a small explicit lint
+allowlist. Foreign migration exports are validated as external input, not
+treated as application-owned records with guaranteed field shapes.
+
+The Rust contract snapshot test and native Nix package build reject a stale
+OpenAPI artifact. `pnpm build` regenerates the SDK and runs actual type checking
+before bundling; Vite alone does not provide that gate.
+
 ## Android
 
 Create a user-local virtual device once:

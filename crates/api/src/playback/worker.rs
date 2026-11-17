@@ -1,5 +1,28 @@
 use super::*;
+use oxevu_playback::process::ProcessError;
 use tokio::{process::Command, sync::watch};
+#[derive(Debug, thiserror::Error)]
+enum WorkerError {
+    #[error(transparent)]
+    Process(#[from] ProcessError),
+    #[error("{0}")]
+    Preparation(String),
+}
+impl From<String> for WorkerError {
+    fn from(error: String) -> Self {
+        Self::Preparation(error)
+    }
+}
+impl From<&str> for WorkerError {
+    fn from(error: &str) -> Self {
+        Self::Preparation(error.into())
+    }
+}
+impl WorkerError {
+    fn stopped(&self) -> bool {
+        matches!(self,Self::Process(error) if error.stopped())
+    }
+}
 pub(super) fn command(
     a: &App,
     input: &source::Input,
@@ -35,12 +58,12 @@ pub async fn run(
         None => None,
     };
     let mut output = json!({});
-    let result = async {
+    let result: std::result::Result<(), WorkerError> = async {
         tokio::fs::create_dir(&dir)
             .await
             .map_err(|_| "Cannot create playback scratch".to_owned())?;
         if *cancel.borrow() {
-            return Err("Playback stopped".into());
+            return Err(ProcessError::Stopped.into());
         }
         let input=source.prepare(&a).await?;
         let meta = if input.progressive() {
@@ -156,11 +179,7 @@ pub async fn run(
         // One GPU retry at the same absolute offset, never an unbounded retry loop.
         if (method == "nvenc" || decode)
             && s.allow_cpu_fallback
-            && result.as_ref().is_err_and(|e| {
-                e == "FFmpeg encoding failed"
-                    || e == "FFmpeg could not start"
-                    || e == "FFmpeg startup timed out"
-            })
+            && result.as_ref().is_err_and(ProcessError::retryable_encoding_failure)
             && !*cancel.borrow()
         {
             let _ = tokio::fs::remove_dir_all(&dir).await;
@@ -201,7 +220,7 @@ pub async fn run(
         {
             return Err("Scratch storage limit reached".into());
         }
-        result
+        result.map_err(WorkerError::from)
     }
     .await;
     if let Some(e) = a.playback.sessions.lock().await.get_mut(&id) {
@@ -209,16 +228,13 @@ pub async fn run(
             Ok(()) => e.value["status"] = json!("ready"),
             Err(error) => {
                 e.value["status"] = json!("failed");
-                e.value["error"] = json!(error);
+                e.value["error"] = json!(error.to_string());
                 e.value["stream_url"] = Value::Null;
             }
         }
     }
     if let Some(path) = source.local()
-        && (result.is_ok()
-            || result
-                .as_ref()
-                .is_err_and(|error| error == "Playback stopped"))
+        && (result.is_ok() || result.as_ref().is_err_and(WorkerError::stopped))
     {
         super::cache::store(
             &a,

@@ -168,8 +168,9 @@ pub(super) async fn identify(a: &App, id: &str) -> Result<()> {
     Ok(())
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 #[serde(deny_unknown_fields)]
+#[schema(as = DownloadIdentity)]
 pub(super) struct Identity {
     kind: String,
     provider_id: u64,

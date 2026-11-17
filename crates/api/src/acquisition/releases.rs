@@ -1,7 +1,8 @@
 use super::*;
 
-#[derive(Clone, Deserialize, Default)]
+#[derive(Clone, Deserialize, Default, utoipa::ToSchema)]
 #[serde(default, deny_unknown_fields)]
+#[schema(as = ReleaseSearch)]
 pub(super) struct Search {
     pub season: Option<u32>,
     pub episode: Option<u32>,
