@@ -2,7 +2,7 @@
   import type { Item } from "$lib/api/types";
   import { href } from "$lib/state/router.svelte";
   import { formatCodec, formatContainer, formatRuntime } from "$lib/media/format";
-  import { watchedFraction } from "$lib/media/progress";
+  import { resumePosition, watchedFraction } from "$lib/media/progress";
   import { fileAvailable } from "$lib/state/catalog.svelte";
   import TitlePlate from "./TitlePlate.svelte";
 
@@ -20,6 +20,7 @@
   {facts}
   detail={[item.year, formatRuntime(item.duration_seconds)].filter(Boolean).join(" · ")}
   progress={watchedFraction(item)}
+  inProgress={resumePosition(item) !== null}
   watched={item.completed}
   fileRemoved={!fileAvailable(item)}
   download={item.download}

@@ -5,7 +5,7 @@
   import type { Genre, DiscoverSort } from "$lib/api/generated/types.gen";
   import type { DiscoverFilters } from "$lib/media/discover-filters";
 
-  let { value = $bindable(), genres, searching }: { value: DiscoverFilters; genres: Genre[]; searching: boolean } = $props();
+  let { value, genres, searching, onchange }: { value: DiscoverFilters; genres: Genre[]; searching: boolean; onchange: (value: DiscoverFilters) => void } = $props();
   const options = $derived([
     { key: "genre" as const, label: "Genre", items: genres.map(g => ({ value: String(g.id), label: g.name })) },
     { key: "min_rating" as const, label: "Minimum rating", items: [5,6,7,8,9].map(n => ({value: String(n), label: `${n}+ / 10`})) },
@@ -18,12 +18,19 @@
     else if (key === "genre" || key === "min_rating") next[key] = Number(raw);
     else if (key === "sort") next.sort = raw as DiscoverSort;
     else next.language = raw;
-    value = next;
+    onchange(next);
+  }
+  function yearInput(event: Event & { currentTarget: HTMLInputElement }) {
+    const input = event.currentTarget;
+    if (input.value === "") onchange({ ...value, year: undefined });
+    else if (input.validity.valid && Number.isInteger(input.valueAsNumber)) {
+      onchange({ ...value, year: input.valueAsNumber });
+    }
   }
 </script>
 
 <Field.FieldGroup class="grid grid-cols-2 gap-3 lg:grid-cols-5">
-  <Field.Field><Field.Label for="discover-year">Release year</Field.Label><Input id="discover-year" type="number" min={1880} max={2100} step={1} placeholder="Any year" bind:value={value.year} /></Field.Field>
+  <Field.Field><Field.Label for="discover-year">Release year</Field.Label><Input id="discover-year" type="number" min={1880} max={2100} step={1} placeholder="Any year" value={value.year} oninput={yearInput} /></Field.Field>
   {#each options as option (option.key)}
     <Field.Field data-disabled={searching}>
       <Field.Label for={`discover-${option.key}`}>{option.label}</Field.Label>

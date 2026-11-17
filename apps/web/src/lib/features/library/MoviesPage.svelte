@@ -1,3 +1,8 @@
+<script module lang="ts">
+  type Filter = "all" | "unwatched" | "watched";
+  let lastFilter: Filter = "all";
+</script>
+
 <script lang="ts">
   import FilmIcon from "@lucide/svelte/icons/film";
   import * as ToggleGroup from "$lib/components/ui/toggle-group";
@@ -11,8 +16,7 @@
   import MoviePlate from "./MoviePlate.svelte";
   import LibraryEmpty from "./LibraryEmpty.svelte";
 
-  type Filter = "all" | "unwatched" | "watched";
-  let filter = $state<Filter>("all");
+  let filter = $state(lastFilter);
 
   const visible = $derived(
     filter === "all"
@@ -32,7 +36,7 @@
           type="single"
           variant="outline"
           size="sm"
-          bind:value={() => filter, (v) => (filter = (v as Filter) || "all")}
+          bind:value={() => filter, (v) => { filter = lastFilter = (v as Filter) || "all"; }}
           aria-label="Filter movies"
         >
           <ToggleGroup.Item value="all">All</ToggleGroup.Item>

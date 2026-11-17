@@ -14,7 +14,7 @@
   import IndexerStatusList from "./IndexerStatusList.svelte";
   import ReleaseRow from "./ReleaseRow.svelte";
 
-  let { open = $bindable(), title, season, episode, profileId = "default", autoSearch = false }: { open: boolean; title: DiscoverTitle; season?: number; episode?: number; profileId?: string; autoSearch?: boolean } = $props();
+  let { open = $bindable(), title, season, episode, profileId = "default", autoSearch = false, onlyWanted = false }: { open: boolean; title: DiscoverTitle; season?: number; episode?: number; profileId?: string; autoSearch?: boolean; onlyWanted?: boolean } = $props();
   let profiles = $state<ProfileRecord[]>([]);
   let sources = $state<ReleaseSource[]>([]);
   // svelte-ignore state_referenced_locally
@@ -27,7 +27,10 @@
   const result = $derived(completed?.result ?? (searchState.kind === "failed" ? searchState.result : undefined));
   const stale = $derived(Boolean(completed && completed.profile !== profile));
   const busy = $derived(searchState.kind === "searching");
-  const accepted = $derived(result?.releases.filter((release) => release.accepted).length ?? 0);
+  const visibleReleases = $derived(result?.releases.filter((release) =>
+    (season === undefined || release.season === season) &&
+    (episode === undefined || release.episode === episode)) ?? []);
+  const accepted = $derived(visibleReleases.filter((release) => release.accepted).length);
   const options = $derived(profiles.map((record) => ({ value: record.id, label: record.profile.name })));
 
   onMount(() => {
@@ -44,7 +47,15 @@
 </script>
 
 <Dialog.Root {open} onOpenChange={changeOpen}><Dialog.Content size="wide">
-  <Dialog.Header><Dialog.Title>Find a release · {title.title}</Dialog.Title><Dialog.Description>Choose a release to download. Your configured library import settings apply.</Dialog.Description></Dialog.Header>
+  <Dialog.Header>
+    <Dialog.Title>Find a release · {title.title}</Dialog.Title>
+    <Dialog.Description>
+      {#if onlyWanted}Only missing episodes in Wanted will be selected from the release.
+      {:else if episode !== undefined}Searching Season {season}, Episode {episode}. Review the release contents before downloading.
+      {:else if season !== undefined}Searching {season === 0 ? "Specials" : `Season ${season}`}.
+      {:else}Choose a release to download. Your configured library import settings apply.{/if}
+    </Dialog.Description>
+  </Dialog.Header>
   <div class="flex flex-wrap items-end gap-3">
     <Field.Field class="min-w-40 flex-1"><Field.Label for="release-profile">Acquisition profile</Field.Label>
       <Select.Root type="single" items={options} bind:value={profile} disabled={busy}><Select.Trigger id="release-profile" class="w-full"><Select.Value placeholder="Choose profile" /></Select.Trigger><Select.Content><Select.Group>{#each options as option (option.value)}<Select.Item value={option.value}>{option.label}</Select.Item>{/each}</Select.Group></Select.Content></Select.Root>
@@ -63,7 +74,7 @@
   {/if}
   {#if completed && !busy && accepted === 0}
     <div class="flex flex-col gap-3 rounded-lg border p-4">
-      <p class="text-sm">{result?.releases.length ? "No releases matched this profile. Review the alternatives below." : "No releases found for this title and profile."}</p>
+      <p class="text-sm">{visibleReleases.length ? "No releases matched this profile. Review the alternatives below." : "No releases found for this selection."}</p>
       <div class="flex flex-wrap gap-2">
         <Button size="sm" variant="outline" onclick={search}>Search again</Button>
         <Button size="sm" variant="ghost" onclick={() => document.getElementById("release-profile")?.focus()}>Change profile</Button>
@@ -71,10 +82,10 @@
       </div>
     </div>
   {/if}
-  {#if result?.releases.length}
-    <p class="text-xs text-muted-foreground">{accepted} meet profile · {result.releases.length - accepted} need review</p>
+  {#if visibleReleases.length}
+    <p class="text-xs text-muted-foreground">{accepted} meet profile · {visibleReleases.length - accepted} need review</p>
     <ul class={["divide-y rounded-lg border transition-opacity", (busy || stale) && "opacity-50"]} aria-busy={busy}>
-      {#each result.releases as release (release.id)}<ReleaseRow {release} {profile} disabled={busy || stale} />{/each}
+      {#each visibleReleases as release (release.id)}<ReleaseRow {release} {profile} {onlyWanted} disabled={busy || stale} />{/each}
     </ul>
   {/if}
 </Dialog.Content></Dialog.Root>

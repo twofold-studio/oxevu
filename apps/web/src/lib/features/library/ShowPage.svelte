@@ -16,6 +16,7 @@
   import { isAdmin, canManageDownloads } from "$lib/state/access";
   import RemovalDialog from "$lib/features/details/RemovalDialog.svelte";
   import FindAgainLink from "$lib/features/details/FindAgainLink.svelte";
+  import LibrarySeriesSelection from "$lib/features/acquisition/LibrarySeriesSelection.svelte";
   import type { RemovalResult } from "$lib/api/endpoints";
   import type { Item } from "$lib/api/types";
   import { href, router } from "$lib/state/router.svelte";
@@ -51,7 +52,7 @@
   // What "Play" means for a series: the episode in progress, else the next unwatched.
   const episodes = $derived(show?.seasons.flatMap((s) => s.episodes) ?? []);
   const target = $derived(
-    episodes.find((e) => e.position_seconds > 0 && !e.completed && itemPlayable(e)) ??
+    episodes.find((e) => resumePosition(e) !== null && itemPlayable(e)) ??
       episodes.find((e) => !e.completed && itemPlayable(e)) ??
       episodes.find(itemPlayable) ??
       episodes[0],
@@ -63,6 +64,9 @@
   const openSeason = $derived(show ? initialSeason(show, season, target) : "");
 
   const admin = $derived(isAdmin(session.user));
+  const tmdbId = $derived(episodes
+    .map((episode) => Number(episode.provider_ids?.tmdb))
+    .find((id) => Number.isSafeInteger(id) && id > 0));
   const canDownload = $derived(canManageDownloads(session.user));
 
   // One dialog serves both the series and a single season.
@@ -180,6 +184,9 @@
               <Button variant="outline" size="lg" href={href.activity()}>View download</Button>
             {:else if !target.download && canDownload}
               <FindAgainLink item={target} />
+            {/if}
+            {#if admin && tmdbId !== undefined}
+              <LibrarySeriesSelection titleId={tmdbId} />
             {/if}
             <IdentifyButton item={target} />
             <FavoriteButton items={episodes} label="Favorite show" />

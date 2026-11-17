@@ -9,6 +9,10 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Discover applies filters as they change, loads more titles as you scroll, and shows skeletons while title details and results load.
+- Series pages offer season and episode searches and let administrators reopen saved Wanted selections.
+- Movie and series browsing restores scroll when returning from details. Movies and episodes count as watched at 90% playback, with clearer in-progress labels on posters.
+
 - Oxevu can search Knaben, Nyaa.si, The Pirate Bay and YTS directly, alongside existing Torznab sources.
 
 - Home links to the full movie and series libraries with totals, and shows how many titles are in each preview.

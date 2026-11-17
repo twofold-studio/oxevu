@@ -3,6 +3,7 @@ import { errorMessage } from "$lib/api/client";
 import type { Item } from "$lib/api/types";
 import { groupShows, showKey, type Show } from "$lib/media/grouping";
 import { findShow } from "$lib/media/show-slug";
+import { resumePosition, withWatchedStatus } from "$lib/media/progress";
 
 /** True when the item's local file is present (or the field is missing on older servers). */
 export const fileAvailable = (item: Item): boolean => item.file_available !== false;
@@ -28,7 +29,7 @@ class Catalog {
   );
   shows = $derived(groupShows(this.items));
   inProgress = $derived(
-    this.items.filter((item) => item.position_seconds > 0 && !item.completed && itemPlayable(item)),
+    this.items.filter((item) => resumePosition(item) !== null && itemPlayable(item)),
   );
 
   private pending: Promise<void> | null = null;
@@ -60,7 +61,7 @@ class Catalog {
     try {
       const { items } = await itemsApi.list(signal);
       if (signal.aborted || generation !== this.generation) return;
-      this.items = items;
+      this.items = items.map(withWatchedStatus);
       this.status = "ready";
     } catch (error) {
       if (signal.aborted || generation !== this.generation) return;
@@ -88,7 +89,7 @@ class Catalog {
   /** Keep the cached copy in step with progress written by the player. */
   patch(id: string, changes: Partial<Item>) {
     const index = this.items.findIndex((item) => item.id === id);
-    if (index >= 0) this.items[index] = { ...this.items[index], ...changes };
+    if (index >= 0) this.items[index] = withWatchedStatus({ ...this.items[index], ...changes });
   }
 
   reset() {

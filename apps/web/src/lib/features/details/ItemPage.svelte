@@ -24,7 +24,7 @@
   import { href, router } from "$lib/state/router.svelte";
   import { formatClock, formatRuntime } from "$lib/media/format";
   import { episodeNumberLabel, seasonKeyOf, seasonLabel } from "$lib/media/grouping";
-  import { resumePosition, watchedFraction } from "$lib/media/progress";
+  import { resumePosition, watchedFraction, withWatchedStatus } from "$lib/media/progress";
   import ProgressLine from "$lib/features/library/ProgressLine.svelte";
   import Artwork from "$lib/components/Artwork.svelte";
   import { artworkSrc } from "$lib/api/artwork";
@@ -59,7 +59,7 @@
       .get(id, controller.signal)
       .then(({ item }) => {
         if (controller.signal.aborted) return;
-        fetched = item;
+        fetched = withWatchedStatus(item);
         catalog.patch(id, item);
       })
       .catch((e: unknown) => {

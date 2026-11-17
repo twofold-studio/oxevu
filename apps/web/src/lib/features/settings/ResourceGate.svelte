@@ -14,7 +14,8 @@
     what,
     onretry,
     children,
-  }: { status: ResourceStatus; error: string | null; what: string; onretry: () => void; children: Snippet } =
+    skeleton,
+  }: { status: ResourceStatus; error: string | null; what: string; onretry: () => void; children: Snippet; skeleton?: Snippet } =
     $props();
 </script>
 
@@ -41,6 +42,8 @@
       </Button>
     </Alert.Action>
   </Alert.Root>
+{:else if skeleton}
+  <div aria-busy="true" aria-label={`Loading ${what}`}>{@render skeleton()}</div>
 {:else}
   <div class="divide-y rounded-xl border" aria-busy="true" aria-label={`Loading ${what}`}>
     {#each [0, 1, 2] as i (i)}

@@ -19,6 +19,7 @@
     detail,
     progress = null,
     watched = false,
+    inProgress = progress !== null && !watched,
     fileRemoved = false,
     download = null,
     needsIdentification = false,
@@ -31,6 +32,7 @@
     detail?: string | null;
     progress?: number | null;
     watched?: boolean;
+    inProgress?: boolean;
     /** True when the item's local file has been removed. */
     fileRemoved?: boolean;
     download?: DownloadStatus | null;
@@ -104,6 +106,7 @@
       class="flex min-w-0 flex-1 flex-col gap-1"
     >
       <h3 class="line-clamp-2 font-medium leading-snug" {title}>{title}</h3>
+      {#if inProgress && !watched}<p class="text-xs font-medium text-muted-foreground">In progress</p>{/if}
       {#if needsIdentification}<p class="text-xs font-medium text-foreground">Needs identification</p>{/if}
       {#if detail || badges}
         <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">

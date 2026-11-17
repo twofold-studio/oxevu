@@ -14,7 +14,7 @@
   import { bytes } from "./format";
   import { downloadFailure } from "./release-search";
 
-  let { release, profile, disabled = false }: { release: Release; profile: string; disabled?: boolean } = $props();
+  let { release, profile, disabled = false, onlyWanted = false }: { release: Release; profile: string; disabled?: boolean; onlyWanted?: boolean } = $props();
   let reviewing = $state(false);
   let override = $state(false);
   let pending = $state(false);
@@ -43,7 +43,7 @@
     try {
       const result = job?.state === "error"
         ? await acquisitionApi.control(job.id, "retry")
-        : await acquisitionApi.download({ release_id: release.id, profile_id: profile, override_profile: override, only_wanted: false });
+        : await acquisitionApi.download({ release_id: release.id, profile_id: profile, override_profile: override, only_wanted: onlyWanted });
       observe(result.download);
     } catch (error) { failure = errorMessage(error); }
     finally { pending = false; }
@@ -72,7 +72,7 @@
     {:else}
       <Button size="sm" variant="outline" disabled={disabled || pending || (reviewing && !release.accepted && !override)} onclick={download}>
         {#if pending}<Spinner data-icon="inline-start" />{:else}<DownloadIcon data-icon="inline-start" />{/if}
-        {pending ? "Queuing…" : job?.state === "error" ? "Retry download" : reviewing && !release.accepted ? "Confirm download" : "Download"}
+        {pending ? "Queuing…" : job?.state === "error" ? "Retry download" : reviewing && !release.accepted ? "Confirm download" : onlyWanted ? "Download wanted episodes" : "Download"}
       </Button>
     {/if}
   </div>

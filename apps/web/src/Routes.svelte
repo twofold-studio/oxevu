@@ -9,6 +9,8 @@
   import SettingsPage from "$lib/features/settings/SettingsPage.svelte";
   import PartiesPage from "$lib/features/party/PartiesPage.svelte";
   import NotFound from "$lib/components/NotFound.svelte";
+  import Page from "$lib/components/Page.svelte";
+  import DiscoverTitleSkeleton from "$lib/features/acquisition/DiscoverTitleSkeleton.svelte";
 
   let { route }: { route: Route } = $props();
 </script>
@@ -34,9 +36,15 @@
 {:else if route.name === "parties"}
   <PartiesPage />
 {:else if route.name === "discover"}
-  {#key JSON.stringify(route)}{#await import("$lib/features/acquisition/DiscoverPage.svelte") then page}<page.default query={route.query} kind={route.kind} page={route.page} filters={route.filters} />{/await}{/key}
+  {#await import("$lib/features/acquisition/DiscoverPage.svelte") then page}<page.default query={route.query} kind={route.kind} page={route.page} filters={route.filters} />{/await}
 {:else if route.name === "discover-title"}
-  {#key `${route.kind}:${route.id}`}{#await import("$lib/features/acquisition/DiscoverTitlePage.svelte") then page}<page.default kind={route.kind} id={route.id} />{/await}{/key}
+  {#key `${route.kind}:${route.id}`}
+    {#await import("$lib/features/acquisition/DiscoverTitlePage.svelte")}
+      <Page><div aria-busy="true" aria-label="Loading title"><DiscoverTitleSkeleton series={route.kind === "tv"} /></div></Page>
+    {:then page}
+      <page.default kind={route.kind} id={route.id} />
+    {/await}
+  {/key}
 {:else if route.name === "requests"}
   {#await import("$lib/features/acquisition/RequestsPage.svelte") then page}<page.default />{/await}
 {:else if route.name === "wanted"}
