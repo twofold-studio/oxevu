@@ -5,6 +5,12 @@ pub struct File {
     pub id: String,
     pub path: String,
 }
+pub async fn excluded(pool: &SqlitePool, path: &str) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM scan_exclusions WHERE path=?)")
+        .bind(path)
+        .fetch_one(pool)
+        .await
+}
 pub async fn existing_id(pool: &SqlitePool, path: &str) -> Result<Option<String>, sqlx::Error> {
     sqlx::query_scalar("SELECT id FROM items WHERE path=?")
         .bind(path)
@@ -18,6 +24,9 @@ pub async fn upsert(
     path: &str,
     data: &str,
 ) -> Result<(), sqlx::Error> {
+    if excluded(pool, path).await? {
+        return Ok(());
+    }
     sqlx::query(
         "INSERT INTO items VALUES(?,?,?,?) ON CONFLICT(path) DO UPDATE SET data=excluded.data",
     )

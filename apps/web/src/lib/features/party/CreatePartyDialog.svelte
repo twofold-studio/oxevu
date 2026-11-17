@@ -11,7 +11,7 @@
   import { partySession } from "$lib/party/session.svelte";
 
   // Parent remounts per opening; `itemId` preselects a title.
-  let { open = $bindable(false), itemId = null }: { open: boolean; itemId?: string | null } = $props();
+  let { open = $bindable(false), itemId = null, oncreated }: { open: boolean; itemId?: string | null; oncreated?: (id: string) => void } = $props();
 
   let name = $state(`${session.user?.username ?? "My"}'s party`);
   let submitted = $state(false);
@@ -33,7 +33,8 @@
       await partySession.join(party.id);
       if (itemId) await partySession.play(itemId, true);
       open = false;
-      if (!itemId) router.go(href.party(party.id));
+      if (oncreated) oncreated(party.id);
+      else if (!itemId) router.go(href.party(party.id));
     } catch (error) {
       failure = errorMessage(error);
     } finally {

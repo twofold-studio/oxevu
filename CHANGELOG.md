@@ -9,6 +9,10 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Series season summaries consistently show a cover, season tabs label episode counts explicitly without visible scrollbars, and the selector sits under Seasons. Watch parties opens in a centered modal from the header, preserving the current library page.
+
+- Stats for nerds uses a dismissible popover with per-account browser pin preferences. Pinned technical attributes appear under title details; series disk usage totals available episode files.
+
 - Catalog, library-root updates, scanning and identification now separate SQL repositories, HTTP adapters and an independent library service crate. Playback fallback and cancellation use typed process errors; acquisition owns workflow coordination, and the torrent test hook is feature-gated.
 
 - REST routes now register their OpenAPI contracts alongside the real handlers. All frontend JSON API calls use a pinned Hey API TypeScript SDK generated from Rust wire types; the generic response-casting client is removed. Production builds regenerate bindings and type-check before bundling, while contract drift checks reject stale artifacts. Native media stays on HTTP; foreign migration rows retain explicit source-specific validation.
@@ -22,6 +26,10 @@ as available; planned features belong in GOAL.md.
 - Watch parties opens from the top-right header between the account menu and search, replacing its rail and mobile More links.
 
 ### Fixed
+
+- OMDb matches now expose authenticated poster artwork, including existing matches such as Superman and Underwater. Jellyfin season-specific poster filenames are recognized before series artwork.
+
+- Library scans ignore explicitly named sample videos. Verified catalog-only duplicate merges preserve user state and metadata and persist source exclusions so rescans cannot recreate the same duplicates; media files are retained.
 
 - Series identification prefers unique episode titles over release numbering, covering combined releases such as House season six whose local episode 22 corresponds to TMDB episode 21.
 - Metadata searches preserve numbers in titles such as Blade Runner 2049 and 2001: A Space Odyssey when a later release year is present in the filename.

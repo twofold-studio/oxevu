@@ -129,7 +129,7 @@
 
     {#snippet episodeSection()}
       <section aria-labelledby="episodes" class="flex flex-col gap-4">
-        <h2 id="episodes" class="text-xl font-semibold tracking-tight">Episodes</h2>
+        <h2 id="episodes" class="text-xl font-semibold tracking-tight">{show.seasons.length > 1 ? "Seasons" : "Episodes"}</h2>
         <SeasonPicker
           seasons={show.seasons}
           value={openSeason}
@@ -163,7 +163,7 @@
             {/if}
           {/snippet}
           {#if target}
-            <TitleFacts item={target} series children={counts} />
+            <TitleFacts item={target} series files={episodes} children={counts} />
           {:else}
             <ul aria-label="Details" class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">{@render counts()}</ul>
           {/if}

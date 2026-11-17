@@ -10,6 +10,8 @@
   import { Button } from "$lib/components/ui/button";
   import { session } from "$lib/state/session.svelte";
   import { canJoinParties } from "$lib/state/access";
+  import WatchPartiesDialog from "$lib/features/party/WatchPartiesDialog.svelte";
+  let partiesOpen = $state(false);
 
   const crumbs = $derived(breadcrumbs(router.route, catalog));
 </script>
@@ -43,17 +45,20 @@
   <AccountMenu />
   {#if canJoinParties(session.user)}
     <Button
-      href={href.parties()}
+      onclick={() => (partiesOpen = true)}
       variant="ghost"
       size="icon"
       aria-label="Watch parties"
       title="Watch parties"
-      aria-current={router.route.name === "parties" || router.route.name === "party" ? "page" : undefined}
+      aria-haspopup="dialog"
+      aria-expanded={partiesOpen}
       class={router.route.name === "parties" || router.route.name === "party" ? "bg-accent text-foreground" : "text-muted-foreground"}
     ><UsersRoundIcon /></Button>
   {/if}
   <SearchBox class="hidden w-56 md:block xl:w-72" />
 </header>
+
+{#if partiesOpen}<WatchPartiesDialog bind:open={partiesOpen} />{/if}
 
 <!-- Search stays reachable on phones without crowding the header. -->
 <div class="border-b px-4 py-2 md:hidden">

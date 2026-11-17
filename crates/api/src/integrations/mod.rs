@@ -2,6 +2,7 @@ use crate::*;
 mod http;
 use serde::{Deserialize, Serialize};
 mod metadata;
+mod metadata_artwork;
 mod metadata_worker;
 pub(crate) use metadata::tmdb;
 pub(crate) use metadata_worker::run as metadata_worker;

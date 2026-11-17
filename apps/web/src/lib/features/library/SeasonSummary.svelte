@@ -10,8 +10,8 @@
   import RatingBadge from "./metadata/RatingBadge.svelte";
   import ProgressLine from "./ProgressLine.svelte";
 
-  // The heading block above a season's episodes: its own cover (only when it
-  // differs from the series poster already shown in the hero), name, counts,
+  // The heading block above a season's episodes: its cover (falling back to
+  // the series poster), name, counts,
   // score, watched share, overview and season-scoped actions.
   let {
     season,
@@ -27,13 +27,13 @@
   const watched = $derived(season.episodes.filter((e) => e.completed).length);
   const rating = $derived(seasonRating(season.episodes[0]));
   const overview = $derived(season.episodes[0]?.season_overview);
-  const ownCover = $derived(season.posterUrl !== null && season.posterUrl !== seriesPoster);
+  const cover = $derived(season.posterUrl ?? seriesPoster);
 </script>
 
 <div class="flex gap-4">
-  {#if ownCover}
+  {#if cover}
     <!-- The heading beside it names the season, so the cover is decorative. -->
-    <Artwork src={season.posterUrl} alt="" class="hidden aspect-[2/3] w-20 shrink-0 self-start rounded-md border bg-card sm:block" />
+    <Artwork src={cover} alt="" class="aspect-[2/3] w-16 shrink-0 self-start rounded-md border bg-card sm:w-20" />
   {/if}
   <div class="flex min-w-0 flex-1 flex-col gap-3">
     <div class="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">

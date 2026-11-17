@@ -25,7 +25,7 @@ pub(crate) async fn tmdb(c: &Config, route: &str, query: &[(&str, String)]) -> R
     )
     .await
 }
-async fn omdb(c: &Config, query: &[(&str, String)]) -> Result<Value> {
+pub(super) async fn omdb(c: &Config, query: &[(&str, String)]) -> Result<Value> {
     if !c.omdb.enabled || c.omdb.api_key.is_empty() {
         return Err(bad("OMDB requires an enabled API key"));
     }
@@ -138,35 +138,5 @@ pub(crate) async fn artwork(
     h: HeaderMap,
     Path((id, kind)): Path<(String, String)>,
 ) -> Result<Response> {
-    item_data(&a, &h, &id).await?;
-    let field = match kind.as_str() {
-        "poster" => "metadata_poster",
-        "backdrop" => "metadata_backdrop",
-        "thumbnail" => "metadata_thumbnail",
-        _ => return Err(bad("unknown artwork kind")),
-    };
-    let raw: String = sqlx::query_scalar("SELECT data FROM item_metadata WHERE item_id=?")
-        .bind(&id)
-        .fetch_one(&a.pool)
-        .await
-        .map_err(db)?;
-    let data: Value = serde_json::from_str(&raw).map_err(|_| bad("invalid metadata"))?;
-    let image = image(&data[field]).ok_or_else(|| bad("artwork unavailable"))?;
-    let response = client()?
-        .get(format!("https://image.tmdb.org/t/p/w780{image}"))
-        .send()
-        .await
-        .map_err(|_| bad("artwork request failed"))?;
-    let bytes = bytes(response, 8 * 1024 * 1024).await?;
-    if !bytes.starts_with(&[0xff, 0xd8, 0xff]) {
-        return Err(bad("invalid provider artwork"));
-    }
-    Ok((
-        [
-            (axum::http::header::CONTENT_TYPE, "image/jpeg"),
-            (axum::http::header::CACHE_CONTROL, "private, max-age=86400"),
-        ],
-        bytes,
-    )
-        .into_response())
+    super::metadata_artwork::get(a, h, id, kind).await
 }

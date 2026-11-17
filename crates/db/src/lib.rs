@@ -1,5 +1,6 @@
 //! Database initialization and the single authoritative migration history.
 pub mod catalog;
+pub mod catalog_cleanup;
 pub mod identification;
 pub mod libraries;
 pub mod metadata_jobs;

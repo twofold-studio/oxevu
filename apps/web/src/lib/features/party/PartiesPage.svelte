@@ -19,6 +19,7 @@
   import CreatePartyDialog from "./CreatePartyDialog.svelte";
   import { itemLabel } from "./item-label";
 
+  let { embedded = false, onjoin }: { embedded?: boolean; onjoin?: (id: string) => void } = $props();
   const parties = createResource(async () => (await partiesApi.list()).parties);
   let createOpen = $state(false);
   let opening = $state(0);
@@ -42,11 +43,7 @@
   }
 </script>
 
-<Page class="max-w-5xl">
-  <PageHeader
-    title="Watch parties"
-    description="Join a party, then browse the library. Anyone can start a title for everyone; volume and subtitles stay personal."
-  >
+{#snippet content()}
     {#snippet actions()}
       <Button variant="outline" size="sm" onclick={parties.load} aria-label="Refresh parties">
         <RotateCwIcon />
@@ -58,7 +55,11 @@
         </Button>
       {/if}
     {/snippet}
-  </PageHeader>
+  {#if embedded}
+    <div class="flex justify-end gap-2">{@render actions()}</div>
+  {:else}
+    <PageHeader title="Watch parties" description="Join a party, then browse the library. Anyone can start a title for everyone; volume and subtitles stay personal." {actions} />
+  {/if}
 
   <ResourceGate status={parties.status} error={parties.error} what="watch parties" onretry={parties.load}>
     {#if (parties.value ?? []).length === 0}
@@ -85,14 +86,18 @@
                 <CrownIcon class="size-3.5" />{hostName(party)} · {plural(party.members.length, "member")}
               </span>
             </div>
-            <Button href={href.party(party.id)} variant="outline">Join</Button>
+            {#if onjoin}<Button onclick={() => onjoin(party.id)} variant="outline">Join</Button>
+            {:else}<Button href={href.party(party.id)} variant="outline">Join</Button>{/if}
           </li>
         {/each}
       </ul>
     {/if}
   </ResourceGate>
-</Page>
+{/snippet}
+
+{#if embedded}<div class="flex flex-col gap-5">{@render content()}</div>
+{:else}<Page class="max-w-5xl">{@render content()}</Page>{/if}
 
 {#key opening}
-  <CreatePartyDialog bind:open={createOpen} />
+  <CreatePartyDialog bind:open={createOpen} oncreated={onjoin} />
 {/key}

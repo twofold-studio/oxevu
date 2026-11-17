@@ -40,7 +40,7 @@
   // keyboard selection past the edge). Only the strip scrolls, never the page.
   $effect(() => {
     if (!list || !value) return;
-    const active = list.querySelector<HTMLElement>("[data-state='active']");
+    const active = list.querySelector<HTMLElement>("[data-active]");
     if (!active) return;
     const left = active.offsetLeft - (list.clientWidth - active.offsetWidth) / 2;
     list.scrollTo({ left: Math.max(0, left) });
@@ -65,7 +65,7 @@
       bind:ref={list}
       variant="line"
       aria-label="Seasons"
-      class="relative h-auto w-full justify-start gap-0 overflow-x-auto rounded-none p-0 [scrollbar-width:thin] shadow-[inset_0_-1px_0_0_var(--color-border)]"
+      class="relative w-full justify-start gap-1 overflow-x-auto overflow-y-hidden rounded-none p-0 group-data-horizontal/tabs:h-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden shadow-[inset_0_-1px_0_0_var(--color-border)]"
     >
       {#each seasons as season (seasonKey(season))}
         {@const watched = watchedIn(season)}
@@ -73,7 +73,7 @@
         {@const hasUpNext = upNextId !== undefined && season.episodes.some((e) => e.id === upNextId)}
         <Tabs.Trigger
           value={seasonKey(season)}
-          class="h-10 flex-none px-3 group-data-horizontal/tabs:after:bottom-0 sm:px-4"
+          class="h-12 flex-none gap-3 px-3 group-data-horizontal/tabs:after:bottom-0 sm:px-4"
         >
           {#if hasUpNext}
             <span aria-hidden="true" class="size-1.5 shrink-0 rounded-full bg-brand" title="Up next"></span>
@@ -82,7 +82,7 @@
           {#if done}
             <CheckIcon aria-hidden="true" class="size-3.5 text-muted-foreground" />
           {:else}
-            <span aria-hidden="true" class="text-xs font-normal text-muted-foreground tabular-nums">{season.episodes.length}</span>
+            <span aria-hidden="true" class="rounded-md border px-1.5 py-0.5 text-xs font-normal text-muted-foreground tabular-nums">{plural(season.episodes.length, "episode")}</span>
           {/if}
           <span class="sr-only">
             , {plural(season.episodes.length, "episode")}{watched > 0

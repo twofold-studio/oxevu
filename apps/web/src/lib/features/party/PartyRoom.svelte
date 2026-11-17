@@ -11,7 +11,7 @@
   import { href, router } from "$lib/state/router.svelte";
   import { errorMessage } from "$lib/api/client";
 
-  let { id }: { id: string } = $props();
+  let { id, embedded = false, onback, onbrowse }: { id: string; embedded?: boolean; onback?: () => void; onbrowse?: () => void } = $props();
   let failure = $state<string | null>(null);
   let confirmLeave = $state(false);
   const party = $derived(partySession.connection?.id === id ? partySession.connection.party : null);
@@ -22,15 +22,17 @@
 
   function leave() {
     partySession.leave();
-    router.go(href.parties());
+    if (onback) onback(); else router.go(href.parties());
   }
 </script>
 
-<Page class="max-w-3xl">
-  <PageHeader title={party?.name ?? "Watch party"} description="Browse independently. When anyone starts a movie or episode, everyone opens it together. Playback is shared; volume and subtitles are yours." />
+{#snippet content()}
+  {#if embedded}<h3 class="text-lg font-semibold">{party?.name ?? "Watch party"}</h3>
+  {:else}<PageHeader title={party?.name ?? "Watch party"} description="Browse independently. When anyone starts a movie or episode, everyone opens it together. Playback is shared; volume and subtitles are yours." />{/if}
   {#if failure}
     <p role="alert" class="text-sm text-destructive">{failure}</p>
-    <Button href={href.parties()} variant="outline">Back to parties</Button>
+    {#if onback}<Button onclick={onback} variant="outline">Back to parties</Button>
+    {:else}<Button href={href.parties()} variant="outline">Back to parties</Button>{/if}
   {:else if party}
     <section class="flex flex-col gap-5 rounded-xl border bg-card p-5" aria-label="Party members">
       <h2 class="flex items-center gap-2 font-medium"><UsersRoundIcon class="size-4" />Members · {party.members.length}</h2>
@@ -44,7 +46,8 @@
         {/each}
       </ul>
       <div class="flex flex-wrap gap-2">
-        <Button href={href.home()}>Browse library</Button>
+        {#if onbrowse}<Button onclick={onbrowse}>Browse library</Button>
+        {:else}<Button href={href.home()}>Browse library</Button>{/if}
         {#if party.item_id}<Button variant="outline" href={href.watch(party.item_id)}>Return to playback</Button>{/if}
         <Button variant="ghost" onclick={() => (confirmLeave = !confirmLeave)}>{isHost ? "End party" : "Leave party"}</Button>
       </div>
@@ -59,4 +62,6 @@
   {:else}
     <div class="flex items-center gap-2 text-sm text-muted-foreground" role="status"><Spinner />Joining party…</div>
   {/if}
-</Page>
+{/snippet}
+{#if embedded}<div class="flex flex-col gap-5">{@render content()}</div>
+{:else}<Page class="max-w-3xl">{@render content()}</Page>{/if}

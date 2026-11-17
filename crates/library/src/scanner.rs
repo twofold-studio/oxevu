@@ -57,6 +57,13 @@ pub async fn run(pool: &SqlitePool, id: &str, artwork: &dyn Artwork) -> Result<V
                 continue;
             }
             let path = entry.path();
+            if super::scan_policy::sample(&path)
+                || repository::excluded(pool, path.to_string_lossy().as_ref())
+                    .await
+                    .map_err(db)?
+            {
+                continue;
+            }
             if ty.is_dir() {
                 dirs.push((path, root.clone()));
                 continue;

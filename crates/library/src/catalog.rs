@@ -45,6 +45,13 @@ pub fn project(snapshot: Snapshot, visible: &HashSet<String>) -> Result<Vec<Valu
                     .entry(format!("{kind}_url"))
                     .or_insert(Value::Null);
             }
+            if value["poster_url"].as_str().is_none_or(str::is_empty)
+                && value["rating_source"] == "IMDb"
+                && value["provider_ids"]["imdb"].as_str().is_some()
+            {
+                value["poster_url"] =
+                    json!(format!("/api/v1/items/{}/metadata/artwork/poster", item.id));
+            }
             value["position_seconds"] = json!(item.position);
             value["completed"] = json!(item.completed);
             value["favorite"] = json!(snapshot.favorites.contains(&item.id));

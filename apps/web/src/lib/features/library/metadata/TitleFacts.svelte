@@ -10,6 +10,10 @@
   import { now } from "$lib/state/clock.svelte";
   import MetaFact from "./MetaFact.svelte";
   import RatingBadge from "./RatingBadge.svelte";
+  import FileFacts from "$lib/features/details/FileFacts.svelte";
+  import { fileFacts } from "$lib/media/file-facts";
+  import { factPins } from "$lib/state/fact-pins.svelte";
+  import { session } from "$lib/state/session.svelte";
 
   // The compact facts line under a title: years, certificate, score, length
   // and finish time, followed by page-specific facts passed as <li> children.
@@ -20,7 +24,11 @@
     series = false,
     rating: override,
     children,
-  }: { item: Item; series?: boolean; rating?: Rating | null; children?: Snippet } = $props();
+    files,
+  }: { item: Item; series?: boolean; rating?: Rating | null; children?: Snippet; files?: Item[] } = $props();
+
+  $effect(() => factPins.load(session.user?.id));
+  const pinned = $derived(fileFacts(item, files).filter((row) => factPins.ids.includes(row.id) && row.value !== null));
 
   const years = $derived(yearSpan(item, series));
   const certificate = $derived(present(series ? item.show_content_rating : item.content_rating));
@@ -39,5 +47,7 @@
   {#if rating}<li><RatingBadge {rating} /></li>{/if}
   {#if runtime}<MetaFact icon={ClockIcon} label={`Runtime ${runtime}`}>{runtime}</MetaFact>{/if}
   {#if finish}<MetaFact icon={FlagIcon} label={`Ends at ${finish}`}>{finish}</MetaFact>{/if}
+  {#each pinned as row (row.id)}<MetaFact label={`${row.label}: ${row.value}`}><span class="text-xs">{row.label}</span><span class="text-foreground">{row.value}</span></MetaFact>{/each}
+  <li><FileFacts {item} {files} /></li>
   {@render children?.()}
 </ul>

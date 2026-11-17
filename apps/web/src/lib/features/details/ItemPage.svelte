@@ -34,7 +34,6 @@
   import TitleFacts from "$lib/features/library/metadata/TitleFacts.svelte";
   import MetaFact from "$lib/features/library/metadata/MetaFact.svelte";
   import HistoryIcon from "@lucide/svelte/icons/history";
-  import FileFacts from "./FileFacts.svelte";
   import PlaybackNotice from "./PlaybackNotice.svelte";
   import FavoriteButton from "$lib/features/library/FavoriteButton.svelte";
   import FindAgainLink from "./FindAgainLink.svelte";
@@ -195,7 +194,6 @@
             {item.title}
           </h1>
           <TitleFacts {item}>
-            {#if hasFile}<li><FileFacts {item} /></li>{/if}
             {#if item.completed}
               <MetaFact icon={CheckIcon}>Watched</MetaFact>
             {:else if resume !== null}

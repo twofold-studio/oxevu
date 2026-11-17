@@ -214,6 +214,9 @@ async fn apply_inner(
             }
         }
         let item_id = row.id;
+        if m.provider == "omdb" {
+            data["poster_url"] = json!(format!("/api/v1/items/{item_id}/metadata/artwork/poster"));
+        }
         for (field, kind) in [
             ("metadata_poster", "poster"),
             ("metadata_backdrop", "backdrop"),

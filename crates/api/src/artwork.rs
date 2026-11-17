@@ -25,12 +25,24 @@ pub(super) async fn discover(
     let stem = path.file_stem()?.to_str()?;
     let suffix = if kind == "thumbnail" { "thumb" } else { kind };
     let mut names = vec![parent.join(format!("{stem}-{suffix}"))];
+    let season = if tv && kind == "poster" {
+        regex::Regex::new(r"(?i)s(\d{1,3})e").ok().and_then(|re| {
+            re.captures(stem)
+                .and_then(|c| c.get(1))
+                .and_then(|s| s.as_str().parse::<u32>().ok())
+        })
+    } else {
+        None
+    };
     if kind != "thumbnail" {
         let mut directory = Some(parent);
         while let Some(dir) = directory {
             // Generic artwork at a library root is ambiguous between playable items.
             if dir == root {
                 break;
+            }
+            if let Some(season) = season {
+                names.push(dir.join(format!("season{season:02}-poster")));
             }
             names.push(dir.join(kind));
             if kind == "poster" {
@@ -221,6 +233,13 @@ mod tests {
         assert_eq!(
             discover(&season.join("Show S02E01.mkv"), &root, true, "poster").await,
             Some(root.join("Show/folder.jpg"))
+        );
+        tokio::fs::write(root.join("Show/season02-poster.jpg"), b"season cover")
+            .await
+            .unwrap();
+        assert_eq!(
+            discover(&season.join("Show S02E01.mkv"), &root, true, "poster").await,
+            Some(root.join("Show/season02-poster.jpg"))
         );
         assert!(
             discover(&root.join("Anna.mkv"), &root, false, "backdrop")
