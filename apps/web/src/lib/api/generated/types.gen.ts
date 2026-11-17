@@ -401,6 +401,8 @@ export type Item = {
     id: string;
     kind: ItemKind;
     library_id: string;
+    metadata_error?: string | null;
+    metadata_status?: MetadataStatus | null;
     overview?: string | null;
     position_seconds: number;
     poster_url?: string | null;
@@ -513,6 +515,8 @@ export type MetadataResult = {
 export type MetadataResults = {
     results: Array<MetadataResult>;
 };
+
+export type MetadataStatus = 'pending' | 'identified' | 'needs_identification';
 
 export type MigrationInput = {
     profile_id?: string | null;

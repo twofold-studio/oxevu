@@ -33,6 +33,15 @@
   );
 </script>
 
+{#if item.metadata_status === "needs_identification"}
+  <div role="status" class="rounded-lg border bg-muted/40 px-4 py-3 text-sm">
+    <p class="font-medium">Needs identification</p>
+    <p class="mt-1 text-muted-foreground">{item.metadata_error ?? "Automatic metadata matching could not find a unique title."} Use Identify to search or paste a provider ID.</p>
+  </div>
+{:else if item.metadata_status === "pending"}
+  <p role="status" class="text-sm text-muted-foreground">Metadata lookup queued…</p>
+{/if}
+
 {#if overview || genres.length || studios.length || creators.length || links.length}
   <section aria-label={series ? "Series information" : "Title information"} class="flex max-w-3xl flex-col gap-5">
     {#if overview}<p class="text-sm leading-7 text-muted-foreground">{overview}</p>{/if}

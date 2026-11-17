@@ -4,8 +4,10 @@ struct Provider;
 impl MetadataSource for Provider {
     fn tmdb<'a>(&'a self, route: &'a str, _: &'a [(&'a str, String)]) -> MetadataFuture<'a> {
         Box::pin(async move {
-            if route.ends_with("episode/2") {
-                return Err(bad("provider unavailable"));
+            if route.contains("/season/") {
+                return Ok(
+                    json!({"episodes":[{"episode_number":1,"name":"Episode one","overview":"Episode overview","vote_average":8.1}]}),
+                );
             }
             Ok(
                 json!({"name":"Matched title","overview":"Overview","vote_average":8.0,"first_air_date":"2020-01-01"}),
@@ -19,6 +21,39 @@ impl MetadataSource for Provider {
             )
         })
     }
+}
+
+#[tokio::test]
+async fn series_larger_than_one_hundred_episodes_uses_season_metadata() {
+    let (_root, pool, item) = fixture(true).await;
+    for n in 2..=176 {
+        let mut next = item.clone();
+        next["id"] = json!(format!("item{n}"));
+        sqlx::query("INSERT INTO items VALUES(?,'library',?,?)")
+            .bind(format!("item{n}"))
+            .bind(format!("/virtual/{n}"))
+            .bind(next.to_string())
+            .execute(&pool)
+            .await
+            .unwrap();
+    }
+    apply(
+        &pool,
+        "one",
+        item,
+        Selection {
+            provider: "tmdb".into(),
+            id: "123".into(),
+        },
+        &Provider,
+    )
+    .await
+    .unwrap();
+    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM item_metadata")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(count, 176);
 }
 
 async fn fixture(tv: bool) -> (tempfile::TempDir, SqlitePool, Value) {

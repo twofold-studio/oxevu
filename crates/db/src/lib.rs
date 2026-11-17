@@ -2,6 +2,7 @@
 pub mod catalog;
 pub mod identification;
 pub mod libraries;
+pub mod metadata_jobs;
 pub mod scanning;
 use sqlx::SqlitePool;
 use std::path::Path;

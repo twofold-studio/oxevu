@@ -14,8 +14,8 @@ pub trait MetadataSource: Sync {
 }
 #[derive(Deserialize)]
 pub struct Selection {
-    provider: String,
-    id: String,
+    pub provider: String,
+    pub id: String,
 }
 fn strings(v: &Value, key: &str) -> Vec<String> {
     v.as_array()
@@ -58,10 +58,34 @@ pub async fn apply(
     m: Selection,
     provider: &dyn MetadataSource,
 ) -> Result<()> {
+    apply_inner(pool, id, item, m, provider, false).await
+}
+
+pub async fn apply_automatic(
+    pool: &SqlitePool,
+    id: &str,
+    item: Value,
+    m: Selection,
+    provider: &dyn MetadataSource,
+) -> Result<()> {
+    apply_inner(pool, id, item, m, provider, true).await
+}
+
+async fn apply_inner(
+    pool: &SqlitePool,
+    id: &str,
+    item: Value,
+    m: Selection,
+    provider: &dyn MetadataSource,
+    automatic: bool,
+) -> Result<()> {
     let tv = item["kind"] == "episode";
     let mut enrichment = match m.provider.as_str() {
         "tmdb" => {
             let number = m.id.parse::<u64>().map_err(|_| bad("invalid TMDB id"))?;
+            if number == 0 {
+                return Err(bad("invalid TMDB id"));
+            }
             let data = provider
                 .tmdb(
                     &format!("{}/{number}", if tv { "tv" } else { "movie" }),
@@ -71,6 +95,12 @@ pub async fn apply(
                     )],
                 )
                 .await?;
+            if data[if tv { "name" } else { "title" }]
+                .as_str()
+                .is_none_or(|s| s.trim().is_empty())
+            {
+                return Err(bad("provider returned no title"));
+            }
             let imdb = data["imdb_id"]
                 .as_str()
                 .or_else(|| data["external_ids"]["imdb_id"].as_str());
@@ -90,6 +120,7 @@ pub async fn apply(
         "omdb" => {
             if !m.id.starts_with("tt")
                 || !m.id[2..].bytes().all(|b| b.is_ascii_digit())
+                || m.id.len() < 3
                 || m.id.len() > 20
             {
                 return Err(bad("invalid IMDb id"));
@@ -97,11 +128,25 @@ pub async fn apply(
             let data = provider
                 .omdb(&[("i", m.id.clone()), ("plot", "full".into())])
                 .await?;
+            if data["Type"]
+                .as_str()
+                .is_some_and(|kind| kind != if tv { "series" } else { "movie" })
+            {
+                return Err(bad("IMDb ID has the wrong media type"));
+            }
             json!({"title":data["Title"],"overview":data["Plot"],"year":date_year(&data["Year"]),"rating":rating(&data["imdbRating"]),"content_rating":data["Rated"],"genres":csv(&data["Genre"]),"studios":csv(&data["Production"]),"creators":csv(&data["Director"]),"provider_ids":{"imdb":m.id},"external_urls":{"imdb":format!("https://www.imdb.com/title/{}/",m.id)}})
         }
         _ => return Err(bad("unsupported metadata provider")),
     };
+    if automatic
+        && enrichment["overview"]
+            .as_str()
+            .is_none_or(|s| s.trim().is_empty() || s == "N/A")
+    {
+        return Err(bad("Provider has no overview for this title; use Identify"));
+    }
     enrichment["rating_source"] = json!(if m.provider == "tmdb" { "TMDB" } else { "IMDb" });
+    enrichment["metadata_source"] = json!(if automatic { "automatic" } else { "manual" });
     if tv {
         for field in [
             "overview",
@@ -124,8 +169,8 @@ pub async fn apply(
     )
     .await
     .map_err(Error::Storage)?;
-    if rows.len() > 100 {
-        return Err(bad("series metadata limit is 100 episodes per match"));
+    if rows.len() > 2000 {
+        return Err(bad("series metadata limit is 2000 episodes per match"));
     }
     let mut updates = Vec::new();
     let mut seasons = std::collections::HashMap::<u64, Value>::new();
@@ -134,9 +179,6 @@ pub async fn apply(
             serde_json::from_str(&row.data).map_err(|_| bad("invalid item metadata"))?;
         if tv && source["show_title"] != item["show_title"] {
             continue;
-        }
-        if updates.len() >= 100 {
-            return Err(bad("series metadata limit is 100 episodes per match"));
         }
         let mut data = enrichment.clone();
         if tv {
@@ -161,12 +203,9 @@ pub async fn apply(
                     data["season_overview"] = details["overview"].clone();
                     data["season_rating"] = details["vote_average"].clone();
                 }
-                let episode = provider
-                    .tmdb(
-                        &format!("tv/{}/season/{season}/episode/{episode}", m.id),
-                        &[],
-                    )
-                    .await?;
+                let episode = seasons.get(&season).and_then(|s| s["episodes"].as_array())
+                    .and_then(|episodes| episodes.iter().find(|e| e["episode_number"].as_u64() == Some(episode)))
+                    .ok_or_else(|| bad("provider has no metadata for a local episode; identify the series or numbering manually"))?;
                 data["title"] = episode["name"].clone();
                 data["overview"] = episode["overview"].clone();
                 data["rating"] = episode["vote_average"].clone();
@@ -188,7 +227,7 @@ pub async fn apply(
         data["studio_images"]=json!(data["studios"].as_array().into_iter().flatten().filter_map(|s|s.as_str()).map(|name|json!({"name":name,"url":format!("/api/v1/items/{item_id}/metadata/studios/{}",slug(name))})).collect::<Vec<_>>());
         updates.push((item_id, data.to_string()));
     }
-    repository::publish(pool, &updates)
+    repository::publish_mode(pool, &updates, automatic)
         .await
         .map_err(Error::Storage)?;
     Ok(())

@@ -2,3 +2,4 @@
 pub mod episode_title;
 mod probe;
 pub use probe::{ProbeError, attach_facts, read};
+pub mod nfo;

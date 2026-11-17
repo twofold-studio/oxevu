@@ -7738,6 +7738,22 @@
           "library_id": {
             "type": "string"
           },
+          "metadata_error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "metadata_status": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/MetadataStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "overview": {
             "type": [
               "string",
@@ -8261,6 +8277,14 @@
             }
           }
         }
+      },
+      "MetadataStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "identified",
+          "needs_identification"
+        ]
       },
       "MigrationInput": {
         "type": "object",

@@ -36,6 +36,26 @@ The Rust contract snapshot test and native Nix package build reject a stale
 OpenAPI artifact. `pnpm build` regenerates the SDK and runs actual type checking
 before bundling; Vite alone does not provide that gate.
 
+## Metadata enrichment
+
+The supervised metadata worker checks all enabled libraries for records without
+complete metadata, including records created by scans, manual imports and
+automatic acquisition. It runs one job at a time through the scan gate, with a
+90-second deadline. Existing manual matches are never replaced in the background.
+
+Local Jellyfin/Kodi NFO sidecars are read first (1 MiB, no DTDs, confined to the
+configured library root). Movies use their own sidecar or a folder `movie.nfo`;
+episodes inherit `tvshow.nfo` and `season.nfo` alongside their episode sidecar.
+Otherwise enabled TMDB and OMDb providers are tried in order. Automatic search
+requires one exact normalized title and, when available, release-year match.
+TMDB series matching reuses season responses and has a 2,000-episode bound.
+
+Failures persist separately from scanner data and appear as Needs identification.
+They retry after six hours, or after metadata integration settings are saved.
+Identify accepts search results, numeric TMDB IDs/title URLs, or IMDb `tt…`
+IDs/title URLs through OMDb. Provider credentials remain necessary for ID lookup.
+File bytes and sidecars remain read-only.
+
 ## Android
 
 Create a user-local virtual device once:

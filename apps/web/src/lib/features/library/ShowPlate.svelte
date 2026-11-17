@@ -38,4 +38,5 @@
   watched={watchedCount === show.episodeCount}
   fileRemoved={allRemoved}
   download={activeDownload}
+  needsIdentification={show.seasons.some((s) => s.episodes.some((e) => e.metadata_status === "needs_identification"))}
 />

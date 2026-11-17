@@ -14,7 +14,7 @@ export const metadataApi = {
         query: { provider, query },
       }),
     ),
-  match: (id: string, result: MetadataResult) =>
+  match: (id: string, result: Pick<MetadataResult, "provider" | "id">) =>
     sdkData(
       generated.metadataMatch({
         client: sdkClient(),

@@ -33,6 +33,10 @@ as available; planned features belong in GOAL.md.
 
 ### Added
 
+- Automatic metadata enrichment for existing and newly imported library items: read bounded local NFO sidecars, then try configured TMDB/OMDb providers with conservative title/year matching. Unmatched titles show Needs identification and retry after six hours; manual matches take priority. Identify also accepts TMDB IDs/URLs and IMDb IDs/URLs for OMDb.
+
+- Series identification supports up to 2,000 episodes and reuses each TMDB season response instead of requesting every episode separately.
+
 - The flake provides a reproducible server package with embedded web assets and a NixOS service module with persistent state, FFmpeg and read-only media access.
 
 - Accounts can upload and crop avatars with circular previews, zoom and positioning, or choose from 20 presets across abstract, animals, people and space. Avatars are saved per account and shown in the header.

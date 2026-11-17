@@ -1,8 +1,10 @@
 //! Library application services. HTTP adapters stay at the API boundary.
+pub mod automatic_metadata;
 pub mod catalog;
 pub mod identification;
 pub mod roots;
 pub mod scanner;
+mod sidecars;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {

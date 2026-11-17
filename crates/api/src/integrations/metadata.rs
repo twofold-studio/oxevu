@@ -109,7 +109,7 @@ async fn apply_inner(a: App, h: HeaderMap, id: String, m: Match) -> Result<Json<
         .map_err(crate::library::response)?;
     catalog::item(State(a), h, Path(id)).await
 }
-struct ProviderSource(Config);
+pub(super) struct ProviderSource(pub(super) Config);
 fn provider_error(error: crate::Error) -> crate::library::Error {
     crate::library::Error::Invalid(
         error.1.0["error"]

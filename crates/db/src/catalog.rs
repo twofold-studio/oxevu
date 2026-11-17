@@ -28,7 +28,7 @@ pub async fn snapshot(pool: &SqlitePool, user: &str) -> Result<Snapshot, sqlx::E
         .into_iter()
         .map(|r| (r.get("item_id"), r.get("value")))
         .collect();
-    let items = sqlx::query("SELECT items.id,data,CAST(COALESCE(position,0.0) AS REAL) position,COALESCE(completed,0) completed FROM items LEFT JOIN progress ON item_id=items.id AND user_id=?")
+    let items = sqlx::query("SELECT items.id,json_set(data,'$.metadata_status',CASE WHEN s.identified=1 THEN 'identified' WHEN a.item_id IS NOT NULL THEN 'needs_identification' ELSE 'pending' END,'$.metadata_error',CASE WHEN s.identified=0 THEN a.error END) data,CAST(COALESCE(position,0.0) AS REAL) position,COALESCE(completed,0) completed FROM items JOIN item_metadata_state s ON s.id=items.id LEFT JOIN progress p ON p.item_id=items.id AND user_id=? LEFT JOIN metadata_attempts a ON a.item_id=items.id")
         .bind(user).fetch_all(pool).await?.into_iter().map(|r| Item { id:r.get("id"),data:r.get("data"),position:r.get("position"),completed:r.get("completed") }).collect();
     let metadata = sqlx::query("SELECT item_id,data FROM item_metadata")
         .fetch_all(pool)

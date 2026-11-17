@@ -51,6 +51,10 @@ pub(crate) struct ExternalUrls {
 
 #[derive(Deserialize, Serialize, ToSchema)]
 pub(crate) struct Item {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata_status: Option<MetadataStatus>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub metadata_error: Option<String>,
     pub id: String,
     pub library_id: String,
     pub title: String,
@@ -149,4 +153,12 @@ pub(crate) struct Item {
     pub show_studios: Option<Vec<String>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub show_creators: Option<Vec<String>>,
+}
+
+#[derive(Deserialize, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum MetadataStatus {
+    Pending,
+    Identified,
+    NeedsIdentification,
 }

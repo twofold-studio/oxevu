@@ -2,7 +2,9 @@ use crate::*;
 mod http;
 use serde::{Deserialize, Serialize};
 mod metadata;
+mod metadata_worker;
 pub(crate) use metadata::tmdb;
+pub(crate) use metadata_worker::run as metadata_worker;
 mod opensubtitles;
 mod studios;
 pub(crate) use metadata::{Match, Search};
@@ -143,6 +145,7 @@ pub(crate) async fn put(
         let _ = tokio::fs::remove_file(temp).await;
     }
     result?;
+    oxevu_db::metadata_jobs::retry(&a.pool).await.map_err(db)?;
     Ok(Json(response(&c)))
 }
 pub(crate) fn client() -> Result<reqwest::Client> {

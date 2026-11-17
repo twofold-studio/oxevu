@@ -20,6 +20,7 @@
     watched = false,
     fileRemoved = false,
     download = null,
+    needsIdentification = false,
   }: {
     href: string;
     title: string;
@@ -31,6 +32,7 @@
     /** True when the item's local file has been removed. */
     fileRemoved?: boolean;
     download?: DownloadStatus | null;
+    needsIdentification?: boolean;
   } = $props();
 
   const size = $derived(
@@ -100,6 +102,7 @@
       class="flex min-w-0 flex-1 flex-col gap-0.5 px-3 py-2.5 transition-colors duration-200 group-hover:bg-accent/40 sm:px-4"
     >
       <h3 class="truncate text-sm font-medium" {title}>{title}</h3>
+      {#if needsIdentification}<p class="text-xs font-medium text-foreground">Needs identification</p>{/if}
       {#if detail}
         <p class="truncate text-xs text-muted-foreground">{detail}</p>
       {/if}

@@ -113,6 +113,7 @@ pub async fn run() -> std::result::Result<(), StartupError> {
     let acquisition_worker = tokio::spawn(acquisition::run(app.clone()));
     let monitor_worker = tokio::spawn(acquisition::monitor(app.clone()));
     let import_worker = tokio::spawn(acquisition::import_worker(app.clone()));
+    let metadata_worker = tokio::spawn(integrations::metadata_worker(app.clone()));
     let shutdown_runtime = app.playback.clone();
     let acquisition_runtime = app.acquisition.clone();
     let router = routes::router(app.clone());
@@ -139,6 +140,8 @@ pub async fn run() -> std::result::Result<(), StartupError> {
     acquisition_worker.abort();
     monitor_worker.abort();
     import_worker.abort();
+    metadata_worker.abort();
+    let _ = metadata_worker.await;
     let _ = import_worker.await;
     let _ = monitor_worker.await;
     let _ = acquisition_worker.await;

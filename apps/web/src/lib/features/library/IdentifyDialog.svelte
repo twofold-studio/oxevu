@@ -7,6 +7,8 @@
   import * as ToggleGroup from "$lib/components/ui/toggle-group";
   import { metadataApi, type MetadataProvider, type MetadataResult } from "$lib/api/metadata";
   import { errorMessage } from "$lib/api/client";
+  import { metadataId } from "$lib/api/metadata-id";
+  import { identificationQuery } from "$lib/media/metadata";
   import type { Item } from "$lib/api/types";
   import { catalog } from "$lib/state/catalog.svelte";
   import { cn } from "$lib/utils";
@@ -20,13 +22,14 @@
   } = $props();
   // The parent remounts this dialog for each opening.
   // svelte-ignore state_referenced_locally
-  let query = $state(item.kind === "episode" ? (item.show_title ?? item.title) : item.title);
+  let query = $state(identificationQuery(item));
   let provider = $state<MetadataProvider>("tmdb");
   let results = $state<MetadataResult[]>([]);
   let selected = $state<MetadataResult | null>(null);
   let searched = $state(false);
   let pending = $state(false);
   let failure = $state<string | null>(null);
+  let manualId = $state("");
 
   async function search(event: SubmitEvent) {
     event.preventDefault();
@@ -34,6 +37,7 @@
     pending = true;
     failure = null;
     selected = null;
+    manualId = "";
     try {
       results = (await metadataApi.search(item.id, provider, query.trim())).results;
       searched = true;
@@ -46,11 +50,13 @@
   }
 
   async function identify() {
-    if (!selected || pending) return;
+    if ((!selected && !manualId.trim()) || pending) return;
     pending = true;
     failure = null;
     try {
-      const { item: updated } = await metadataApi.match(item.id, selected);
+      const match = manualId.trim() ? { provider, id: metadataId(provider, manualId, item.kind === "episode") } : selected;
+      if (!match) return;
+      const { item: updated } = await metadataApi.match(item.id, match);
       catalog.patch(updated.id, updated);
       onsaved?.(updated);
       await catalog.ensure(true);
@@ -81,7 +87,7 @@
         <Field.Field>
           <Field.Label>Provider</Field.Label>
           <ToggleGroup.Root type="single" variant="outline" value={provider} disabled={pending}
-            onValueChange={(value) => { if (value === "tmdb" || value === "omdb") { provider = value; results = []; selected = null; searched = false; } }} aria-label="Metadata provider">
+            onValueChange={(value) => { if (value === "tmdb" || value === "omdb") { provider = value; results = []; selected = null; manualId = ""; searched = false; } }} aria-label="Metadata provider">
             <ToggleGroup.Item value="tmdb">TMDB</ToggleGroup.Item>
             <ToggleGroup.Item value="omdb">OMDb</ToggleGroup.Item>
           </ToggleGroup.Root>
@@ -89,6 +95,13 @@
         </Field.Field>
       </Field.Group>
     </form>
+    <Field.Field>
+      <Field.Label for="identify-provider-id">Or identify by {provider === "tmdb" ? "TMDB" : "IMDb"} ID</Field.Label>
+      <Input id="identify-provider-id" bind:value={manualId} disabled={pending} placeholder={provider === "tmdb" ? "Numeric ID or TMDB title URL" : "tt1234567 or IMDb title URL"} />
+      <Field.Description>
+        <a class="underline" target="_blank" rel="noopener noreferrer" href={provider === "tmdb" ? `https://www.themoviedb.org/search?query=${encodeURIComponent(query)}` : `https://www.imdb.com/find/?q=${encodeURIComponent(query)}`}>Find this title on {provider === "tmdb" ? "TMDB" : "IMDb"}</a>, then paste its ID or URL here.{provider === "omdb" ? " OMDb looks up titles using IMDb IDs." : ""}
+      </Field.Description>
+    </Field.Field>
     {#if pending}<p class="flex items-center gap-2 text-sm text-muted-foreground" role="status"><Spinner class="size-4" />Loading…</p>{/if}
     {#if failure}<p class="text-sm text-destructive" role="alert">{failure}</p>{/if}
     {#if results.length}
@@ -97,7 +110,7 @@
           <li>
             <button type="button" class={cn("flex w-full items-start gap-4 px-4 py-3 text-left transition-colors hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50", selected?.id === result.id && selected.provider === result.provider && "bg-accent")}
               aria-pressed={selected?.id === result.id && selected.provider === result.provider}
-              disabled={pending} onclick={() => (selected = result)}>
+              disabled={pending} onclick={() => { selected = result; manualId = ""; }}>
               <MatchPoster url={result.poster_url} />
               <span class="flex min-w-0 flex-1 flex-col gap-1">
               <span class="font-medium">{result.title}{result.year ? ` (${result.year})` : ""}</span>
@@ -113,7 +126,7 @@
     {/if}
     <Dialog.Footer>
       <Button variant="outline" onclick={() => (open = false)}>Close</Button>
-      <Button disabled={!selected || pending} onclick={identify}>Use this match</Button>
+      <Button disabled={(!selected && !manualId.trim()) || pending} onclick={identify}>{manualId.trim() ? "Identify by ID" : "Use this match"}</Button>
     </Dialog.Footer>
   </Dialog.Content>
 </Dialog.Root>

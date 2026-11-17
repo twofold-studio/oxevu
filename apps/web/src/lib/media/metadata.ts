@@ -20,6 +20,12 @@ export interface Rating {
 
 const PROVIDERS: Record<ProviderId, string> = { tmdb: "TMDB", imdb: "IMDb" };
 
+/** Remove release details when an imported filename has not been identified. */
+export function identificationQuery(item: Item): string {
+  const raw = item.kind === "episode" ? (item.show_title ?? item.title) : item.title;
+  return raw.replace(/[._]/g, " ").replace(/\s*[([]?\b(?:18\d{2}|19\d{2}|20\d{2}|2100)\b[\s\S]*$/, "").trim().replace(/\s*-$/, "").trim() || raw;
+}
+
 /** A provider by its known id, for values whose origin is fixed in code. */
 export function provider(id: ProviderId): RatingSource {
   return { id, name: PROVIDERS[id] };

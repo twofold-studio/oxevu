@@ -23,4 +23,5 @@
   watched={item.completed}
   fileRemoved={!fileAvailable(item)}
   download={item.download}
+  needsIdentification={item.metadata_status === "needs_identification"}
 />
