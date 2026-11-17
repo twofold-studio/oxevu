@@ -2151,16 +2151,34 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 
 [[package]]
-name = "oxevu-server"
+name = "oxevu-acquisition"
 version = "0.1.0"
 dependencies = [
- "anyhow",
+ "regex",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "oxevu-api"
+version = "0.1.0"
+dependencies = [
  "argon2",
  "axum",
  "base64 0.22.1",
  "futures-util",
  "libc",
  "librqbit",
+ "oxevu-acquisition",
+ "oxevu-config",
+ "oxevu-db",
+ "oxevu-filesystem",
+ "oxevu-indexers",
+ "oxevu-media",
+ "oxevu-playback",
+ "oxevu-transfers",
+ "oxevu-web",
  "quick-xml 0.38.4",
  "rand_core 0.6.4",
  "regex",
@@ -2170,10 +2188,103 @@ dependencies = [
  "sha2",
  "sqlx",
  "tempfile",
+ "thiserror 2.0.21",
  "tokio",
  "tower",
  "tower-http",
  "uuid",
+]
+
+[[package]]
+name = "oxevu-config"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "oxevu-db"
+version = "0.1.0"
+dependencies = [
+ "sqlx",
+ "thiserror 2.0.21",
+ "tokio",
+]
+
+[[package]]
+name = "oxevu-filesystem"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "sha2",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "oxevu-indexers"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "quick-xml 0.38.4",
+ "reqwest 0.12.28",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+]
+
+[[package]]
+name = "oxevu-media"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+]
+
+[[package]]
+name = "oxevu-playback"
+version = "0.1.0"
+dependencies = [
+ "libc",
+ "oxevu-config",
+ "oxevu-filesystem",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.21",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "oxevu-server"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "librqbit",
+ "oxevu-api",
+ "tempfile",
+ "tokio",
+]
+
+[[package]]
+name = "oxevu-transfers"
+version = "0.1.0"
+dependencies = [
+ "librqbit",
+ "serde_json",
+ "sha2",
+ "thiserror 2.0.21",
+ "tokio",
+]
+
+[[package]]
+name = "oxevu-web"
+version = "0.1.0"
+dependencies = [
+ "axum",
 ]
 
 [[package]]

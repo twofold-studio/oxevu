@@ -147,7 +147,7 @@ streaming incomplete downloads are later work, not hidden requirements of v1.
 
 ## Data and implementation boundaries
 
-Use modules under `crates/server/src/acquisition/`: `requests`, `catalog`,
+Use modules under `crates/api/src/acquisition/`: `requests`, `catalog`,
 `indexers`, `releases`, `downloads`, `imports` and `jobs`. Create directories only
 as code arrives. Keep movie/episode policies small and share the durable pipeline.
 Frontend feature directories cover Discover, Requests, Activity and administration;

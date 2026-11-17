@@ -10,27 +10,30 @@ Oxevu is one Rust service with a bundled web UI. FFmpeg and ffprobe are external
 - SQLite with SQLx and versioned migrations for users, libraries, catalog and progress. No separate database service.
 - Svelte 5 and TypeScript with Vite Plus, shadcn-svelte components and Tailwind CSS v4 for a responsive client. Build static assets and embed them in release binaries. No Node runtime in production.
 - Versioned JSON API under `/api/v1`, described with OpenAPI. Generate client types from the API contract.
-- One Cargo workspace, initially one server crate. Use modules rather than a crate per feature; extract crates when a real independent boundary appears.
+- One Cargo workspace with a thin executable and dependency-directed libraries. Rules, encoding, engine lifecycle, filesystem publication, configuration, database initialization, media inspection and embedded assets are independent of application state. The API crate owns HTTP authorization, persisted workflows and coordination between those libraries.
 - Structured tracing with request/job IDs. Never log passwords, session tokens or complete media access URLs.
 
 These are project defaults, not claims of validated playback or mobile compatibility.
 
-## Planned source layout
+## Source layout
 
 ```text
-crates/server/
-  src/
-    main.rs          # configuration, startup and shutdown
-    app.rs           # application state and routing
-    auth/            # accounts, sessions and authorization
-    library/         # roots, scanning, identification and catalog
-    playback/        # capability negotiation, sessions and delivery
-    jobs/            # bounded task execution and cancellation
-    storage/         # SQLite queries and migrations integration
-    api/             # HTTP contracts and handlers
-    config/          # validated configuration
-  migrations/
-  tests/             # API and end-to-end server tests
+crates/server/        # oxevu-server: Tokio entry point and optional torrent harness
+crates/api/           # oxevu-api: application lifecycle, HTTP authorization and workflow orchestration
+  src/routes.rs      # HTTP composition and origin middleware
+  src/acquisition/   # requests, indexers, transfers and import supervision
+  src/playback/      # sessions, FFmpeg supervision and delivery
+  src/parties/       # watch parties
+crates/config/       # oxevu-config: serialized settings, defaults and validation
+crates/acquisition/  # oxevu-acquisition: request scopes and release matching rules
+crates/indexers/     # oxevu-indexers: bounded Torznab parsing and safe HTTP redirects
+crates/transfers/    # oxevu-transfers: torrent engine lifecycle, validation and identity
+crates/filesystem/   # oxevu-filesystem: safe publication, checksums and disk accounting
+crates/playback/     # oxevu-playback: encoding commands, child supervision and HLS cache manifests
+crates/db/           # oxevu-db: SQLite initialization and embedded migration history
+  migrations/        # original numbered migrations, contents unchanged
+crates/media/        # oxevu-media: bounded ffprobe and episode title parsing
+crates/web/          # oxevu-web: web asset embedding and serving
 apps/web/
   src/lib/api/       # generated types and request client
   src/lib/components/
@@ -42,6 +45,27 @@ docs/               # architecture, playback and operational guides
 ```
 
 Create directories when they contain working code. The mobile folder is reserved, not a commitment to a wrapper framework.
+
+`oxevu-server` depends on `oxevu-api`, which composes the lower-level libraries.
+No library depends back on the API. Playback depends on configuration and
+filesystem primitives; the other lower-level crates have no workspace dependency.
+`oxevu-config` and `oxevu-media` expose typed errors; API adapters translate them
+to the existing HTTP responses. The database crate owns one migration history,
+shared by production startup and isolated tests. Moving migrations must never
+change their SQL or checksums.
+
+The process supervisor accepts a session observer for PID updates, lease checks
+and live authorization. It owns child creation, cancellation, reaping, output
+bounds, startup timeouts and disk limits; it never reads the application database.
+Filesystem publication accepts an immutable approved plan and a cancellation
+callback, never application state or a torrent runtime. The transfer engine
+accepts only network/storage options, not request policy. This keeps shared
+application state out of reusable libraries and avoids feature dependency cycles.
+
+Workspace versions, editions and dependency versions are declared in the root
+Cargo manifest. Existing module tests run with `cargo test --workspace --locked`;
+the torrent harness remains available through `oxevu-server`'s `torrent-spike`
+feature. One binary, database, service port and deployment remain in use.
 
 ## Boundaries and data
 

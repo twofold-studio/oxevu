@@ -1,0 +1,7 @@
+[package]
+name = "oxevu-web"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+axum.workspace = true
