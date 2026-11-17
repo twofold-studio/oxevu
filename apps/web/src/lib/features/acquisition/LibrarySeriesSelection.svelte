@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import * as Dialog from "$lib/components/ui/dialog";
   import { Button } from "$lib/components/ui/button";
   import { Skeleton } from "$lib/components/ui/skeleton";
@@ -8,8 +9,7 @@
   import SeriesSelectionDialog from "./SeriesSelectionDialog.svelte";
   import { newSeriesSelection } from "./series-selection";
 
-  let { titleId }: { titleId: number } = $props();
-  let open = $state(false);
+  let { titleId, open = $bindable(false) }: { titleId: number; open?: boolean } = $props();
   let pending = $state(false);
   let error = $state<string | null>(null);
   let entry = $state<MonitoredTitle | null>(null);
@@ -36,9 +36,9 @@
       if (current === generation) pending = false;
     }
   }
+  onMount(() => { void load(); });
 </script>
 
-<Button variant="outline" size="lg" onclick={load}>Manage downloads</Button>
 {#if open && entry}
   <SeriesSelectionDialog bind:open {entry} {episodes} />
 {:else if open}

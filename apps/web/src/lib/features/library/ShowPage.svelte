@@ -5,17 +5,22 @@
   import CheckIcon from "@lucide/svelte/icons/check";
   import LayersIcon from "@lucide/svelte/icons/layers";
   import TvIcon from "@lucide/svelte/icons/tv";
-  import { Button } from "$lib/components/ui/button";
+  import MenuIcon from "@lucide/svelte/icons/menu";
+  import SearchIcon from "@lucide/svelte/icons/search";
+  import DownloadIcon from "@lucide/svelte/icons/download";
+  import SettingsIcon from "@lucide/svelte/icons/settings";
+  import { Button, buttonVariants } from "$lib/components/ui/button";
+  import * as DropdownMenu from "$lib/components/ui/dropdown-menu";
   import { Skeleton } from "$lib/components/ui/skeleton";
   import Page from "$lib/components/Page.svelte";
   import CatalogGate from "$lib/components/CatalogGate.svelte";
   import NotFound from "$lib/components/NotFound.svelte";
   import DetailLayout from "$lib/components/DetailLayout.svelte";
-  import { catalog, itemPlayable } from "$lib/state/catalog.svelte";
+  import { catalog, fileAvailable, itemPlayable } from "$lib/state/catalog.svelte";
   import { session } from "$lib/state/session.svelte";
   import { isAdmin, canManageDownloads } from "$lib/state/access";
   import RemovalDialog from "$lib/features/details/RemovalDialog.svelte";
-  import FindAgainLink from "$lib/features/details/FindAgainLink.svelte";
+  import { itemsApi } from "$lib/api/endpoints";
   import LibrarySeriesSelection from "$lib/features/acquisition/LibrarySeriesSelection.svelte";
   import TrailerButton from "$lib/features/details/TrailerButton.svelte";
   import type { RemovalResult } from "$lib/api/endpoints";
@@ -27,7 +32,7 @@
   import { artworkSrc } from "$lib/api/artwork";
   import NextUpCard from "./NextUpCard.svelte";
   import SeasonPicker from "./SeasonPicker.svelte";
-  import IdentifyButton from "./IdentifyButton.svelte";
+  import IdentifyDialog from "./IdentifyDialog.svelte";
   import MetadataDetails from "./MetadataDetails.svelte";
   import PosterArt from "./PosterArt.svelte";
   import TitleFacts from "./metadata/TitleFacts.svelte";
@@ -72,6 +77,8 @@
 
   // One dialog serves both the series and a single season.
   let removalOpen = $state(false);
+  let identifyOpen = $state(false);
+  let downloadsOpen = $state(false);
   let removal = $state<{ ids: string[]; label: string; series: boolean }>({ ids: [], label: "", series: true });
   const transferring = (items: Item[]) => items.some((e) => !!e.download);
   function confirmRemoval(items: Item[], label: string, series: boolean) {
@@ -176,33 +183,44 @@
         {#if target}
           <div class="flex flex-wrap gap-2">
             {#if targetPlayable}
-              <Button href={href.watch(target.id)} size="lg" class="h-auto min-h-9 max-w-full py-2 whitespace-normal">
+              <Button href={href.watch(target.id)} size="lg" class="h-auto min-h-9 max-w-full py-2 whitespace-normal xl:hidden">
                 <PlayIcon data-icon="inline-start" />
                 {resuming ? "Resume" : "Play"}
                 {episodeName(target)}
               </Button>
-            {:else if target.download && canDownload}
-              <Button variant="outline" size="lg" href={href.activity()}>View download</Button>
-            {:else if !target.download && canDownload}
-              <FindAgainLink item={target} />
             {/if}
-            {#if admin && tmdbId !== undefined}
-              <LibrarySeriesSelection titleId={tmdbId} />
+            {#if admin || canDownload || (session.user?.can_play && fileAvailable(target))}
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger class={buttonVariants({ variant: "outline", size: "icon-lg", class: "cursor-pointer" })} aria-label="Series actions">
+                  <MenuIcon />
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Content align="start" class="min-w-48">
+                  {#if session.user?.can_play && fileAvailable(target)}
+                    <DropdownMenu.Item class="cursor-pointer">
+                      {#snippet child({ props })}
+                        <a {...props} href={itemsApi.downloadUrl(target.id)} download=""><DownloadIcon />Download next episode</a>
+                      {/snippet}
+                    </DropdownMenu.Item>
+                  {/if}
+                  {#if canDownload}
+                    {#if target.download}
+                      <DropdownMenu.Item class="cursor-pointer" onSelect={() => router.go(href.activity())}><DownloadIcon />View download</DropdownMenu.Item>
+                    {/if}
+                    <DropdownMenu.Item class="cursor-pointer" onSelect={() => router.go(tmdbId === undefined ? href.discover(show.title, "tv") : href.discoverTitle("tv", tmdbId))}><SearchIcon />Find releases</DropdownMenu.Item>
+                  {/if}
+                  {#if admin}
+                    {#if tmdbId !== undefined}
+                      <DropdownMenu.Item class="cursor-pointer" onSelect={() => downloadsOpen = true}><SettingsIcon />Manage downloads</DropdownMenu.Item>
+                    {/if}
+                    <DropdownMenu.Item class="cursor-pointer" onSelect={() => identifyOpen = true}><SearchIcon />Identify</DropdownMenu.Item>
+                    <DropdownMenu.Separator />
+                    <DropdownMenu.Item variant="destructive" class="cursor-pointer" disabled={transferring(episodes)} onSelect={() => confirmRemoval(episodes, show.title, true)}><TrashIcon />Remove series</DropdownMenu.Item>
+                  {/if}
+                </DropdownMenu.Content>
+              </DropdownMenu.Root>
             {/if}
-            <IdentifyButton item={target} />
             <FavoriteButton items={episodes} label="Favorite show" />
             <TrailerButton kind="tv" providerId={tmdbId} title={show.title} />
-            {#if admin}
-              <Button
-                variant="outline"
-                size="lg"
-                disabled={transferring(episodes)}
-                title={transferring(episodes) ? "Manage active transfers in Downloads before removing this selection" : undefined}
-                onclick={() => confirmRemoval(episodes, show.title, true)}
-              >
-                <TrashIcon data-icon="inline-start" />Remove series
-              </Button>
-            {/if}
           </div>
         {/if}
       </header>
@@ -211,6 +229,8 @@
     </DetailLayout>
   {/if}
   {#if admin && show}
+    {#if identifyOpen && target}<IdentifyDialog bind:open={identifyOpen} item={target} />{/if}
+    {#if downloadsOpen && tmdbId !== undefined}<LibrarySeriesSelection titleId={tmdbId} bind:open={downloadsOpen} />{/if}
     <RemovalDialog bind:open={removalOpen} itemIds={removal.ids} label={removal.label} onremoved={handleRemoved} />
   {/if}
 </CatalogGate>

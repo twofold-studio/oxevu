@@ -9,6 +9,9 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Series pages group download, identification and removal actions in a menu and keep a single play action in the desktop hero.
+- Web pages use Lenis for smooth wheel scrolling and honor the system reduced-motion setting.
+
 - Movies and episodes with local media offer an original-file download to viewers with playback access.
 
 - The player shows a frame and timestamp above the seek bar while hovering or scrubbing local videos.

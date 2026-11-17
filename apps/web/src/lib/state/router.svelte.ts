@@ -1,5 +1,6 @@
 import { parseRoute, type Route } from "./routes";
 import { tick } from "svelte";
+import Lenis from "lenis";
 
 export { href, parseRoute, type Route } from "./routes";
 
@@ -10,6 +11,7 @@ const returnable = (route: Route) =>
 class Router {
   private readonly libraryScroll = new Map<string, number>();
   private navigation = 0;
+  private lenis: Lenis | null = null;
   route = $state<Route>(parseRoute(window.location.hash));
   /** Where "Back to library" leads from settings: the last browsing page. */
   returnTo = $state(returnable(this.route) ? window.location.hash || "#/" : "#/");
@@ -26,9 +28,30 @@ class Router {
       const top = this.libraryScroll.get(window.location.hash) ?? 0;
       const navigation = ++this.navigation;
       void tick().then(() => {
-        if (navigation === this.navigation) window.scrollTo({ top, behavior: "instant" });
+        if (navigation !== this.navigation) return;
+        if (this.lenis) {
+          this.lenis.resize();
+          this.lenis.scrollTo(top, { immediate: true, force: true });
+        } else {
+          window.scrollTo({ top, behavior: "instant" });
+        }
       });
     });
+  }
+
+  mountSmoothScroll() {
+    const lenis = new Lenis({
+      autoRaf: true,
+      allowNestedScroll: true,
+      respectReducedMotion: true,
+      stopInertiaOnNavigate: true,
+      prevent: (element) => element.matches('[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]'),
+    });
+    this.lenis = lenis;
+    return () => {
+      lenis.destroy();
+      this.lenis = null;
+    };
   }
 
   go(target: string, replace = false) {

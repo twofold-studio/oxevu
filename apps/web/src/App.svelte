@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import "lenis/dist/lenis.css";
   import { Toaster } from "$lib/components/ui/sonner";
   import * as Tooltip from "$lib/components/ui/tooltip";
   import { session } from "$lib/state/session.svelte";
@@ -20,6 +21,8 @@
   let mobileReady = $state(!isMobileApp);
   let mobileServer = $state<string | null>(null);
   let chooseServer = $state(false);
+
+  onMount(() => { if (!isMobileApp) return router.mountSmoothScroll(); });
 
   onMount(() => {
     void (async () => {
