@@ -3,25 +3,62 @@
 </p>
 
 <p align="center">
-  <a href="GOAL.md"><img src="https://img.shields.io/badge/project-plan-e87935" alt="Read the project plan" /></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/version-0.1.0-f27635" alt="Version 0.1.0" /></a>
+  <a href="flake.nix"><img src="https://img.shields.io/badge/Nix-flake-2b2b2b" alt="Nix flake" /></a>
+  <a href="docs/mobile.md"><img src="https://img.shields.io/badge/Android-preview-2b2b2b" alt="Android preview" /></a>
 </p>
 
 <h1 align="center">Oxevu</h1>
 
-<p align="center">Your media, in one place.</p>
+<p align="center">
+  <img src="assets/screenshots/hero.webp" alt="Oxevu's production movie library behind an Arcane series detail window" width="100%" />
+</p>
 
-Oxevu is a self-hosted media app in early development. It aims to bring a home server's player, library, requests, indexers, and downloads into one Rust executable, with a shared Svelte interface for the web, Android, and iOS.
+<p align="center">A self-hosted home for your movies and series.</p>
 
-The project will replace an existing Jellyfin, Sonarr, Radarr, Prowlarr, qBittorrent, and Seerr setup one module at a time. Each module should offer the smallest set of features that makes it useful at home.
+Oxevu brings library browsing, playback, discovery and downloads into one Rust server with an embedded Svelte interface. Point it at your existing media folders, connect your metadata providers and indexers, and use the same frontend on the web or in the Capacitor Android app.
 
-Planned capabilities:
+It is in early development. The Android build is a preview; physical-device acceptance and iOS packaging are still pending.
 
-- **Watch** movies and shows, with subtitles, saved progress, and hardware-accelerated transcoding.
-- **Find** and request media through a shared catalog and configured torrent indexers.
-- **Manage** downloads and import completed movies and episodes into the library.
+- **Watch** movies and series with subtitles, saved progress, favorites, watch parties and FFmpeg/NVIDIA conversion.
+- **Find** titles in Discover, filter the catalog and search configured indexers directly. Accounts that need approval can submit requests.
+- **Download** a selected release and import completed files into your library using configured destinations. Ordinary library scans keep media read-only.
 
-## Start here
+## Quick start
 
-Read [the project goal](GOAL.md) for the modules, their first useful milestones, and the order of work. The first local server and web client now support sign-in, read-only scans, catalog browsing, original-file playback, and saved progress. See [development setup](docs/development.md#run-the-first-application) to run it. FFmpeg/NVIDIA playback, settings, users, and watch parties are implemented; mobile packaging is still pending.
+From a checkout, with Nix installed:
 
-The first milestone is to scan an existing movie or TV folder and play a video in a browser, including seeking, resume, and an NVIDIA transcode on the home server. Oxevu will run alongside Jellyfin while this is developed and tested.
+```sh
+OXEVU_BIND=127.0.0.1:8096 \
+OXEVU_ORIGIN=http://localhost:8096 \
+nix run .#
+```
+
+Open `http://localhost:8096`. On first run, use the setup token from the data directory to create an administrator, then add and scan your movie and TV folders. The default data directory is `~/.local/share/oxevu`; choose a free port if 8096 is already in use.
+
+See [server setup](docs/development.md#run-the-first-application), [the NixOS service module](nix/module.nix), [metadata providers](docs/integrations.md) and [downloads and imports](docs/acquisition.md) for configuration.
+
+## A closer look
+
+<table>
+  <tr>
+    <td width="50%"><img src="assets/screenshots/discover.webp" alt="Production Discover page with year, genre, rating, language and sorting controls" /></td>
+    <td width="50%"><img src="assets/screenshots/seasons.webp" alt="Arcane's season artwork, episode counts and season details in the production library" /></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="assets/screenshots/mobile.webp" alt="The production web interface at phone width, showing movies, Arcane details and the series library" /></td>
+  </tr>
+</table>
+
+These images were captured from the running production instance. Mobile images show the responsive web interface.
+
+## Project notes
+
+- [Development and contributions](CONTRIBUTING.md)
+- [Architecture](docs/architecture.md) and [playback](docs/playback.md)
+- [Android build and mobile acceptance](docs/mobile.md)
+- [Roadmap](GOAL.md) and [changelog](CHANGELOG.md)
+
+## License
+
+A project license has not been specified yet. Movie and series artwork shown in the screenshots belongs to its respective rights holders.
