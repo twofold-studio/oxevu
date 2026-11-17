@@ -43,7 +43,7 @@
 
 <SettingsFrame
   page="sources/indexers"
-  description="Torznab sources searched for releases, directly or through Prowlarr. Test each source before relying on scheduled acquisition."
+  description="Direct and Torznab sources searched for releases. Test each source before relying on scheduled acquisition."
 >
   {#snippet actions()}
     {#if resource.status === "ready" && resource.value?.length}
@@ -57,7 +57,7 @@
         <Empty.Header>
           <Empty.Media variant="icon"><RadioTowerIcon /></Empty.Media>
           <Empty.Title>No sources configured</Empty.Title>
-          <Empty.Description>Add a Torznab endpoint to search for releases.</Empty.Description>
+          <Empty.Description>Add a direct source or a Torznab endpoint to search for releases.</Empty.Description>
         </Empty.Header>
         <Empty.Content>
           <Button onclick={() => edit(null)}><PlusIcon data-icon="inline-start" />Add indexer</Button>

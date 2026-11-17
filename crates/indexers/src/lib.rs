@@ -1,5 +1,6 @@
-//! Bounded indexer XML parsing.
+//! Normalize responses from supported release indexers.
 use serde_json::{Value, json};
+pub mod native;
 pub mod torznab;
 #[derive(Debug, thiserror::Error)]
 #[error("{0}")]

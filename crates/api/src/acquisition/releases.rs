@@ -88,6 +88,17 @@ async fn search_indexer(
     q: &Search,
     p: &profiles::Profile,
 ) -> Result<Vec<Value>> {
+    if let Some(provider) = i.provider() {
+        if title["kind"] == "tv" && provider == oxevu_indexers::native::Provider::Yts {
+            return Ok(Vec::new());
+        }
+        let query = title["title"]
+            .as_str()
+            .ok_or_else(|| bad("title missing"))?;
+        let parsed =
+            indexers::results(i, &[("q", query.into()), ("offset", q.offset.to_string())]).await?;
+        return store_results(a, indexer_id, i, title, &parsed, p).await;
+    }
     let caps = if i.capabilities.is_object() {
         i.capabilities.clone()
     } else {
@@ -143,8 +154,7 @@ async fn search_indexer(
             }
         }
     }
-    let response = indexers::request(i, &params).await?;
-    let parsed = torznab::parse(&response, false)?;
+    let parsed = indexers::results(i, &params).await?;
     store_results(a, indexer_id, i, title, &parsed, p).await
 }
 

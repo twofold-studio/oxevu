@@ -1,4 +1,5 @@
 use super::*;
+use oxevu_indexers::native::Provider;
 
 static HTTP_JOBS: Semaphore = Semaphore::const_new(3);
 
@@ -15,6 +16,10 @@ pub(super) struct Indexer {
     pub capabilities: Value,
 }
 impl Indexer {
+    pub(super) fn provider(&self) -> Option<Provider> {
+        Provider::from_endpoint(&self.endpoint)
+    }
+
     fn validate(&self) -> Result<()> {
         let url = endpoint(&self.endpoint)?;
         if self.name.trim().is_empty()
@@ -121,27 +126,96 @@ pub(super) async fn test(
     Ok(Json(json!({"indexer":i.response(&id)})))
 }
 pub(super) async fn capabilities(i: &Indexer) -> Result<Value> {
+    if let Some(provider) = i.provider() {
+        results(i, &[("limit", "1".into())]).await?;
+        return Ok(json!({
+            "search": true,
+            "movie-search": true,
+            "tv-search": provider != Provider::Yts,
+            "max_limit": 100,
+            "categories": if provider == Provider::Yts { vec!["2000"] } else { vec!["2000", "5000"] },
+        }));
+    }
     torznab::parse(&request(i, &[("t", "caps".into())]).await?, true)
 }
-pub(super) async fn request(i: &Indexer, params: &[(&str, String)]) -> Result<Vec<u8>> {
+
+pub(super) async fn results(i: &Indexer, params: &[(&str, String)]) -> Result<Value> {
+    let bytes = request(i, params).await?;
+    match i.provider() {
+        Some(provider) => provider.parse(&bytes).map_err(bad),
+        None => torznab::parse(&bytes, false),
+    }
+}
+
+async fn request(i: &Indexer, params: &[(&str, String)]) -> Result<Vec<u8>> {
     let _permit = HTTP_JOBS
         .acquire()
         .await
         .map_err(|_| failure("indexer requests unavailable", true))?;
     let mut url = endpoint(&i.endpoint)?;
-    {
-        let mut query = url.query_pairs_mut();
-        query.extend_pairs(params.iter().map(|(k, v)| (*k, v.as_str())));
-        if !i.api_key.is_empty() {
-            query.append_pair("apikey", &i.api_key);
+    let client = integrations::client()?;
+    let request = if let Some(provider) = i.provider() {
+        native_request(&client, provider, url, params)
+    } else {
+        {
+            let mut query = url.query_pairs_mut();
+            query.extend_pairs(params.iter().map(|(k, v)| (*k, v.as_str())));
+            if !i.api_key.is_empty() {
+                query.append_pair("apikey", &i.api_key);
+            }
         }
-    }
-    let response = integrations::client()?
-        .get(url)
+        client.get(url)
+    };
+    let response = request
         .send()
         .await
         .map_err(|_| failure("indexer unavailable or request timed out", true))?;
     response_bytes(response).await
+}
+
+fn native_request(
+    client: &reqwest::Client,
+    provider: Provider,
+    mut url: reqwest::Url,
+    params: &[(&str, String)],
+) -> reqwest::RequestBuilder {
+    let get = |key| {
+        params
+            .iter()
+            .find(|(name, _)| *name == key)
+            .map_or("", |(_, value)| value.as_str())
+    };
+    let query = get("q");
+    let offset = get("offset").parse::<u32>().unwrap_or(0);
+    let limit = get("limit").parse::<u32>().unwrap_or(100).clamp(1, 100);
+    match provider {
+        Provider::Knaben => client.post(url).json(&json!({
+            "query": query,
+            "search_field": "title",
+            "from": offset,
+            "size": limit,
+            "hide_unsafe": true,
+            "hide_xxx": true,
+        })),
+        Provider::Nyaa => client
+            .get(url)
+            .query(&[("page", "rss"), ("q", query), ("c", "1_0")]),
+        Provider::PirateBay if query.is_empty() => {
+            url.set_path("/precompiled/data_top100_recent.json");
+            client.get(url)
+        }
+        Provider::PirateBay => client.get(url).query(&[("q", query), ("cat", "200")]),
+        Provider::Yts => {
+            let page = (offset / 50 + 1).to_string();
+            let count = limit.min(50).to_string();
+            client.get(url).query(&[
+                ("query_term", query),
+                ("limit", count.as_str()),
+                ("page", page.as_str()),
+                ("sort_by", "date_added"),
+            ])
+        }
+    }
 }
 
 pub(super) fn failure(message: &str, retryable: bool) -> Error {

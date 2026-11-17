@@ -21,10 +21,10 @@
   onDestroy(() => { void autosave.flush(); });
   async function create(event: SubmitEvent) { event.preventDefault();if (!valid || indexer) return;pending = true;error = null;try { await acquisitionApi.indexer(crypto.randomUUID(), $state.snapshot(body));onsaved();open = false; } catch (e) { error = errorMessage(e); } finally { pending = false; } }
 </script>
-<Dialog.Root bind:open><Dialog.Content><Dialog.Header><Dialog.Title>{indexer ? "Edit indexer" : "Add Torznab indexer"}</Dialog.Title><Dialog.Description>Use a Torznab endpoint directly or through Prowlarr. Credentials stay on the server.</Dialog.Description></Dialog.Header>
+<Dialog.Root bind:open><Dialog.Content><Dialog.Header><Dialog.Title>{indexer ? "Edit indexer" : "Add indexer"}</Dialog.Title><Dialog.Description>Use a supported direct source or a Torznab endpoint. Credentials stay on the server.</Dialog.Description></Dialog.Header>
   <form onsubmit={create}><Field.Group>
     <Field.Field><Field.Label for="indexer-name">Name</Field.Label><Input id="indexer-name" bind:value={draft.name} maxlength={100} placeholder="Home indexer" /></Field.Field>
-    <Field.Field><Field.Label for="indexer-url">Torznab API endpoint</Field.Label><Input id="indexer-url" type="url" bind:value={draft.endpoint} maxlength={4096} placeholder="http://localhost:9696/1/api" /><Field.Description>Use the full API endpoint without an API-key query parameter.</Field.Description></Field.Field>
+    <Field.Field><Field.Label for="indexer-url">API endpoint</Field.Label><Input id="indexer-url" type="url" bind:value={draft.endpoint} maxlength={4096} placeholder="https://api.knaben.org/v1" /><Field.Description>Use the full endpoint without an API-key query parameter.</Field.Description></Field.Field>
     <Field.Field><Field.Label for="indexer-key">API key</Field.Label><Input id="indexer-key" type="password" bind:value={draft.api_key} autocomplete="new-password" placeholder={indexer?.api_key_set ? "Stored · leave blank to retain" : "Optional if the source is public"} /></Field.Field>
     <Field.Field><Field.Label for="indexer-hosts">Additional torrent hosts</Field.Label><Input id="indexer-hosts" bind:value={draft.hosts} placeholder="downloads.example.org, tracker.example.org" /><Field.Description>Comma-separated hostnames. External download hosts must use HTTPS; redirects are not followed.</Field.Description></Field.Field>
     <SwitchField id="indexer-enabled" label="Enabled" description="Include this source in release searches." bind:checked={draft.enabled} />

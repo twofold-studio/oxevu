@@ -84,23 +84,13 @@ pub fn parse(xml: &[u8], caps: bool) -> Result<Value> {
                 }
             }
             Event::Text(ref text) => {
-                if item.is_some()
-                    && matches!(
-                        field.as_str(),
-                        "title" | "guid" | "link" | "size" | "pubDate"
-                    )
-                {
+                if item.is_some() && result_field(&field) {
                     let decoded = text.decode().map_err(|_| bad("invalid XML text"))?;
                     append(&mut text_buffer, &decoded)?;
                 }
             }
             Event::CData(ref text) => {
-                if item.is_some()
-                    && matches!(
-                        field.as_str(),
-                        "title" | "guid" | "link" | "size" | "pubDate"
-                    )
-                {
+                if item.is_some() && result_field(&field) {
                     let text = std::str::from_utf8(text).map_err(|_| bad("invalid XML text"))?;
                     append(&mut text_buffer, text)?;
                 }
@@ -121,28 +111,23 @@ pub fn parse(xml: &[u8], caps: bool) -> Result<Value> {
                     }
                     .to_owned(),
                 };
-                if item.is_some()
-                    && matches!(
-                        field.as_str(),
-                        "title" | "guid" | "link" | "size" | "pubDate"
-                    )
-                {
+                if item.is_some() && result_field(&field) {
                     append(&mut text_buffer, &resolved)?;
                 }
             }
             Event::End(ref e) => {
                 if e.local_name().as_ref() == field.as_bytes()
-                    && matches!(
-                        field.as_str(),
-                        "title" | "guid" | "link" | "size" | "pubDate"
-                    )
+                    && result_field(&field)
                     && let Some(ref mut value) = item
                 {
-                    value[&field] = if field == "size" {
-                        json!(text_buffer.trim().parse::<u64>().ok())
-                    } else {
-                        json!(text_buffer.trim())
-                    };
+                    let text = text_buffer.trim();
+                    match field.as_str() {
+                        "size" => value["size"] = json!(size_bytes(text)),
+                        "seeders" => value["seeders"] = json!(text.parse::<u64>().ok()),
+                        "leechers" => value["peers"] = json!(text.parse::<u64>().ok()),
+                        "infoHash" => value["infohash"] = json!(text),
+                        _ => value[&field] = json!(text),
+                    }
                 }
                 if e.local_name().as_ref() == b"item"
                     && let Some(value) = item.take()
@@ -168,6 +153,32 @@ pub fn parse(xml: &[u8], caps: bool) -> Result<Value> {
     } else {
         Ok(json!(result))
     }
+}
+
+fn result_field(field: &str) -> bool {
+    matches!(
+        field,
+        "title" | "guid" | "link" | "size" | "pubDate" | "seeders" | "leechers" | "infoHash"
+    )
+}
+
+fn size_bytes(text: &str) -> Option<u64> {
+    if let Ok(bytes) = text.parse() {
+        return Some(bytes);
+    }
+    let (amount, unit) = text.split_once(' ')?;
+    let scale = match unit {
+        "B" => 1_u64,
+        "KiB" => 1 << 10,
+        "MiB" => 1 << 20,
+        "GiB" => 1 << 30,
+        "TiB" => 1 << 40,
+        _ => return None,
+    };
+    let bytes = amount.parse::<f64>().ok()? * scale as f64;
+    (0.0..u64::MAX as f64)
+        .contains(&bytes)
+        .then_some(bytes.round() as u64)
 }
 
 fn append(buffer: &mut String, text: &str) -> Result<()> {

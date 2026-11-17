@@ -9,6 +9,8 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Oxevu can search Knaben, Nyaa.si, The Pirate Bay and YTS directly, alongside existing Torznab sources.
+
 - Home links to the full movie and series libraries with totals, and shows how many titles are in each preview.
 
 - README now describes the implemented server and Android preview, with a cover and gallery captured from the production instance and reproducible image layouts.

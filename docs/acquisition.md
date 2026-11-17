@@ -3,8 +3,8 @@
 Oxevu has native discovery, requests, movie/episode monitoring, Torznab search,
 BitTorrent transfers and library imports. The engine is embedded librqbit 9.1.0.
 Sonarr, Radarr and qBittorrent are not runtime dependencies of these workflows.
-Tracker-specific scraping remains outside this release; a Torznab bridge may
-still be needed for sources that do not expose that protocol themselves.
+Knaben, Nyaa.si, The Pirate Bay and YTS can be queried directly. Other sources
+can still use Torznab, including through a bridge.
 
 ## Start here
 
@@ -13,7 +13,7 @@ still be needed for sources that do not expose that protocol themselves.
 2. Add movie/TV libraries with their root folders. Grant viewers access to the
    destination library; downloading something does not grant permission to play it.
 3. Open **Settings → Downloads → Engine and storage** and choose a separate
-   download folder. Add and test a Torznab endpoint under **Sources → Indexers**,
+   download folder. Add and test an indexer endpoint under **Sources → Indexers**,
    then review **Sources → Release profiles** and the other Downloads pages.
 4. Enable downloads. Library imports have a separate switch. Both start off.
 5. Open a title in **Discover**, click **Find**, then **Download** beside a release.
@@ -27,7 +27,16 @@ still be needed for sources that do not expose that protocol themselves.
 7. Follow transfers in **Activity**. Inspect/select files, pause, retry, or review
    an import. Imports refresh the library and update accessible requests.
 
-Automatic acquisition combines 15-minute Torznab feed polling and scheduled
+For direct sources, use one of these exact endpoints and leave the API key blank:
+
+| Source | Endpoint |
+| --- | --- |
+| Knaben | `https://api.knaben.org/v1` |
+| Nyaa.si | `https://nyaa.si/` |
+| The Pirate Bay | `https://apibay.org/q.php` |
+| YTS (movies) | `https://movies-api.accel.li/api/v2/list_movies.json` |
+
+Automatic acquisition combines 15-minute indexer feed polling and scheduled
 missing-title searches. It respects provider air dates, selected scope, library
 mounts, failed-release blocks and backoff. Catalog units are reserved atomically,
 so overlapping requests/packs share demand while seeding an old episode does not

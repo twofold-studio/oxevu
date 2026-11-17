@@ -9,7 +9,7 @@ pub(super) async fn tick(a: &App) -> Result<()> {
     for id in indexers {
         sqlx::query("INSERT INTO acquisition_feeds VALUES(?,unixepoch()+900) ON CONFLICT(indexer_id) DO UPDATE SET next_poll=excluded.next_poll").bind(&id).execute(&a.pool).await.map_err(db)?;
         let i = indexers::load(a, &id).await?;
-        let result = indexers::request(
+        let result = indexers::results(
             &i,
             &[
                 ("t", "search".into()),
@@ -19,7 +19,7 @@ pub(super) async fn tick(a: &App) -> Result<()> {
             ],
         )
         .await;
-        let bytes = match result {
+        let parsed = match result {
             Ok(v) => v,
             Err(e) => {
                 event(
@@ -31,7 +31,6 @@ pub(super) async fn tick(a: &App) -> Result<()> {
                 continue;
             }
         };
-        let parsed = torznab::parse(&bytes, false)?;
         for row in &titles {
             let title = decode(row.get("title"))?;
             let items = wanted::inventory(a, &title).await?;
