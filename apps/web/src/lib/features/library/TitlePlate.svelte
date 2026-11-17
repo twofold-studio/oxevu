@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Snippet } from "svelte";
   import CheckIcon from "@lucide/svelte/icons/check";
   import HardDriveOffIcon from "@lucide/svelte/icons/hard-drive";
   import Artwork from "$lib/components/Artwork.svelte";
@@ -21,6 +22,7 @@
     fileRemoved = false,
     download = null,
     needsIdentification = false,
+    badges,
   }: {
     href: string;
     title: string;
@@ -33,6 +35,7 @@
     fileRemoved?: boolean;
     download?: DownloadStatus | null;
     needsIdentification?: boolean;
+    badges?: Snippet;
   } = $props();
 
   const size = $derived(
@@ -40,18 +43,17 @@
   );
 </script>
 
-<li class="border-r border-b">
+<li class="min-w-0">
   <a
     {href}
-    class="group flex h-full flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+    class="group flex h-full flex-col gap-2 rounded-lg outline-offset-4 focus-visible:outline-2 focus-visible:outline-ring"
   >
-    <div class="relative">
+    <div class="relative overflow-hidden rounded-lg border">
       <!-- The caption below names the title, so the image itself is decorative. -->
       <Artwork
         src={poster}
         alt=""
-        class="aspect-[2/3] border-b bg-card"
-        imageClass="transition-[filter] duration-300 group-hover:brightness-110"
+        class="aspect-[2/3] bg-card transition-opacity group-hover:opacity-85"
       >
         {#snippet fallback()}
           <div
@@ -99,12 +101,15 @@
       {/if}
     </div>
     <div
-      class="flex min-w-0 flex-1 flex-col gap-0.5 px-3 py-2.5 transition-colors duration-200 group-hover:bg-accent/40 sm:px-4"
+      class="flex min-w-0 flex-1 flex-col gap-1"
     >
-      <h3 class="truncate text-sm font-medium" {title}>{title}</h3>
+      <h3 class="line-clamp-2 font-medium leading-snug" {title}>{title}</h3>
       {#if needsIdentification}<p class="text-xs font-medium text-foreground">Needs identification</p>{/if}
-      {#if detail}
-        <p class="truncate text-xs text-muted-foreground">{detail}</p>
+      {#if detail || badges}
+        <div class="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          {#if detail}<p>{detail}</p>{/if}
+          {@render badges?.()}
+        </div>
       {/if}
     </div>
   </a>

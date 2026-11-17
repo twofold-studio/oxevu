@@ -1,6 +1,16 @@
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+#[derive(Deserialize, Serialize, ToSchema)]
+pub(crate) struct Genre {
+    id: u32,
+    name: String,
+}
+#[derive(Deserialize, Serialize, ToSchema)]
+pub(crate) struct Genres {
+    genres: Vec<Genre>,
+}
+
 /// Foreign export rows are opaque here; migration performs source-specific validation.
 #[derive(Deserialize, Serialize, ToSchema)]
 #[serde(untagged)]

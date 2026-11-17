@@ -15,11 +15,17 @@
   import ResourceGate from "$lib/features/settings/ResourceGate.svelte";
   import { createResource } from "$lib/features/settings/resource.svelte";
   import RequestDialog from "./RequestDialog.svelte";
+  import ReleaseDialog from "./ReleaseDialog.svelte";
   let { kind, id }: { kind: MediaKind; id: number } = $props();
   const resource = createResource(() => acquisitionApi.title(kind, id));
   let requestOpen = $state(false);let opening = $state(0);let sent = $state(false);
   onMount(() => { void resource.load(); });
   const canRequest = $derived(session.user?.is_admin || session.user?.acquisition?.can_request);
+  const canDownload = $derived(session.user?.is_admin || session.user?.acquisition?.manage_downloads);
+  let releaseOpen = $state(false);
+  let releaseSeason = $state<number | undefined>(undefined);
+  let releaseOpening = $state(0);
+  function find(season?: number) { releaseSeason = season; releaseOpening++; releaseOpen = true; }
 </script>
 <Page>
   <Button href={href.discover("", kind)} variant="ghost" class="mb-5"><ArrowLeftIcon data-icon="inline-start" />Discover</Button>
@@ -39,22 +45,23 @@
           </div>
           <p class="max-w-3xl text-sm leading-7 text-muted-foreground">{title.overview || "No description is available."}</p>
           <div class="flex flex-wrap gap-2">
-            {#if canRequest}<Button onclick={() => { opening++; requestOpen = true; }}>Request {kind === "tv" ? "episodes" : "movie"}</Button>{/if}
+            {#if canDownload}<Button onclick={() => find()}>Find</Button>
+            {:else if canRequest}<Button onclick={() => { opening++; requestOpen = true; }}>Request {kind === "tv" ? "episodes" : "movie"}</Button>{/if}
             {#if title.availability?.items[0]}<Button variant="outline" href={href.item(title.availability.items[0].id)}>Open in library</Button>{/if}
-            <Button href={href.requests()} variant="outline">Requests</Button>
           </div>
           {#if sent}<p role="status" class="text-sm">Request submitted. You can follow it under Requests.</p>{/if}
           {#if title.availability?.offline}<p class="text-sm text-muted-foreground">Some library files are offline. Availability will update when the storage returns.</p>{/if}
           {#if kind === "tv"}
             <section class="rounded-xl border bg-card">
               <h2 class="border-b px-4 py-3 text-sm font-medium">Seasons</h2>
-              <ul class="divide-y">{#each title.seasons ?? [] as season (season.season_number)}<li class="flex justify-between gap-3 px-4 py-3 text-sm"><span>{season.name}</span><span class="text-muted-foreground">{season.episode_count} episodes</span></li>{/each}</ul>
+              <ul class="divide-y">{#each title.seasons ?? [] as season (season.season_number)}<li class="flex items-center justify-between gap-3 px-4 py-3 text-sm"><span>{season.name}</span><span class="ml-auto text-muted-foreground">{season.episode_count} episodes</span>{#if canDownload}<Button size="sm" variant="outline" aria-label={`Find ${season.name}`} onclick={() => find(season.season_number)}>Find</Button>{/if}</li>{/each}</ul>
             </section>
           {/if}
           <p class="text-xs text-muted-foreground">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
         </div>
       </div>
       {#key opening}<RequestDialog bind:open={requestOpen} {title} episodes={resource.value.episodes} onsent={() => { sent = true; void resource.load(); }} />{/key}
+      {#if releaseOpen}{#key releaseOpening}<ReleaseDialog bind:open={releaseOpen} {title} season={releaseSeason} autoSearch />{/key}{/if}
     {/if}
   </ResourceGate>
 </Page>

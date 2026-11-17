@@ -136,6 +136,8 @@ export type DiscoverResults = {
     total_pages: number;
 };
 
+export type DiscoverSort = 'popular' | 'rating' | 'newest' | 'oldest';
+
 export type DiscoverTitle = {
     availability?: Availability | null;
     id: string;
@@ -249,6 +251,15 @@ export type ExternalUrls = {
 
 export type FavoriteUpdate = {
     favorite: boolean;
+};
+
+export type Genre = {
+    id: number;
+    name: string;
+};
+
+export type Genres = {
+    genres: Array<Genre>;
 };
 
 export type HardwareAcceleration = 'none' | 'nvenc';
@@ -1146,6 +1157,11 @@ export type DiscoverData = {
         query?: string;
         kind?: MediaKind;
         page?: number;
+        year?: number;
+        genre?: number;
+        min_rating?: number;
+        language?: string;
+        sort?: DiscoverSort;
     };
     url: '/acquisition/discover';
 };
@@ -1446,6 +1462,29 @@ export type EventsListResponses = {
 };
 
 export type EventsListResponse = EventsListResponses[keyof EventsListResponses];
+
+export type GenresData = {
+    body?: never;
+    path?: never;
+    query?: {
+        kind?: MediaKind;
+    };
+    url: '/acquisition/genres';
+};
+
+export type GenresErrors = {
+    400: ErrorBody;
+    401: ErrorBody;
+    500: ErrorBody;
+};
+
+export type GenresError = GenresErrors[keyof GenresErrors];
+
+export type GenresResponses = {
+    200: Genres;
+};
+
+export type GenresResponse = GenresResponses[keyof GenresResponses];
 
 export type ImportDefaultsData = {
     body?: never;

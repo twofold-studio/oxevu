@@ -32,7 +32,16 @@ pub(crate) struct ErrorBody {
 /// Export the contract without opening a database or starting the service.
 pub fn openapi() -> utoipa::openapi::OpenApi {
     use utoipa::openapi::security::{ApiKey, ApiKeyValue, SecurityRequirement, SecurityScheme};
+    use utoipa::{PartialSchema, ToSchema};
     let mut document = router().split_for_parts().1;
+    document
+        .components
+        .get_or_insert_with(Default::default)
+        .schemas
+        .insert(
+            crate::acquisition::DiscoverSort::name().into_owned(),
+            crate::acquisition::DiscoverSort::schema(),
+        );
     document.servers = Some(vec![utoipa::openapi::Server::new("/api/v1")]);
     document
         .components

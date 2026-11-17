@@ -3,6 +3,7 @@ use super::*;
 pub(super) fn router() -> OpenApiRouter<App> {
     OpenApiRouter::new()
         .routes(routes!(discover))
+        .routes(routes!(genres))
         .routes(routes!(title_details))
         .routes(routes!(titles_list))
         .routes(routes!(requests_list, request_create))
@@ -11,7 +12,7 @@ pub(super) fn router() -> OpenApiRouter<App> {
         .routes(routes!(monitor_put))
 }
 
-#[utoipa::path(get, path = "/acquisition/discover", params(("query" = Option<String>, Query), ("kind" = Option<MediaKind>, Query), ("page" = Option<u32>, Query)),
+#[utoipa::path(get, path = "/acquisition/discover", params(("query" = Option<String>, Query), ("kind" = Option<MediaKind>, Query), ("page" = Option<u32>, Query), ("year" = Option<u32>, Query), ("genre" = Option<u32>, Query), ("min_rating" = Option<f64>, Query), ("language" = Option<String>, Query), ("sort" = Option<super::super::discovery::Sort>, Query)),
 responses((status = 200, body = DiscoverResults), (status = 400, body = ErrorBody),
 (status = 401, body = ErrorBody), (status = 403, body = ErrorBody), (status = 404, body = ErrorBody),
 (status = 429, body = ErrorBody), (status = 500, body = ErrorBody)))]
@@ -21,6 +22,17 @@ async fn discover(
     crate::contract::ApiQuery(query): crate::contract::ApiQuery<super::super::catalog::Search>,
 ) -> Result<Json<DiscoverResults>> {
     let Json(value) = super::super::catalog::discover(State(a), h, Query(query)).await?;
+    Ok(Json(crate::contract::decode(value)?))
+}
+
+#[utoipa::path(get, path = "/acquisition/genres", params(("kind" = Option<MediaKind>, Query)),
+responses((status = 200, body = Genres), (status = 400, body = ErrorBody), (status = 401, body = ErrorBody), (status = 500, body = ErrorBody)))]
+async fn genres(
+    State(a): State<App>,
+    h: HeaderMap,
+    crate::contract::ApiQuery(query): crate::contract::ApiQuery<super::super::catalog::Search>,
+) -> Result<Json<Genres>> {
+    let Json(value) = super::super::catalog::genres(State(a), h, Query(query)).await?;
     Ok(Json(crate::contract::decode(value)?))
 }
 

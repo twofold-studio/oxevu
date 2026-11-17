@@ -9,6 +9,8 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Movies and series use Discover's spaced poster-card layout. Discover adds persistent year, genre, rating, original-language and sort filters. Users with download access can Find releases directly from a title or season, with indexer search starting immediately and no request/monitoring step.
+
 - Android packaging uses Capacitor and the shared Svelte interface, with server selection, native cookie-backed API requests and streaming media forwarding. Android development now uses JDK 21 and SDK 36. Physical-device playback and iOS packaging remain unverified.
 
 - Season selectors use poster cards. TMDB season artwork is stored separately from series artwork, with versioned image URLs so refreshed covers replace cached images.

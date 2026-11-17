@@ -1,6 +1,7 @@
 import * as sdk from "./generated/sdk.gen";
 import { sdkClient, sdkData } from "./sdk";
 import type * as A from "./acquisition-types";
+import type { DiscoverFilters } from "$lib/media/discover-filters";
 
 /** Validate the outer shape of foreign exports; the server validates each vendor's rows. */
 export function externalExport(value: unknown): import("./generated/types.gen").ExternalExport {
@@ -22,8 +23,9 @@ export const acquisitionApi = {
     sdkData(sdk.adoptionPreview({ ...options(), path: { id }, body: { source_root } })),
   adopt: (id: string, source_root: string, token: string) =>
     sdkData(sdk.adoptionApply({ ...options(), path: { id }, body: { source_root, token } })),
-  discover: (query: string, kind: A.MediaKind, page = 1) =>
-    sdkData(sdk.discover({ ...options(), query: { query, kind, page } })),
+  discover: (query: string, kind: A.MediaKind, page = 1, filters: DiscoverFilters = {}) =>
+    sdkData(sdk.discover({ ...options(), query: { query, kind, page, ...filters } })),
+  genres: (kind: A.MediaKind) => sdkData(sdk.genres({ ...options(), query: { kind } })),
   title: (kind: A.MediaKind, id: number) =>
     sdkData(sdk.titleDetails({ ...options(), path: { kind, id } })),
   requests: () => sdkData(sdk.requestsList(options())),

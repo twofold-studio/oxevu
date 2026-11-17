@@ -10,6 +10,7 @@ import {
   type SettingsPageId,
   type SettingsTarget,
 } from "./settings-pages";
+import { applicableFilters, discoverQuery, readDiscoverFilters, type DiscoverFilters } from "$lib/media/discover-filters";
 
 export type Route =
   | { name: "home" }
@@ -24,7 +25,7 @@ export type Route =
   | { name: "settings"; target: SettingsTarget }
   | { name: "parties" }
   | { name: "party"; id: string }
-  | { name: "discover"; query: string; kind: "movie" | "tv"; page: number }
+  | { name: "discover"; query: string; kind: "movie" | "tv"; page: number; filters: DiscoverFilters }
   | { name: "discover-title"; kind: "movie" | "tv"; id: number }
   | { name: "requests" }
   | { name: "wanted" }
@@ -58,8 +59,8 @@ export const href = {
   libraries: () => "#/settings/media/libraries",
   parties: () => "#/parties",
   party: (id: string) => `#/parties/${encodeURIComponent(id)}`,
-  discover: (query = "", kind: "movie" | "tv" = "movie", page = 1) =>
-    `#/discover?${new URLSearchParams({ q: query, kind, page: String(page) })}`,
+  discover: (query = "", kind: "movie" | "tv" = "movie", page = 1, filters: DiscoverFilters = {}) =>
+    `#/discover?${discoverQuery(query, kind, page, filters)}`,
   discoverTitle: (kind: "movie" | "tv", id: number) => `#/discover/${kind}/${id}`,
   requests: () => "#/requests",
   wanted: () => "#/wanted",
@@ -115,6 +116,7 @@ export function parseRoute(hash: string): Route {
           query: query.get("q") ?? "",
           kind: query.get("kind") === "tv" ? "tv" : "movie",
           page: Math.min(20, Math.max(1, Number(query.get("page")) || 1)),
+          filters: applicableFilters(query.get("q") ?? "", readDiscoverFilters(query)),
         };
       const id = Number(parts[2]);
       return parts.length === 3 &&

@@ -16,13 +16,14 @@ still be needed for sources that do not expose that protocol themselves.
    download folder. Add and test a Torznab endpoint under **Sources → Indexers**,
    then review **Sources → Release profiles** and the other Downloads pages.
 4. Enable downloads. Library imports have a separate switch. Both start off.
-5. Find a title in **Discover**, then request a movie, whole show, existing/future
-   episodes, selected seasons or individual episodes. Each requester keeps their
-   own approval and cancellation state.
-6. Approve the request in **Requests**. In **Wanted**, choose its library root,
-   profile and monitoring scope. Search releases manually or opt that title into
-   automatic acquisition. Choosing a destination permits completed wanted files
-   to be imported when the global import switch is on.
+5. Open a title in **Discover**, click **Find**, then **Download** beside a release.
+   Administrators and users with download access search immediately using the
+   default profile. A series also offers Find beside each season. Requests and
+   monitoring are not required for this manual flow; completed files use the
+   configured default destination when library imports are enabled.
+6. Accounts without download access can still request titles for approval.
+   Administrators manage those under **Requests** and **Wanted**, where they can
+   configure a monitoring scope, destination, profile and automatic acquisition.
 7. Follow transfers in **Activity**. Inspect/select files, pause, retry, or review
    an import. Imports refresh the library and update accessible requests.
 
@@ -33,6 +34,11 @@ so overlapping requests/packs share demand while seeding an old episode does not
 block acquiring the next one. There are no automatic quality upgrades.
 
 ## Release search and transfers
+
+Discover can browse by release year, genre, minimum rating, original language and
+sort order. Rating filtering and highest-rated sorting require 100 votes. Filters
+stay in the URL across pagination and Back navigation. TMDB title search supports
+year only; clear the search to use the other browse filters.
 
 Release search keeps previous results visible during a refresh and can be
 cancelled. Source chips show hit counts or named failures; expanding a failed

@@ -14,14 +14,13 @@
   import IndexerStatusList from "./IndexerStatusList.svelte";
   import ReleaseRow from "./ReleaseRow.svelte";
 
-  let { open = $bindable(), title, season, episode, profileId = "default" }: { open: boolean; title: DiscoverTitle; season?: number; episode?: number; profileId?: string } = $props();
+  let { open = $bindable(), title, season, episode, profileId = "default", autoSearch = false }: { open: boolean; title: DiscoverTitle; season?: number; episode?: number; profileId?: string; autoSearch?: boolean } = $props();
   let profiles = $state<ProfileRecord[]>([]);
   let sources = $state<ReleaseSource[]>([]);
   // svelte-ignore state_referenced_locally
   let profile = $state(profileId);
   let loadError = $state<string | null>(null);
   let loadingOptions = $state(true);
-  // svelte-ignore state_referenced_locally
   const searcher = new ReleaseSearch((profile, signal) => acquisitionApi.releases(title.id, { season, episode, profile_id: profile }, signal));
   const searchState = $derived(searcher.state);
   const completed = $derived(searchState.kind === "results" || searchState.kind === "empty" ? searchState : searchState.kind === "searching" ? searchState.previous : null);
@@ -33,7 +32,10 @@
 
   onMount(() => {
     void Promise.all([acquisitionApi.profiles(), acquisitionApi.releaseSources()])
-      .then(([p,s]) => { profiles = p.profiles; sources = s.sources; })
+      .then(([p,s]) => {
+        profiles = p.profiles; sources = s.sources;
+        if (autoSearch && profiles.length && sources.length) search();
+      })
       .catch((error) => loadError = errorMessage(error)).finally(() => loadingOptions = false);
   });
   onDestroy(() => searcher.cancel());
@@ -42,7 +44,7 @@
 </script>
 
 <Dialog.Root {open} onOpenChange={changeOpen}><Dialog.Content size="wide">
-  <Dialog.Header><Dialog.Title>Find a release · {title.title}</Dialog.Title><Dialog.Description>Review source, size and profile checks before starting a transfer. Automatic upgrades are off.</Dialog.Description></Dialog.Header>
+  <Dialog.Header><Dialog.Title>Find a release · {title.title}</Dialog.Title><Dialog.Description>Choose a release to download. Your configured library import settings apply.</Dialog.Description></Dialog.Header>
   <div class="flex flex-wrap items-end gap-3">
     <Field.Field class="min-w-40 flex-1"><Field.Label for="release-profile">Acquisition profile</Field.Label>
       <Select.Root type="single" items={options} bind:value={profile} disabled={busy}><Select.Trigger id="release-profile" class="w-full"><Select.Value placeholder="Choose profile" /></Select.Trigger><Select.Content><Select.Group>{#each options as option (option.value)}<Select.Item value={option.value}>{option.label}</Select.Item>{/each}</Select.Group></Select.Content></Select.Root>

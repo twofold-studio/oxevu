@@ -7,9 +7,9 @@
 
 <PlateGrid label="Loading">
   {#each Array.from({ length: count }, (_, i) => i) as i (i)}
-    <li class="flex flex-col border-r border-b">
-      <Skeleton class="aspect-[2/3] rounded-none" />
-      <div class="flex flex-col gap-1.5 px-3 py-2.5 sm:px-4">
+    <li class="flex flex-col gap-2">
+      <Skeleton class="aspect-[2/3] rounded-lg" />
+      <div class="flex flex-col gap-1.5">
         <Skeleton class="h-3.5 w-4/5" />
         <Skeleton class="h-3 w-1/3" />
       </div>

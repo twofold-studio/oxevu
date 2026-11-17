@@ -130,6 +130,37 @@ fn generated_operations_have_concrete_json_schemas() {
     }
 }
 
+#[test]
+fn all_local_schema_references_resolve() {
+    fn check(node: &serde_json::Value, document: &serde_json::Value) {
+        match node {
+            serde_json::Value::Object(fields) => {
+                if let Some(reference) = fields
+                    .get("$ref")
+                    .and_then(|v| v.as_str())
+                    .and_then(|v| v.strip_prefix('#'))
+                {
+                    assert!(
+                        document.pointer(reference).is_some(),
+                        "unresolved schema reference: {reference}"
+                    );
+                }
+                for value in fields.values() {
+                    check(value, document);
+                }
+            }
+            serde_json::Value::Array(values) => {
+                for value in values {
+                    check(value, document);
+                }
+            }
+            _ => {}
+        }
+    }
+    let document = serde_json::to_value(openapi()).unwrap();
+    check(&document, &document);
+}
+
 fn concrete_schema(schema: &Value, location: &str) {
     let object = schema.as_object().expect("schema must be an object");
     assert!(!object.is_empty(), "untyped schema at {location}");

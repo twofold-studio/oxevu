@@ -18,7 +18,7 @@
   title={item.title}
   poster={item.poster_url}
   {facts}
-  detail={formatRuntime(item.duration_seconds)}
+  detail={[item.year, formatRuntime(item.duration_seconds)].filter(Boolean).join(" · ")}
   progress={watchedFraction(item)}
   watched={item.completed}
   fileRemoved={!fileAvailable(item)}

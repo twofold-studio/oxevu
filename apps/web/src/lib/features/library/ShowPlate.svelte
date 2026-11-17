@@ -33,7 +33,7 @@
   title={show.title}
   poster={show.posterUrl}
   {facts}
-  {detail}
+  detail={[show.next.show_year ?? show.next.year, facts.join(" · "), detail].filter(Boolean).join(" · ")}
   progress={watchedCount > 0 ? watchedCount / show.episodeCount : null}
   watched={watchedCount === show.episodeCount}
   fileRemoved={allRemoved}

@@ -1,20 +1,22 @@
 use super::*;
 static PROVIDER_JOBS: Semaphore = Semaphore::const_new(3);
 
-#[derive(Deserialize)]
-pub(super) struct Search {
-    #[serde(default)]
-    pub query: String,
-    #[serde(default = "movie")]
-    pub kind: String,
-    #[serde(default = "first_page")]
-    pub page: u32,
-}
-fn movie() -> String {
-    "movie".into()
-}
-fn first_page() -> u32 {
-    1
+pub(super) use super::discovery::Search;
+
+pub(super) async fn genres(
+    State(a): State<App>,
+    h: HeaderMap,
+    Query(q): Query<Search>,
+) -> Result<Json<Value>> {
+    user(&a, &h).await?;
+    title_key(&q.kind, 1)?;
+    let _permit = PROVIDER_JOBS
+        .try_acquire()
+        .map_err(|_| bad("catalog busy; try again"))?;
+    let config = integrations::load(&a).await?;
+    Ok(Json(
+        integrations::tmdb(&config, &format!("genre/{}/list", q.kind), &[]).await?,
+    ))
 }
 
 pub(super) async fn discover(
@@ -23,29 +25,12 @@ pub(super) async fn discover(
     Query(q): Query<Search>,
 ) -> Result<Json<Value>> {
     user(&a, &h).await?;
-    title_key(&q.kind, 1)?;
-    if q.query.len() > 200 || !(1..=20).contains(&q.page) {
-        return Err(bad("invalid catalog search"));
-    }
+    let (route, params) = q.provider_query()?;
     let _permit = PROVIDER_JOBS
         .try_acquire()
         .map_err(|_| bad("catalog busy; try again"))?;
     let config = integrations::load(&a).await?;
-    let route = if q.query.trim().is_empty() {
-        format!("{}/popular", q.kind)
-    } else {
-        format!("search/{}", q.kind)
-    };
-    let data = integrations::tmdb(
-        &config,
-        &route,
-        &[
-            ("query", q.query),
-            ("page", q.page.to_string()),
-            ("include_adult", "false".into()),
-        ],
-    )
-    .await?;
+    let data = integrations::tmdb(&config, &route, &params).await?;
     let local = crate::catalog::catalog(&a, &h).await?;
     let mut results = Vec::new();
     for value in data["results"].as_array().into_iter().flatten().take(20) {

@@ -34,7 +34,7 @@
 {:else if route.name === "parties"}
   <PartiesPage />
 {:else if route.name === "discover"}
-  {#key `${route.query}:${route.kind}:${route.page}`}{#await import("$lib/features/acquisition/DiscoverPage.svelte") then page}<page.default query={route.query} kind={route.kind} page={route.page} />{/await}{/key}
+  {#key JSON.stringify(route)}{#await import("$lib/features/acquisition/DiscoverPage.svelte") then page}<page.default query={route.query} kind={route.kind} page={route.page} filters={route.filters} />{/await}{/key}
 {:else if route.name === "discover-title"}
   {#key `${route.kind}:${route.id}`}{#await import("$lib/features/acquisition/DiscoverTitlePage.svelte") then page}<page.default kind={route.kind} id={route.id} />{/await}{/key}
 {:else if route.name === "requests"}
