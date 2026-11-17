@@ -23,7 +23,9 @@ const PROVIDERS: Record<ProviderId, string> = { tmdb: "TMDB", imdb: "IMDb" };
 /** Remove release details when an imported filename has not been identified. */
 export function identificationQuery(item: Item): string {
   const raw = item.kind === "episode" ? (item.show_title ?? item.title) : item.title;
-  return raw.replace(/[._]/g, " ").replace(/\s*[([]?\b(?:18\d{2}|19\d{2}|20\d{2}|2100)\b[\s\S]*$/, "").trim().replace(/\s*-$/, "").trim() || raw;
+  const clean = raw.replace(/[._]/g, " ");
+  const year = Array.from(clean.matchAll(/\b(?:18\d{2}|19\d{2}|20\d{2}|2100)\b/g)).at(-1);
+  return (year ? clean.slice(0, year.index) : clean).trim().replace(/[\s([-]+$/, "").trim() || raw;
 }
 
 /** A provider by its known id, for values whose origin is fixed in code. */

@@ -2,6 +2,7 @@ import { describe, expect, test } from "vite-plus/test";
 import type { Item } from "$lib/api/types";
 import {
   endsAt,
+  identificationQuery,
   itemRating,
   present,
   ratingLabel,
@@ -10,6 +11,11 @@ import {
   validScore,
   yearSpan,
 } from "./metadata";
+
+test("identification search keeps years that are part of a movie title", () => {
+  expect(identificationQuery(item({ title: "Blade Runner 2049 2017 1080p BluRay" }))).toBe("Blade Runner 2049");
+  expect(identificationQuery(item({ title: "2001 A Space Odyssey (1968) 1080p" }))).toBe("2001 A Space Odyssey");
+});
 
 function item(extra: Partial<Item> = {}): Item {
   return {

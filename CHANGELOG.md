@@ -24,6 +24,7 @@ as available; planned features belong in GOAL.md.
 ### Fixed
 
 - Series identification prefers unique episode titles over release numbering, covering combined releases such as House season six whose local episode 22 corresponds to TMDB episode 21.
+- Metadata searches preserve numbers in titles such as Blade Runner 2049 and 2001: A Space Odyssey when a later release year is present in the filename.
 
 - The title-page Watch together action appears only for a joined live party and opens playback in that existing party instead of creating another one.
 

@@ -30,7 +30,7 @@ pub fn title(item: &Value, _path: &Path) -> (String, Option<String>) {
     .unwrap_or("");
     let raw = raw.replace(['.', '_'], " ");
     let words: Vec<_> = raw.split_whitespace().collect();
-    let year_at = words.iter().position(|word| {
+    let year_at = words.iter().rposition(|word| {
         let word = word.trim_matches(['(', ')', '[', ']']);
         word.len() == 4
             && word

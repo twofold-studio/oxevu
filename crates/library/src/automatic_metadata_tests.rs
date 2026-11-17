@@ -29,6 +29,16 @@ fn release_names_become_conservative_title_and_year_queries() {
             Some("2025"),
         ),
         ("Fallout", "Fallout", None),
+        (
+            "Blade Runner 2049 2017 1080p BluRay",
+            "Blade Runner 2049",
+            Some("2017"),
+        ),
+        (
+            "2001 A Space Odyssey 1968 1080p",
+            "2001 A Space Odyssey",
+            Some("1968"),
+        ),
     ] {
         let (name, found) = title(
             &json!({"title":raw,"kind":"movie"}),
