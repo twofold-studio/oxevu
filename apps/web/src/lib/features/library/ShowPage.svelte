@@ -125,16 +125,18 @@
 
     {#snippet seasonActions(entry: Season)}
       {@const label = seasonLabel(entry.number)}
-      <FavoriteButton items={entry.episodes} label="Favorite season" size="sm" />
+      <FavoriteButton items={entry.episodes} label={`Favorite ${label}`} size="icon-sm" iconOnly />
       {#if admin}
         <Button
-          variant="outline"
-          size="sm"
+          variant="ghost"
+          size="icon-sm"
+          class="cursor-pointer"
+          aria-label={`Remove ${label}`}
           disabled={transferring(entry.episodes)}
-          title={transferring(entry.episodes) ? "Manage active transfers in Downloads before removing this season" : undefined}
+          title={transferring(entry.episodes) ? "Manage active transfers in Downloads before removing this season" : `Remove ${label}`}
           onclick={() => confirmRemoval(entry.episodes, `${show.title} · ${label}`, false)}
         >
-          <TrashIcon data-icon="inline-start" />Remove season
+          <TrashIcon />
         </Button>
       {/if}
     {/snippet}
