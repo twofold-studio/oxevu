@@ -9,6 +9,8 @@ as available; planned features belong in GOAL.md.
 
 ### Changed
 
+- Season cards reveal favorites on hover or focus and put removal in a three-dot menu.
+
 - Series show the episode list directly below the season cards, with season actions on the cards.
 
 - Series pages group download, identification and removal actions in a menu and keep a single play action in the desktop hero.

@@ -6,6 +6,7 @@
   import LayersIcon from "@lucide/svelte/icons/layers";
   import TvIcon from "@lucide/svelte/icons/tv";
   import MenuIcon from "@lucide/svelte/icons/menu";
+  import EllipsisIcon from "@lucide/svelte/icons/ellipsis";
   import SearchIcon from "@lucide/svelte/icons/search";
   import DownloadIcon from "@lucide/svelte/icons/download";
   import SettingsIcon from "@lucide/svelte/icons/settings";
@@ -125,19 +126,20 @@
 
     {#snippet seasonActions(entry: Season)}
       {@const label = seasonLabel(entry.number)}
-      <FavoriteButton items={entry.episodes} label={`Favorite ${label}`} size="icon-sm" iconOnly />
+      <div class="rounded-lg bg-background/90 [@media(hover:hover)]:opacity-0 group-hover/season:opacity-100 group-focus-within/season:opacity-100">
+        <FavoriteButton items={entry.episodes} label={`Favorite ${label}`} size="icon-sm" iconOnly />
+      </div>
       {#if admin}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          class="cursor-pointer"
-          aria-label={`Remove ${label}`}
-          disabled={transferring(entry.episodes)}
-          title={transferring(entry.episodes) ? "Manage active transfers in Downloads before removing this season" : `Remove ${label}`}
-          onclick={() => confirmRemoval(entry.episodes, `${show.title} · ${label}`, false)}
-        >
-          <TrashIcon />
-        </Button>
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger class={buttonVariants({ variant: "ghost", size: "icon-sm", class: "cursor-pointer bg-background/90" })} aria-label={`Actions for ${label}`}>
+            <EllipsisIcon />
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content align="end">
+            <DropdownMenu.Item variant="destructive" class="cursor-pointer" disabled={transferring(entry.episodes)} onSelect={() => confirmRemoval(entry.episodes, `${show.title} · ${label}`, false)}>
+              <TrashIcon />Remove season
+            </DropdownMenu.Item>
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
       {/if}
     {/snippet}
 

@@ -22,7 +22,7 @@
       {@const selected = seasonKey(season) === value}
       {@const watched = season.episodes.filter((e) => e.completed).length}
       {@const hasUpNext = season.episodes.some((e) => e.id === upNextId)}
-      <div class="relative max-w-52">
+      <div class="group/season relative max-w-52">
         <button type="button" aria-pressed={selected} onclick={() => onValueChange(seasonKey(season))}
           class="flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-xl border bg-card text-left transition-colors hover:border-foreground/50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring motion-reduce:transition-none {selected ? 'border-brand ring-1 ring-brand' : 'border-border'}">
           <Artwork src={season.posterUrl ?? seriesPoster} alt="" class="aspect-[2/3] w-full">
@@ -38,7 +38,7 @@
           </div>
         </button>
         {#if actions}
-          <div class="absolute end-2 top-2 flex max-w-[calc(100%-1rem)] flex-wrap items-start gap-1 rounded-lg bg-background/90 p-0.5">
+          <div class="absolute end-2 top-2 flex max-w-[calc(100%-1rem)] items-start gap-1">
             {@render actions(season)}
           </div>
         {/if}
